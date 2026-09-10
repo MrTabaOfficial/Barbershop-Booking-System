@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../src/auth/password.ts";
 import { prisma } from "../src/db.ts";
 import type {
   Barber,
@@ -68,7 +68,7 @@ async function seed() {
   if (!seedPassword) {
     throw new Error("Missing environment variable SEED_PASSWORD. See .env.example.");
   }
-  const passwordHash = await bcrypt.hash(seedPassword, 10);
+  const passwordHash = await hashPassword(seedPassword);
 
   // Bookings go first because they block deleting the rows they point at.
   // Deleting users cascades to barbers, working hours, and days off.
