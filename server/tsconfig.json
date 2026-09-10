@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "nodenext",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+
+    // tsx runs the TypeScript directly, so tsc only type-checks.
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "prisma", "prisma.config.ts"]
+}

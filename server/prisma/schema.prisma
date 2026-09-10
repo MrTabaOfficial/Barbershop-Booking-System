@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  BARBER
+  ADMIN
+
+  @@map("role")
+}
+
+enum BookingStatus {
+  PENDING // created, deposit not paid yet
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@map("booking_status")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  phone        String?
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  barber   Barber?
+  bookings Booking[]
+
+  @@map("users")
+}
+
+// The barber-specific side of a user whose role is BARBER.
+model Barber {
+  id       String  @id @default(uuid())
+  userId   String  @unique @map("user_id")
+  bio      String?
+  isActive Boolean @default(true) @map("is_active")
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workingHours WorkingHours[]
+  daysOff      DayOff[]
+  bookings     Booking[]
+
+  @@map("barbers")
+}
+
+model Service {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  description     String?
+  durationMinutes Int     @map("duration_minutes")
+  priceCents      Int     @map("price_cents")
+  depositCents    Int     @map("deposit_cents")
+  isActive        Boolean @default(true) @map("is_active")
+
+  bookings Booking[]
+
+  @@map("services")
+}
+
+// One row per barber per weekday they work; no row means they don't work
+// that day. Times are minutes after midnight in the shop's local time
+// (540 = 09:00).
+model WorkingHours {
+  id               String @id @default(uuid())
+  barberId         String @map("barber_id")
+  weekday          Int // 0 = Sunday ... 6 = Saturday, same as Date.getDay()
+  startMinute      Int    @map("start_minute")
+  endMinute        Int    @map("end_minute")
+  breakStartMinute Int?   @map("break_start_minute")
+  breakEndMinute   Int?   @map("break_end_minute")
+
+  barber Barber @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@unique([barberId, weekday])
+  @@map("working_hours")
+}
+
+model DayOff {
+  id       String   @id @default(uuid())
+  barberId String   @map("barber_id")
+  date     DateTime @db.Date
+  reason   String?
+
+  barber Barber @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@unique([barberId, date])
+  @@map("days_off")
+}
+
+// Overlapping bookings for the same barber are rejected by an exclusion
+// constraint that Prisma can't express here; see the booking_no_overlap
+// migration.
+model Booking {
+  id         String        @id @default(uuid())
+  customerId String        @map("customer_id")
+  barberId   String        @map("barber_id")
+  serviceId  String        @map("service_id")
+  startsAt   DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt     DateTime      @map("ends_at") @db.Timestamptz(3)
+  status     BookingStatus @default(PENDING)
+  // Copied from the service at booking time, so later price changes don't
+  // rewrite what the customer agreed to.
+  priceCents   Int      @map("price_cents")
+  depositCents Int      @map("deposit_cents")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  customer User    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  barber   Barber  @relation(fields: [barberId], references: [id], onDelete: Restrict)
+  service  Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([barberId, startsAt])
+  @@index([customerId])
+  @@map("bookings")
+}
