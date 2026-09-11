@@ -5,7 +5,8 @@ service, a barber, and a time slot; barbers manage their schedule; the
 admin manages services, staff, and working hours.
 
 This is a portfolio project that runs locally. It is being built one slice
-at a time. So far: the database layer and authentication.
+at a time. So far: the database layer, authentication, availability and
+bookings (API only).
 
 ## Stack
 
@@ -15,7 +16,7 @@ at a time. So far: the database layer and authentication.
 
 ## Requirements
 
-- Node.js 22 or newer
+- Node.js 26 or newer (the time zone code uses the built-in `Temporal` API)
 - Docker Desktop
 
 ## Setup
@@ -63,6 +64,23 @@ Errors always have the same shape:
 | POST   | `/auth/logout`   | Revokes the refresh token and clears the cookie     |
 | GET    | `/auth/me`       | Returns the logged-in user                          |
 
+Public:
+
+| Method | Path            | What it does                                             |
+| ------ | --------------- | -------------------------------------------------------- |
+| GET    | `/services`     | Active services with duration, price and deposit         |
+| GET    | `/barbers`      | Active barbers                                           |
+| GET    | `/availability` | Free start times for `barberId`, `serviceId` and `date`  |
+
+Logged-in users:
+
+| Method | Path                       | What it does                                  |
+| ------ | -------------------------- | --------------------------------------------- |
+| POST   | `/bookings`                | Books a slot returned by `/availability`      |
+| GET    | `/bookings/mine`           | The user's upcoming and past bookings         |
+| POST   | `/bookings/:id/cancel`     | Cancels the user's own booking                |
+| POST   | `/bookings/:id/reschedule` | Moves the user's own booking to a new time    |
+
 ## How authentication works
 
 - Login returns a 15-minute access token (a JWT) that the client sends as
@@ -74,6 +92,41 @@ Errors always have the same shape:
   old one. If a revoked token is presented again, every session of that
   user is ended, because the token may have been stolen.
 - Failed logins are limited to 10 per 15 minutes per IP address.
+
+## How availability works
+
+For one barber, one service and one date, the free start times are found
+like this:
+
+1. No working hours for that weekday, or a day off on that date, means no
+   slots.
+2. The day's opening, closing and break times are converted from the
+   shop's clock to exact instants for that date.
+3. Starting at opening, every 15 minutes is a candidate. It is kept if it
+   starts at least an hour from now, ends by closing time, and overlaps
+   neither the break nor a non-cancelled booking.
+4. Dates more than 60 days ahead have no slots.
+
+The calculation is a pure function (`server/src/availability/slots.ts`)
+with no database access, so it is unit tested directly. `POST /bookings`
+runs the same function again before saving.
+
+### Time zones
+
+The shop's time zone is the `SHOP_TIME_ZONE` setting. Working hours and
+days off are in shop time; bookings are stored as UTC instants. Clock
+times are converted to instants one date at a time, so 09:00 stays 09:00
+on the shop's clock when daylight saving changes the UTC offset. After
+that conversion everything is measured in real elapsed time.
+
+### Cancelling and rescheduling
+
+- A customer can cancel or move only their own booking, and only before it
+  starts.
+- Cancelling records whether it happened 24 hours or more before the
+  start, which decides whether the deposit is refunded.
+- Rescheduling moves the booking with a single `UPDATE`, so it either
+  gets the new time or keeps the old one.
 
 ## Demo accounts
 
@@ -113,6 +166,18 @@ server/
       password.ts      Password hashing
       schemas.ts       Request validation
       middleware.ts    requireAuth and requireRole
+    shop/
+      time.ts          Conversions between shop clock time and UTC
+    availability/
+      slots.ts         The slot calculation (pure function)
+      service.ts       Loads schedule and bookings for the calculation
+      routes.ts        GET /availability
+    services/routes.ts GET /services
+    barbers/routes.ts  GET /barbers
+    bookings/
+      routes.ts        The /bookings endpoints
+      service.ts       Create, list, cancel, reschedule
+      schemas.ts       Request validation
   tests/               Vitest tests, run against a separate database
 ```
 
@@ -121,5 +186,6 @@ server/
 The `bookings` table has a PostgreSQL exclusion constraint: two bookings
 for the same barber can't cover overlapping time unless one of them is
 cancelled. The database enforces it, so two requests arriving at the same
-moment can't both succeed. See
+moment can't both succeed: one is saved and the other gets a
+`409 SLOT_UNAVAILABLE`. See
 `server/prisma/migrations/20261004143447_booking_no_overlap/migration.sql`.

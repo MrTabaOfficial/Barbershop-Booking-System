@@ -133,8 +133,13 @@ model Booking {
   // rewrite what the customer agreed to.
   priceCents   Int      @map("price_cents")
   depositCents Int      @map("deposit_cents")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Both are set when the booking is cancelled. The second records whether
+  // that happened 24 hours or more before the start, which decides whether
+  // the deposit is refunded.
+  cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelledInFreeWindow Boolean?  @map("cancelled_in_free_window")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   customer User    @relation(fields: [customerId], references: [id], onDelete: Restrict)
   barber   Barber  @relation(fields: [barberId], references: [id], onDelete: Restrict)

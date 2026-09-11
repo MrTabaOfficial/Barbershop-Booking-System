@@ -1,11 +1,19 @@
 import { hashPassword } from "../src/auth/password.ts";
 import { prisma } from "../src/db.ts";
+import { env } from "../src/env.ts";
 import type {
   Barber,
   BookingStatus,
   Service,
   User,
 } from "../src/generated/prisma/client.ts";
+import {
+  addDays,
+  shopDateOf,
+  shopTimeToUtc,
+  toDateColumn,
+  weekdayOf,
+} from "../src/shop/time.ts";
 
 const SUNDAY = 0;
 const MONDAY = 1;
@@ -20,28 +28,24 @@ function minutes(hour: number, minute = 0): number {
 }
 
 // Demo bookings are placed relative to today so the data never looks stale.
-// The seed treats this machine's local time as the shop's local time.
-function findWorkday(weekdays: number[], daysFromToday: number): Date {
+// "Today" and every clock time below are in the shop's time zone, whatever
+// time zone this machine is in.
+const timeZone = env.shopTimeZone;
+const today = shopDateOf(new Date(), timeZone);
+
+// The first date, counting from today, that falls on one of the weekdays.
+// A negative number searches backwards.
+function findWorkday(weekdays: number[], daysFromToday: number): string {
   const step = daysFromToday < 0 ? -1 : 1;
-  const day = new Date();
-  day.setHours(0, 0, 0, 0);
-  day.setDate(day.getDate() + daysFromToday);
-  while (!weekdays.includes(day.getDay())) {
-    day.setDate(day.getDate() + step);
+  let shopDate = addDays(today, daysFromToday);
+  while (!weekdays.includes(weekdayOf(shopDate))) {
+    shopDate = addDays(shopDate, step);
   }
-  return day;
+  return shopDate;
 }
 
-function at(day: Date, hour: number, minute = 0): Date {
-  const time = new Date(day);
-  time.setHours(hour, minute, 0, 0);
-  return time;
-}
-
-// A DATE column keeps only the UTC calendar date of the value it is given,
-// so local midnight would land on the previous day in timezones ahead of UTC.
-function toDateOnly(day: Date): Date {
-  return new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()));
+function at(shopDate: string, hour: number, minute = 0): Date {
+  return shopTimeToUtc(shopDate, minutes(hour, minute), timeZone);
 }
 
 function bookingData(
@@ -229,13 +233,14 @@ async function seed() {
   await prisma.dayOff.create({
     data: {
       barberId: marco.id,
-      date: toDateOnly(findWorkday(marcoWeekdays, 10)),
+      date: toDateColumn(findWorkday(marcoWeekdays, 10)),
       reason: "Family event",
     },
   });
 
   const marcoLastWorkday = findWorkday(marcoWeekdays, -1);
-  const marcoNextWorkday = findWorkday(marcoWeekdays, 1);
+  // Two days out, so the cancellation below is inside the free window.
+  const marcoNextWorkday = findWorkday(marcoWeekdays, 2);
   const devEarlierWorkday = findWorkday(devWeekdays, -3);
   const devNextWorkday = findWorkday(devWeekdays, 2);
   const samNextWorkday = findWorkday(samWeekdays, 3);
@@ -248,7 +253,11 @@ async function seed() {
 
       // Priya cancelled, then Alex took the same slot. Both rows can exist
       // because cancelled bookings are outside the overlap constraint.
-      bookingData(priya, marco, haircut, at(marcoNextWorkday, 10), "CANCELLED"),
+      {
+        ...bookingData(priya, marco, haircut, at(marcoNextWorkday, 10), "CANCELLED"),
+        cancelledAt: new Date(),
+        cancelledInFreeWindow: true,
+      },
       bookingData(alex, marco, haircut, at(marcoNextWorkday, 10), "CONFIRMED"),
       // Back to back with the booking above: one ends at 10:30, this starts at 10:30.
       bookingData(jordan, marco, beardTrim, at(marcoNextWorkday, 10, 30), "CONFIRMED"),

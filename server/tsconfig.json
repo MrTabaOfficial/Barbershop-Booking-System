@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2024",
+    // esnext.temporal adds the types for the built-in Temporal date API.
+    "lib": ["es2024", "esnext.temporal"],
     "module": "nodenext",
     "types": ["node"],
 

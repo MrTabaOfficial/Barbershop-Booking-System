@@ -1,5 +1,6 @@
 import path from "node:path";
 import { z } from "zod";
+import { isValidTimeZone } from "./shop/time.ts";
 
 // The .env file sits at the repo root so Docker Compose and the server
 // read the same values. Variables that are already set are not overwritten.
@@ -8,6 +9,9 @@ process.loadEnvFile(path.resolve(import.meta.dirname, "../../.env"));
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   JWT_ACCESS_SECRET: z.string().min(32, "must be at least 32 characters"),
+  SHOP_TIME_ZONE: z
+    .string()
+    .refine(isValidTimeZone, "must be an IANA time zone name such as Asia/Tbilisi"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
@@ -22,6 +26,7 @@ if (!parsed.success) {
 export const env = {
   databaseUrl: parsed.data.DATABASE_URL,
   jwtAccessSecret: parsed.data.JWT_ACCESS_SECRET,
+  shopTimeZone: parsed.data.SHOP_TIME_ZONE,
   port: parsed.data.PORT,
   isProduction: parsed.data.NODE_ENV === "production",
 };
