@@ -15,7 +15,9 @@ type RescheduleDialogProps = {
 };
 
 export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogProps) {
-  const [date, setDate] = useState<string | null>(null);
+  // Open on the day the booking is on now: a small shift is the most
+  // likely change.
+  const [date, setDate] = useState<string | null>(booking.localDate);
   const [slot, setSlot] = useState<Slot | null>(null);
   const rescheduleBooking = useRescheduleBooking();
 
@@ -79,6 +81,7 @@ export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogPro
         }
         date={date}
         selectedStartsAt={slot?.startsAt ?? null}
+        excludeBookingId={booking.id}
         onDateChange={(day) => {
           setDate(day);
           setSlot(null);

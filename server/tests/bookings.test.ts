@@ -212,6 +212,83 @@ describe("GET /availability", () => {
   });
 });
 
+describe("GET /availability with excludeBookingId", () => {
+  // Alex has 10:00-10:30. Without the exclusion, 09:45 to 10:15 are blocked.
+  const BLOCKED_BY_ALEX = ["09:45", "10:00", "10:15"];
+
+  async function freeTimesExcluding(bookingId: string, auth?: string): Promise<string[]> {
+    const pending = request(app)
+      .get("/availability")
+      .query({ barberId: barber.id, serviceId: haircut.id, date: DATE, excludeBookingId: bookingId });
+    const response = await (auth ? pending.set("Authorization", auth) : pending);
+    expect(response.status).toBe(200);
+    return response.body.slots.map((slot: { localTime: string }) => slot.localTime);
+  }
+
+  it("leaves out the caller's own booking, so times overlapping it are offered", async () => {
+    const own = await insertBooking(alex, at("10:00"));
+
+    const times = await freeTimesExcluding(own.id, alexAuth);
+
+    expect(times).toEqual(expect.arrayContaining(BLOCKED_BY_ALEX));
+  });
+
+  it("still blocks other customers' bookings while leaving out the caller's own", async () => {
+    const own = await insertBooking(alex, at("10:00"));
+    await insertBooking(priya, at("11:00"));
+
+    const times = await freeTimesExcluding(own.id, alexAuth);
+
+    expect(times).toContain("10:00");
+    expect(times).not.toContain("11:00");
+  });
+
+  it("ignores the id of someone else's booking", async () => {
+    const alexBooking = await insertBooking(alex, at("10:00"));
+
+    const times = await freeTimesExcluding(alexBooking.id, priyaAuth);
+
+    for (const time of BLOCKED_BY_ALEX) {
+      expect(times).not.toContain(time);
+    }
+  });
+
+  it("ignores the id when the caller is not logged in", async () => {
+    const alexBooking = await insertBooking(alex, at("10:00"));
+
+    const times = await freeTimesExcluding(alexBooking.id);
+
+    expect(times).not.toContain("10:00");
+  });
+
+  it("ignores an id that matches no booking", async () => {
+    await insertBooking(alex, at("10:00"));
+
+    const times = await freeTimesExcluding("7b1d7d0e-3c0a-4f6e-9d55-2f0c1a9e4b11", alexAuth);
+
+    expect(times).not.toContain("10:00");
+  });
+
+  it("refuses an invalid token instead of treating the caller as anonymous", async () => {
+    const response = await request(app)
+      .get("/availability")
+      .query({ barberId: barber.id, serviceId: haircut.id, date: DATE })
+      .set("Authorization", "Bearer not-a-real-token");
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("UNAUTHENTICATED");
+  });
+
+  it("rejects an id that is not a UUID", async () => {
+    const response = await request(app)
+      .get("/availability")
+      .query({ barberId: barber.id, serviceId: haircut.id, date: DATE, excludeBookingId: "abc" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.details[0].path).toBe("excludeBookingId");
+  });
+});
+
 describe("POST /bookings", () => {
   it("books a free slot and copies the price and deposit from the service", async () => {
     const response = await book(alexAuth, "10:00");

@@ -69,6 +69,29 @@ cd client && npm test   # unit tests for the API layer and formatting helpers
 
 The test database is created and migrated automatically on the first run.
 
+### End-to-end tests
+
+A small Playwright suite in `e2e/` drives the real website in a browser
+against the real API: booking as a visitor and registering on the way,
+recovering when the slot is taken at the last moment, rescheduling,
+cancelling, and staying logged in across a reload.
+
+```sh
+cd e2e
+npm install
+npm run browsers   # once: downloads the Chromium that Playwright drives
+npm test
+```
+
+`npm test` does everything else by itself. It creates and seeds a separate
+`barbershop_e2e` database, starts its own API (port 3100) and website
+(port 5174), runs the tests, and stops both. It never touches the
+development database, and it can run while your dev servers are up. It
+only needs PostgreSQL running (`docker compose up -d`).
+
+When a test fails, a screenshot and a trace are kept in
+`e2e/test-results/`.
+
 ## API
 
 Errors always have the same shape:
@@ -93,6 +116,11 @@ Public:
 | GET    | `/services`     | Active services with duration, price and deposit         |
 | GET    | `/barbers`      | Active barbers with their working hours                  |
 | GET    | `/availability` | Free start times for `barberId`, `serviceId` and `date`  |
+
+`/availability` also accepts `excludeBookingId`. When the caller is logged
+in and owns that booking, it is left out of the calculation, so the
+reschedule dialog can offer times that overlap the booking's current one.
+Anyone else's booking id is ignored.
 
 Logged-in users:
 
@@ -230,6 +258,11 @@ client/
                        dialogs
     pages/             Home, Book, login and register, My bookings
     lib/               Dates, formatting, form errors, safe redirects
+e2e/
+  playwright.config.ts Starts the API and website for the tests
+  environment.ts       The suite's own database and ports
+  global-setup.ts      Migrates and seeds the e2e database
+  tests/               The end-to-end tests and their helpers
 ```
 
 ## How the website handles login

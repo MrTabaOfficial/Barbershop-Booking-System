@@ -117,7 +117,7 @@ describe("apiRequest", () => {
     expect(refreshCalls()).toHaveLength(1);
   });
 
-  it("gives up and ends the session when the refresh is refused", async () => {
+  it("ends the session when the refresh is refused, and reports the 401", async () => {
     fakeApi(() => unauthenticated());
     setSession({ accessToken: "expired", user });
     const sessionChanges: (User | null)[] = [];
@@ -125,9 +125,26 @@ describe("apiRequest", () => {
 
     await expect(apiRequest("/bookings/mine")).rejects.toMatchObject({ status: 401 });
 
-    // The original request and the refresh, but no retry.
-    expect(calls).toHaveLength(2);
     expect(sessionChanges).toEqual([null]);
+    // The original request, the refresh, and one retry without a token.
+    expect(calls.map((call) => `${call.url} ${call.authorization ?? "-"}`)).toEqual([
+      "/api/bookings/mine Bearer expired",
+      "/api/auth/refresh -",
+      "/api/bookings/mine -",
+    ]);
+  });
+
+  it("still gets an answer from a public endpoint after the session has ended", async () => {
+    // Like GET /availability: fine without a token, 401 for a dead one.
+    fakeApi((call) => {
+      if (call.url === "/api/auth/refresh") {
+        return unauthenticated();
+      }
+      return call.authorization ? unauthenticated() : json(200, { slots: [] });
+    });
+    setSession({ accessToken: "expired", user });
+
+    await expect(apiRequest("/availability")).resolves.toEqual({ slots: [] });
   });
 
   it("retries only once, even if the retry is also refused", async () => {

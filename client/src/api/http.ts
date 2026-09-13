@@ -155,10 +155,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     // retry once. The /auth endpoints are left alone because their 401s
     // mean something else (a wrong password) that a refresh can't fix.
     if (response.status === 401 && !path.startsWith("/auth/")) {
-      const session = await refreshSession();
-      if (session) {
-        response = await send(path, options);
-      }
+      await refreshSession();
+      // Retry even if the session turned out to have ended. The request
+      // then goes without a token: public endpoints still answer, and
+      // protected ones return a 401 that is reported below.
+      response = await send(path, options);
     }
   } catch (error) {
     if (error instanceof ApiError) {

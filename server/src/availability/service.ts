@@ -15,6 +15,24 @@ export async function getActiveService(serviceId: string): Promise<Service> {
   return service;
 }
 
+// A customer who is moving a booking wants to see times that overlap its
+// current slot. Only the owner may have a booking left out: for anyone
+// else the id is ignored rather than refused, so it can neither free up
+// another customer's slot nor reveal which ids exist.
+export async function findOwnBookingId(
+  bookingId: string | undefined,
+  userId: string | undefined,
+): Promise<string | undefined> {
+  if (!bookingId || !userId) {
+    return undefined;
+  }
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, customerId: userId },
+    select: { id: true },
+  });
+  return booking?.id;
+}
+
 type SlotQuery = {
   barberId: string;
   shopDate: string;

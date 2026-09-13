@@ -31,6 +31,18 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
   next();
 };
 
+// For public endpoints that do something extra for a logged-in caller.
+// No Authorization header means anonymous. A header with a bad or expired
+// token is still refused, so the client learns it has to refresh; treating
+// it as anonymous would silently drop the extra behaviour.
+export const optionalAuth: RequestHandler = (req, res, next) => {
+  if (req.get("authorization") === undefined) {
+    next();
+    return;
+  }
+  return requireAuth(req, res, next);
+};
+
 // Use after requireAuth: router.get("/x", requireAuth, requireRole("admin"), ...)
 export function requireRole(...allowedRoles: RoleName[]): RequestHandler {
   return (req, _res, next) => {

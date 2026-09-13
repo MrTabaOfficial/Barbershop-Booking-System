@@ -36,15 +36,34 @@ export function useBarbers() {
   });
 }
 
-type AvailabilityParams = { barberId: string; serviceId: string; date: string };
+type AvailabilityParams = {
+  barberId: string;
+  serviceId: string;
+  date: string;
+  // The customer's own booking, to be treated as if it weren't there.
+  // Used when rescheduling, so times overlapping the current one show up.
+  excludeBookingId?: string;
+};
 
 // Free times go out of date quickly, so this is refetched whenever it is
 // shown again (the default) rather than cached like the lists above.
 export function useAvailability(params: AvailabilityParams | null) {
   return useQuery({
-    queryKey: ["availability", params?.barberId, params?.serviceId, params?.date],
-    queryFn: () =>
-      apiRequest<Availability>(`/availability?${new URLSearchParams(params ?? {})}`),
+    queryKey: [
+      "availability",
+      params?.barberId,
+      params?.serviceId,
+      params?.date,
+      params?.excludeBookingId,
+    ],
+    queryFn: () => {
+      const { excludeBookingId, ...required } = params ?? {};
+      const query = new URLSearchParams(required);
+      if (excludeBookingId) {
+        query.set("excludeBookingId", excludeBookingId);
+      }
+      return apiRequest<Availability>(`/availability?${query}`);
+    },
     enabled: params !== null,
   });
 }

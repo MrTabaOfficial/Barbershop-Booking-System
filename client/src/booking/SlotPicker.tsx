@@ -17,6 +17,8 @@ type SlotPickerProps = {
   // working day.
   date: string | null;
   selectedStartsAt: string | null;
+  // When moving a booking: its id, so its own slot does not count as taken.
+  excludeBookingId?: string;
   onDateChange: (date: string) => void;
   onSlotSelect: (date: string, slot: Slot) => void;
 };
@@ -41,6 +43,7 @@ export function SlotPicker({
   workingWeekdays,
   date,
   selectedStartsAt,
+  excludeBookingId,
   onDateChange,
   onSlotSelect,
 }: SlotPickerProps) {
@@ -68,7 +71,12 @@ export function SlotPicker({
     addDays(shop.today, page * DAYS_PER_PAGE + index),
   ).filter((day) => day <= shop.lastBookableDate);
 
-  const availability = useAvailability({ barberId, serviceId, date: activeDate });
+  const availability = useAvailability({
+    barberId,
+    serviceId,
+    date: activeDate,
+    excludeBookingId,
+  });
   const slots = availability.data?.slots ?? [];
 
   return (
@@ -98,7 +106,7 @@ export function SlotPicker({
           </div>
         </div>
 
-        <ul className="grid grid-cols-7 gap-1 sm:gap-2">
+        <ul aria-label="Days" className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const { weekday, day: dayNumber, month } = dayParts(day);
             const selected = day === activeDate;
