@@ -115,7 +115,41 @@ describe("GET /services and GET /barbers", () => {
     const response = await request(app).get("/barbers");
 
     expect(response.status).toBe(200);
-    expect(response.body.barbers).toEqual([{ id: barber.id, name: "Marco Rossi", bio: null }]);
+    expect(response.body.barbers).toHaveLength(1);
+    expect(response.body.barbers[0]).toMatchObject({
+      id: barber.id,
+      name: "Marco Rossi",
+      bio: null,
+    });
+    expect(Object.keys(response.body.barbers[0]).sort()).toEqual([
+      "bio",
+      "id",
+      "name",
+      "workingHours",
+    ]);
+  });
+
+  it("includes each barber's working hours, ordered by weekday", async () => {
+    const response = await request(app).get("/barbers");
+
+    const { workingHours } = response.body.barbers[0];
+    expect(workingHours).toHaveLength(7);
+    expect(workingHours[0]).toEqual({ weekday: 0, startMinute: 540, endMinute: 1080 });
+  });
+});
+
+describe("GET /shop", () => {
+  it("returns the time zone, today's shop date and the booking limits", async () => {
+    const response = await request(app).get("/shop");
+
+    const today = shopDateOf(new Date(), env.shopTimeZone);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      timeZone: env.shopTimeZone,
+      today,
+      lastBookableDate: addDays(today, 60),
+      freeCancellationHours: 24,
+    });
   });
 });
 

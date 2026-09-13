@@ -82,188 +82,190 @@ async function seed() {
 
   await prisma.user.create({
     data: {
-      email: "admin@barbershop.test",
-      name: "Olivia Bennett",
+      email: "tamar@dalaki.example",
+      name: "Tamar Beridze",
       role: "ADMIN",
       passwordHash,
     },
   });
 
-  const marcoWeekdays = [TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY];
-  const marco = await prisma.barber.create({
+  const giorgiWeekdays = [TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY];
+  const giorgi = await prisma.barber.create({
     data: {
-      bio: "Classic cuts and hot towel shaves. Fifteen years behind the chair.",
+      bio: "Opened Dalaki in 2016 after ten years in shops across Vake and Sololaki. Scissor cuts and straight razor shaves are what he is known for.",
       user: {
         create: {
-          email: "marco@barbershop.test",
-          name: "Marco Rossi",
+          email: "giorgi@dalaki.example",
+          name: "Giorgi Kapanadze",
           role: "BARBER",
           passwordHash,
         },
       },
       workingHours: {
-        create: marcoWeekdays.map((weekday) => ({
+        create: giorgiWeekdays.map((weekday) => ({
           weekday,
-          startMinute: minutes(9),
-          endMinute: minutes(18),
-          breakStartMinute: minutes(13),
-          breakEndMinute: minutes(14),
+          startMinute: minutes(10),
+          endMinute: minutes(19),
+          breakStartMinute: minutes(14),
+          breakEndMinute: minutes(15),
         })),
       },
     },
   });
 
-  const devWeekdays = [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY];
-  const dev = await prisma.barber.create({
+  const lukaWeekdays = [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY];
+  const luka = await prisma.barber.create({
     data: {
-      bio: "Fades, tapers, and sharp beard work.",
+      bio: "Fades, tapers and sharp beard lines. Luka knows what the city is wearing and how to make it suit you.",
       user: {
         create: {
-          email: "dev@barbershop.test",
-          name: "Dev Patel",
+          email: "luka@dalaki.example",
+          name: "Luka Gelashvili",
           role: "BARBER",
           passwordHash,
         },
       },
       workingHours: {
-        create: devWeekdays.map((weekday) => ({
+        create: lukaWeekdays.map((weekday) => ({
           weekday,
-          startMinute: minutes(10),
-          endMinute: minutes(19),
-          breakStartMinute: minutes(14),
-          breakEndMinute: minutes(14, 30),
+          startMinute: minutes(11),
+          endMinute: minutes(20),
+          breakStartMinute: minutes(15),
+          breakEndMinute: minutes(15, 30),
         })),
       },
     },
   });
 
   // Part-time, short days, no break.
-  const samWeekdays = [THURSDAY, FRIDAY, SATURDAY, SUNDAY];
-  const sam = await prisma.barber.create({
+  const nikaWeekdays = [THURSDAY, FRIDAY, SATURDAY, SUNDAY];
+  const nika = await prisma.barber.create({
     data: {
-      bio: "Weekend specialist. Great with kids' first haircuts.",
+      bio: "Takes the weekend chair. Patient with first haircuts and with children who would rather be anywhere else.",
       user: {
         create: {
-          email: "sam@barbershop.test",
-          name: "Sam Okafor",
+          email: "nika@dalaki.example",
+          name: "Nika Tsiklauri",
           role: "BARBER",
           passwordHash,
         },
       },
       workingHours: {
-        create: samWeekdays.map((weekday) => ({
+        create: nikaWeekdays.map((weekday) => ({
           weekday,
-          startMinute: minutes(11),
-          endMinute: minutes(17),
+          startMinute: minutes(12),
+          endMinute: minutes(18),
         })),
       },
     },
   });
 
+  // Prices are in tetri (1 GEL = 100 tetri), so 4500 is 45 GEL.
   const haircut = await prisma.service.create({
     data: {
       name: "Haircut",
-      description: "Scissor or clipper cut, finished with a wash and style.",
-      durationMinutes: 30,
-      priceCents: 2500,
-      depositCents: 1000,
+      description: "Scissor or clipper cut with a wash and style to finish.",
+      durationMinutes: 45,
+      priceCents: 4500,
+      depositCents: 1500,
     },
   });
   const beardTrim = await prisma.service.create({
     data: {
       name: "Beard trim",
-      description: "Shape, line-up, and beard oil.",
-      durationMinutes: 15,
-      priceCents: 1500,
-      depositCents: 500,
+      description: "Shaped and lined up with a razor, finished with beard oil.",
+      durationMinutes: 30,
+      priceCents: 2500,
+      depositCents: 1000,
     },
   });
   const haircutAndBeard = await prisma.service.create({
     data: {
-      name: "Haircut & beard",
-      description: "Full haircut plus beard trim.",
-      durationMinutes: 45,
-      priceCents: 3500,
-      depositCents: 1000,
+      name: "Haircut and beard",
+      description: "The full visit: haircut, beard trim, wash and style.",
+      durationMinutes: 75,
+      priceCents: 6500,
+      depositCents: 2000,
     },
   });
   const hotTowelShave = await prisma.service.create({
     data: {
       name: "Hot towel shave",
-      description: "Straight razor shave with hot towels.",
+      description: "A straight razor shave with hot towels before and after.",
       durationMinutes: 30,
-      priceCents: 3000,
+      priceCents: 3500,
       depositCents: 1000,
     },
   });
   const kidsHaircut = await prisma.service.create({
     data: {
       name: "Kids haircut",
-      description: "For children under 12.",
+      description: "For children under twelve. No rush, no tears.",
       durationMinutes: 30,
-      priceCents: 1800,
-      depositCents: 500,
+      priceCents: 3000,
+      depositCents: 1000,
     },
   });
 
-  const alex = await prisma.user.create({
+  // The phone numbers are deliberately fictional.
+  const davit = await prisma.user.create({
     data: {
-      email: "alex@example.test",
-      name: "Alex Turner",
-      phone: "+1 555 0101",
+      email: "davit@dalaki.example",
+      name: "Davit Maisuradze",
+      phone: "+995 555 01 01 01",
       passwordHash,
     },
   });
-  const priya = await prisma.user.create({
+  const nino = await prisma.user.create({
     data: {
-      email: "priya@example.test",
-      name: "Priya Shah",
-      phone: "+1 555 0102",
+      email: "nino@dalaki.example",
+      name: "Nino Lomidze",
+      phone: "+995 555 01 01 02",
       passwordHash,
     },
   });
-  const jordan = await prisma.user.create({
+  const irakli = await prisma.user.create({
     data: {
-      email: "jordan@example.test",
-      name: "Jordan Lee",
+      email: "irakli@dalaki.example",
+      name: "Irakli Mchedlishvili",
       passwordHash,
     },
   });
 
   await prisma.dayOff.create({
     data: {
-      barberId: marco.id,
-      date: toDateColumn(findWorkday(marcoWeekdays, 10)),
+      barberId: giorgi.id,
+      date: toDateColumn(findWorkday(giorgiWeekdays, 10)),
       reason: "Family event",
     },
   });
 
-  const marcoLastWorkday = findWorkday(marcoWeekdays, -1);
+  const giorgiLastWorkday = findWorkday(giorgiWeekdays, -1);
   // Two days out, so the cancellation below is inside the free window.
-  const marcoNextWorkday = findWorkday(marcoWeekdays, 2);
-  const devEarlierWorkday = findWorkday(devWeekdays, -3);
-  const devNextWorkday = findWorkday(devWeekdays, 2);
-  const samNextWorkday = findWorkday(samWeekdays, 3);
+  const giorgiNextWorkday = findWorkday(giorgiWeekdays, 2);
+  const lukaEarlierWorkday = findWorkday(lukaWeekdays, -3);
+  const lukaNextWorkday = findWorkday(lukaWeekdays, 2);
+  const nikaNextWorkday = findWorkday(nikaWeekdays, 3);
 
   await prisma.booking.createMany({
     data: [
-      bookingData(alex, marco, haircut, at(marcoLastWorkday, 10), "COMPLETED"),
-      bookingData(priya, marco, beardTrim, at(marcoLastWorkday, 11), "NO_SHOW"),
-      bookingData(jordan, dev, haircutAndBeard, at(devEarlierWorkday, 15), "COMPLETED"),
+      bookingData(davit, giorgi, haircut, at(giorgiLastWorkday, 11), "COMPLETED"),
+      bookingData(irakli, giorgi, beardTrim, at(giorgiLastWorkday, 12), "NO_SHOW"),
+      bookingData(irakli, luka, haircutAndBeard, at(lukaEarlierWorkday, 16), "COMPLETED"),
 
-      // Priya cancelled, then Alex took the same slot. Both rows can exist
+      // Irakli cancelled, then Davit took the same slot. Both rows can exist
       // because cancelled bookings are outside the overlap constraint.
       {
-        ...bookingData(priya, marco, haircut, at(marcoNextWorkday, 10), "CANCELLED"),
+        ...bookingData(irakli, giorgi, haircut, at(giorgiNextWorkday, 11), "CANCELLED"),
         cancelledAt: new Date(),
         cancelledInFreeWindow: true,
       },
-      bookingData(alex, marco, haircut, at(marcoNextWorkday, 10), "CONFIRMED"),
-      // Back to back with the booking above: one ends at 10:30, this starts at 10:30.
-      bookingData(jordan, marco, beardTrim, at(marcoNextWorkday, 10, 30), "CONFIRMED"),
+      bookingData(davit, giorgi, haircut, at(giorgiNextWorkday, 11), "CONFIRMED"),
+      // Back to back with the booking above: one ends at 11:45, this starts at 11:45.
+      bookingData(irakli, giorgi, beardTrim, at(giorgiNextWorkday, 11, 45), "CONFIRMED"),
 
-      bookingData(jordan, dev, hotTowelShave, at(devNextWorkday, 11), "PENDING"),
-      bookingData(priya, sam, kidsHaircut, at(samNextWorkday, 12), "CONFIRMED"),
+      bookingData(irakli, luka, hotTowelShave, at(lukaNextWorkday, 12), "PENDING"),
+      bookingData(nino, nika, kidsHaircut, at(nikaNextWorkday, 13), "CONFIRMED"),
     ],
   });
 

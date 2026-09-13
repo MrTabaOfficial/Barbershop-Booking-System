@@ -1,16 +1,18 @@
-# Barbershop Booking System
+# Dalaki · Barbershop Booking System
 
-A booking system for a barbershop with several barbers. Customers pick a
-service, a barber, and a time slot; barbers manage their schedule; the
-admin manages services, staff, and working hours.
+A booking system for Dalaki (დალაქი, "barber" in Georgian), a fictional
+barbershop in Tbilisi with several barbers. Customers pick a service, a
+barber, and a time slot; barbers manage their schedule; the admin manages
+services, staff, and working hours.
 
 This is a portfolio project that runs locally. It is being built one slice
-at a time. So far: the database layer, authentication, availability and
-bookings (API only).
+at a time. So far: the database layer, authentication, the availability
+and bookings API, and the customer-facing website.
 
 ## Stack
 
-- Frontend: React, Vite, TypeScript, Tailwind (not started)
+- Frontend: React, Vite, TypeScript, Tailwind, React Router, TanStack
+  Query, react-hook-form with zod
 - Backend: Node, Express, TypeScript
 - Database: PostgreSQL 17 in Docker, Prisma 7
 
@@ -33,17 +35,36 @@ cd server
 npm install
 npm run db:migrate
 npm run db:seed
+
+# 4. Install the website's dependencies
+cd ../client
+npm install
 ```
 
-`npm run db:studio` opens a browser view of the data.
+`npm run db:studio` (in `server/`) opens a browser view of the data.
 
 ## Running
 
-From `server/`:
+Two terminals:
 
 ```sh
+cd server
 npm run dev    # API on http://localhost:3000, restarts on changes
-npm test       # runs the tests against a separate barbershop_test database
+```
+
+```sh
+cd client
+npm run dev    # website on http://localhost:5173
+```
+
+Open http://localhost:5173. The website's dev server forwards `/api/*` to
+the API, so the browser only ever talks to one address.
+
+Tests:
+
+```sh
+cd server && npm test   # API tests, against a separate barbershop_test database
+cd client && npm test   # unit tests for the API layer and formatting helpers
 ```
 
 The test database is created and migrated automatically on the first run.
@@ -68,8 +89,9 @@ Public:
 
 | Method | Path            | What it does                                             |
 | ------ | --------------- | -------------------------------------------------------- |
+| GET    | `/shop`         | Time zone, today's date in the shop, booking limits      |
 | GET    | `/services`     | Active services with duration, price and deposit         |
-| GET    | `/barbers`      | Active barbers                                           |
+| GET    | `/barbers`      | Active barbers with their working hours                  |
 | GET    | `/availability` | Free start times for `barberId`, `serviceId` and `date`  |
 
 Logged-in users:
@@ -132,15 +154,19 @@ that conversion everything is measured in real elapsed time.
 
 All demo accounts use the password from `SEED_PASSWORD` in `.env`.
 
-| Role     | Email                 |
-| -------- | --------------------- |
-| Admin    | admin@barbershop.test |
-| Barber   | marco@barbershop.test |
-| Barber   | dev@barbershop.test   |
-| Barber   | sam@barbershop.test   |
-| Customer | alex@example.test     |
-| Customer | priya@example.test    |
-| Customer | jordan@example.test   |
+| Role     | Name                 | Email                 |
+| -------- | -------------------- | --------------------- |
+| Admin    | Tamar Beridze        | tamar@dalaki.example  |
+| Barber   | Giorgi Kapanadze     | giorgi@dalaki.example |
+| Barber   | Luka Gelashvili      | luka@dalaki.example   |
+| Barber   | Nika Tsiklauri       | nika@dalaki.example   |
+| Customer | Davit Maisuradze     | davit@dalaki.example  |
+| Customer | Nino Lomidze         | nino@dalaki.example   |
+| Customer | Irakli Mchedlishvili | irakli@dalaki.example |
+
+Only customers have pages in the website so far. Log in as Davit to see
+upcoming and past bookings. The shop, its address and its phone number are
+fictional, and prices are in Georgian lari.
 
 ## Project layout
 
@@ -168,6 +194,7 @@ server/
       middleware.ts    requireAuth and requireRole
     shop/
       time.ts          Conversions between shop clock time and UTC
+      routes.ts        GET /shop
     availability/
       slots.ts         The slot calculation (pure function)
       service.ts       Loads schedule and bookings for the calculation
@@ -179,7 +206,46 @@ server/
       service.ts       Create, list, cancel, reschedule
       schemas.ts       Request validation
   tests/               Vitest tests, run against a separate database
+client/
+  index.html
+  vite.config.ts       Vite, Tailwind, and the /api proxy
+  src/
+    main.tsx           Entry: fonts, providers, router
+    index.css          Tailwind, brand colours and fonts, base styles
+    routes.tsx         Route table
+    shop.ts            Shop facts: name, wordmark, address, phone
+    api/
+      http.ts          fetch wrapper: token in memory, refresh and retry
+      queries.ts       TanStack Query hooks, one per endpoint
+      types.ts         Shapes of API responses
+    auth/
+      AuthProvider.tsx Session state: restore on load, login, logout
+      AuthContext.ts   The useAuth hook
+      RequireAuth.tsx  Guard for logged-in pages
+      AuthForms.tsx    Login and register forms
+    components/        Button, Input, Card, Dialog, Notice, States,
+                       StatusBadge, Layout
+    booking/           SlotPicker (day and time), Stepper, ChoiceList,
+                       ConfirmStep, BookingCard, cancel and reschedule
+                       dialogs
+    pages/             Home, Book, login and register, My bookings
+    lib/               Dates, formatting, form errors, safe redirects
 ```
+
+## How the website handles login
+
+- The access token is kept in a JavaScript variable and nowhere else. A
+  page reload forgets it.
+- On load, the app asks `POST /api/auth/refresh` for a new one. The browser
+  attaches the `httpOnly` refresh cookie; the page's code never sees it.
+- When any request gets a 401, the app refreshes once and retries once.
+- Refresh tokens work only once, so refreshes never overlap: requests in
+  one tab share a single refresh, and a browser lock makes tabs take turns.
+- The booking flow keeps its choices in the URL, so login and register can
+  send the customer back to the exact step they left.
+- `localStorage` holds one flag, `dalaki.hasSession`, which only says "this
+  browser has logged in before". It saves anonymous visitors a refresh
+  request that would always fail.
 
 ## How double-booking is prevented
 
