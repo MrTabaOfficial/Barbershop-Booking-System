@@ -79,3 +79,8 @@ export async function createService(name = "Haircut", isActive = true) {
     data: { name, durationMinutes: 30, priceCents: 2500, depositCents: 1000, isActive },
   });
 }
+
+// The login of a barber made with createBarber().
+export async function authHeaderForBarber(barber: { userId: string }): Promise<string> {
+  return authHeaderFor(await prisma.user.findUniqueOrThrow({ where: { id: barber.userId } }));
+}

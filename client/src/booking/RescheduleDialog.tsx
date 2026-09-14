@@ -82,6 +82,7 @@ export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogPro
         date={date}
         selectedStartsAt={slot?.startsAt ?? null}
         excludeBookingId={booking.id}
+        currentStartsAt={booking.startsAt}
         onDateChange={(day) => {
           setDate(day);
           setSlot(null);

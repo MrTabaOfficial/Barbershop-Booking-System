@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { SEED_PASSWORD } from "../environment.ts";
 
 const PASSWORD = "e2e-test-password";
 let customerCount = 0;
@@ -71,4 +72,12 @@ export async function bookHaircutWithLuka(page: Page, time: string): Promise<str
 // The card for one booking in "My bookings".
 export function bookingCard(page: Page, day: string, time: string): Locator {
   return page.getByRole("listitem").filter({ hasText: `${day}, ${time}` });
+}
+
+// Logs in as one of the seeded demo accounts.
+export async function logIn(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(SEED_PASSWORD);
+  await page.getByRole("button", { name: "Log in" }).click();
 }

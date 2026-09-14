@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { addDays, dayParts, formatLongDate, isShopDate, weekdayOf } from "./dates.ts";
+import {
+  addDays,
+  dayParts,
+  formatLongDate,
+  isShopDate,
+  startOfWeek,
+  weekdayOf,
+} from "./dates.ts";
 import { formatClock, formatDuration, formatPrice } from "./format.ts";
-import { safeNextPath } from "./nextPath.ts";
+import { homeFor, safeNextPath } from "./nextPath.ts";
 
 describe("shop dates", () => {
   it("adds days across month and year ends", () => {
@@ -13,6 +20,12 @@ describe("shop dates", () => {
   it("numbers weekdays from Sunday, like the API", () => {
     expect(weekdayOf("2026-10-04")).toBe(0);
     expect(weekdayOf("2026-10-06")).toBe(2);
+  });
+
+  it("finds the Monday of a week", () => {
+    expect(startOfWeek("2026-10-04")).toBe("2026-09-28"); // a Sunday
+    expect(startOfWeek("2026-10-05")).toBe("2026-10-05"); // a Monday
+    expect(startOfWeek("2026-10-08")).toBe("2026-10-05");
   });
 
   it("formats dates for display", () => {
@@ -51,10 +64,15 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/book?service=1&barber=2")).toBe("/book?service=1&barber=2");
   });
 
-  it("falls back for anything that could leave the site", () => {
-    expect(safeNextPath("https://evil.example")).toBe("/bookings");
-    expect(safeNextPath("//evil.example")).toBe("/bookings");
-    expect(safeNextPath("/\\evil.example")).toBe("/bookings");
-    expect(safeNextPath(null)).toBe("/bookings");
+  it("refuses anything that could leave the site", () => {
+    expect(safeNextPath("https://evil.example")).toBeNull();
+    expect(safeNextPath("//evil.example")).toBeNull();
+    expect(safeNextPath("/\\evil.example")).toBeNull();
+    expect(safeNextPath(null)).toBeNull();
+  });
+
+  it("sends each role to its own page when no page asked for the login", () => {
+    expect(homeFor("customer")).toBe("/bookings");
+    expect(homeFor("barber")).toBe("/barber");
   });
 });

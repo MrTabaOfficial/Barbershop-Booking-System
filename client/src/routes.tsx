@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { RequireAuth } from "./auth/RequireAuth.tsx";
 import { Layout } from "./components/Layout.tsx";
 import { LoginPage, RegisterPage } from "./pages/AuthPages.tsx";
+import { BarberPage } from "./pages/BarberPage.tsx";
 import { BookPage } from "./pages/BookPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { MyBookingsPage } from "./pages/MyBookingsPage.tsx";
@@ -22,6 +23,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <MyBookingsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "barber",
+        element: (
+          <RequireAuth role="barber">
+            <BarberPage />
           </RequireAuth>
         ),
       },

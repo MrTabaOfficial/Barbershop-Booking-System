@@ -74,7 +74,8 @@ The test database is created and migrated automatically on the first run.
 A small Playwright suite in `e2e/` drives the real website in a browser
 against the real API: booking as a visitor and registering on the way,
 recovering when the slot is taken at the last moment, rescheduling,
-cancelling, and staying logged in across a reload.
+cancelling, staying logged in across a reload, and a barber recording an
+outcome and managing days off.
 
 ```sh
 cd e2e
@@ -130,6 +131,21 @@ Logged-in users:
 | GET    | `/bookings/mine`           | The user's upcoming and past bookings         |
 | POST   | `/bookings/:id/cancel`     | Cancels the user's own booking                |
 | POST   | `/bookings/:id/reschedule` | Moves the user's own booking to a new time    |
+
+Barbers only, and always about the barber who is logged in:
+
+| Method | Path                            | What it does                                        |
+| ------ | ------------------------------- | --------------------------------------------------- |
+| GET    | `/barber/schedule?from=&to=`    | Days with working hours, day off and bookings       |
+| POST   | `/barber/bookings/:id/complete` | Marks a booking completed, once it has started      |
+| POST   | `/barber/bookings/:id/no-show`  | Marks a booking as a no-show, once it has started   |
+| GET    | `/barber/days-off`              | Upcoming days off                                   |
+| POST   | `/barber/days-off`              | Adds a day off; refused if that date has bookings   |
+| DELETE | `/barber/days-off/:id`          | Removes a day off                                   |
+
+The role is checked on the server for every request. The website hides
+pages a user can't use, but nothing depends on that: a customer calling
+these gets a 403, and another barber's booking or day off is a 404.
 
 ## How authentication works
 
@@ -192,9 +208,18 @@ All demo accounts use the password from `SEED_PASSWORD` in `.env`.
 | Customer | Nino Lomidze         | nino@dalaki.example   |
 | Customer | Irakli Mchedlishvili | irakli@dalaki.example |
 
-Only customers have pages in the website so far. Log in as Davit to see
-upcoming and past bookings. The shop, its address and its phone number are
-fictional, and prices are in Georgian lari.
+Four more customers (Levan, Tornike, Ana and Saba, same email pattern)
+fill out the history. The seed generates about four weeks of past
+bookings in mixed statuses, plus appointments for today.
+
+- Log in as Davit to see a customer's upcoming and past bookings.
+- Log in as a barber to land on the schedule at `/barber`: today's
+  appointments, the week, and days off. Giorgi works Tuesday to Saturday,
+  Luka Monday to Friday, Nika Thursday to Sunday.
+- The admin has no pages yet.
+
+The shop, its address and its phone number are fictional, and prices are
+in Georgian lari.
 
 ## Project layout
 
@@ -233,6 +258,10 @@ server/
       routes.ts        The /bookings endpoints
       service.ts       Create, list, cancel, reschedule
       schemas.ts       Request validation
+    barber/
+      routes.ts        The /barber endpoints
+      service.ts       Schedule, outcomes, days off
+      schemas.ts       Request validation
   tests/               Vitest tests, run against a separate database
 client/
   index.html
@@ -245,6 +274,7 @@ client/
     api/
       http.ts          fetch wrapper: token in memory, refresh and retry
       queries.ts       TanStack Query hooks, one per endpoint
+      barberQueries.ts The same for the barber dashboard
       types.ts         Shapes of API responses
     auth/
       AuthProvider.tsx Session state: restore on load, login, logout
@@ -256,7 +286,9 @@ client/
     booking/           SlotPicker (day and time), Stepper, ChoiceList,
                        ConfirmStep, BookingCard, cancel and reschedule
                        dialogs
-    pages/             Home, Book, login and register, My bookings
+    barber/            Appointment, DayAgenda, DaysOff
+    pages/             Home, Book, login and register, My bookings,
+                       the barber's Schedule
     lib/               Dates, formatting, form errors, safe redirects
 e2e/
   playwright.config.ts Starts the API and website for the tests

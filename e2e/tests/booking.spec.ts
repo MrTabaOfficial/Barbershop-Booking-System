@@ -88,6 +88,8 @@ test("a customer moves a booking to a time that overlaps the current one", async
   // The dialog opens on the booking's own day. The haircut runs 16:00 to
   // 16:45, so 16:15 is only on offer because the booking doesn't block itself.
   await expect(dialog.getByRole("heading", { name: day })).toBeVisible();
+  // The time the booking already has is shown, labelled, and can't be picked.
+  await expect(dialog.getByRole("button", { name: "16:00 Current" })).toBeDisabled();
   await timeButton(dialog, "16:15").click();
   await dialog.getByRole("button", { name: "Move to 16:15" }).click();
 

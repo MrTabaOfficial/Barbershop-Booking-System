@@ -79,6 +79,41 @@ export type Booking = {
   barber: { id: string; name: string };
 };
 
+// A booking as its barber sees it.
+export type ScheduleBooking = {
+  id: string;
+  status: BookingStatus;
+  startsAt: string;
+  endsAt: string;
+  localDate: string;
+  localTime: string;
+  localEndTime: string;
+  priceCents: number;
+  service: { id: string; name: string };
+  customer: { name: string; phone: string | null };
+};
+
+export type DayOff = {
+  id: string;
+  // YYYY-MM-DD
+  date: string;
+  reason: string | null;
+};
+
+// One day of a barber's schedule.
+export type ScheduleDay = {
+  date: string;
+  // Null on a weekday the barber doesn't work.
+  workingHours: {
+    startMinute: number;
+    endMinute: number;
+    breakStartMinute: number | null;
+    breakEndMinute: number | null;
+  } | null;
+  dayOff: DayOff | null;
+  bookings: ScheduleBooking[];
+};
+
 export type MyBookings = {
   upcoming: Booking[];
   past: Booking[];

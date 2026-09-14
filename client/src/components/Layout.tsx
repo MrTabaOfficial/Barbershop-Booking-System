@@ -19,8 +19,11 @@ function Logo() {
 }
 
 function Header() {
-  const { status, logout } = useAuth();
+  const { status, user, logout } = useAuth();
   const navigate = useNavigate();
+  // A barber comes here to work, so their schedule takes the place of the
+  // customer links. Booking is still one tap away on the home page.
+  const isBarber = user?.role === "barber";
 
   async function handleLogout() {
     // Leave first. If the session ended while a protected page was still
@@ -34,14 +37,22 @@ function Header() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Logo />
         <nav aria-label="Main" className="flex items-center gap-4 sm:gap-6">
-          <NavLink to="/book" className={NAV_LINK}>
-            Book
-          </NavLink>
+          {isBarber ? (
+            <NavLink to="/barber" className={NAV_LINK}>
+              Schedule
+            </NavLink>
+          ) : (
+            <NavLink to="/book" className={NAV_LINK}>
+              Book
+            </NavLink>
+          )}
           {status === "authenticated" && (
             <>
-              <NavLink to="/bookings" className={NAV_LINK}>
-                My bookings
-              </NavLink>
+              {!isBarber && (
+                <NavLink to="/bookings" className={NAV_LINK}>
+                  My bookings
+                </NavLink>
+              )}
               <button type="button" className={NAV_LINK} onClick={handleLogout}>
                 Log out
               </button>

@@ -5,7 +5,7 @@ const LABELS: Record<BookingStatus, string> = {
   confirmed: "Confirmed",
   completed: "Completed",
   cancelled: "Cancelled",
-  no_show: "Missed",
+  no_show: "No-show",
 };
 
 export function StatusBadge({ status }: { status: BookingStatus }) {

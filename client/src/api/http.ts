@@ -9,15 +9,31 @@ export type FieldIssue = { path: string; message: string };
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  // Per-field validation messages, when the API sent any.
-  readonly fieldIssues: FieldIssue[];
+  // Whatever extra the API attached. Its shape depends on the code.
+  readonly details: unknown;
 
-  constructor(status: number, code: string, message: string, fieldIssues: FieldIssue[] = []) {
+  constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
     this.status = status;
     this.code = code;
-    this.fieldIssues = fieldIssues;
+    this.details = details;
   }
+
+  // Per-field validation messages, when that is what the details are.
+  get fieldIssues(): FieldIssue[] {
+    return Array.isArray(this.details) ? this.details.filter(isFieldIssue) : [];
+  }
+}
+
+function isFieldIssue(value: unknown): value is FieldIssue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "path" in value &&
+    typeof value.path === "string" &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
 }
 
 // The access token lives only in this variable. It is never written to
@@ -75,12 +91,7 @@ export function setSession(session: Session | null): void {
 async function toApiError(response: Response): Promise<ApiError> {
   try {
     const { error } = await response.json();
-    return new ApiError(
-      response.status,
-      error.code,
-      error.message,
-      Array.isArray(error.details) ? error.details : [],
-    );
+    return new ApiError(response.status, error.code, error.message, error.details);
   } catch {
     // Not the API's error format, e.g. the proxy answering because the API is down.
     return new ApiError(
@@ -127,7 +138,7 @@ export function refreshSession(): Promise<Session | null> {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   body?: unknown;
 };
 

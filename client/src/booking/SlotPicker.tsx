@@ -17,8 +17,10 @@ type SlotPickerProps = {
   // working day.
   date: string | null;
   selectedStartsAt: string | null;
-  // When moving a booking: its id, so its own slot does not count as taken.
+  // When moving a booking: its id, so its own slot does not count as taken,
+  // and its current start, which is shown but can't be picked.
   excludeBookingId?: string;
+  currentStartsAt?: string;
   onDateChange: (date: string) => void;
   onSlotSelect: (date: string, slot: Slot) => void;
 };
@@ -44,6 +46,7 @@ export function SlotPicker({
   date,
   selectedStartsAt,
   excludeBookingId,
+  currentStartsAt,
   onDateChange,
   onSlotSelect,
 }: SlotPickerProps) {
@@ -174,19 +177,26 @@ export function SlotPicker({
                     <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                       {partSlots.map((slot) => {
                         const selected = slot.startsAt === selectedStartsAt;
+                        const current = slot.startsAt === currentStartsAt;
                         return (
                           <li key={slot.startsAt}>
                             <button
                               type="button"
+                              disabled={current}
                               aria-pressed={selected}
                               onClick={() => onSlotSelect(activeDate, slot)}
-                              className={`min-h-11 w-full rounded-sm border text-sm font-medium tabular-nums transition-colors ${
+                              className={`min-h-11 w-full rounded-sm border text-sm font-medium tabular-nums transition-colors disabled:cursor-not-allowed disabled:border-dashed disabled:text-muted ${
                                 selected
                                   ? "border-brass bg-brass text-ink"
-                                  : "border-line-strong hover:border-brass-light hover:text-brass-light"
+                                  : "border-line-strong enabled:hover:border-brass-light enabled:hover:text-brass-light"
                               }`}
                             >
                               {slot.localTime}
+                              {current && (
+                                <span className="block text-[0.625rem] font-semibold uppercase tracking-wider">
+                                  Current
+                                </span>
+                              )}
                             </button>
                           </li>
                         );

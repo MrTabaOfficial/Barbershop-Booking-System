@@ -30,6 +30,12 @@ export function weekdayOf(shopDate: string): number {
   return toUtcMidnight(shopDate).getUTCDay();
 }
 
+// The Monday of the week a date falls in.
+export function startOfWeek(shopDate: string): string {
+  const daysSinceMonday = (weekdayOf(shopDate) + 6) % 7;
+  return addDays(shopDate, -daysSinceMonday);
+}
+
 const longDateFormat = new Intl.DateTimeFormat("en-GB", {
   weekday: "long",
   day: "numeric",

@@ -60,3 +60,21 @@ export function addDays(shopDate: string, days: number): string {
 export function toDateColumn(shopDate: string): Date {
   return new Date(`${shopDate}T00:00:00Z`);
 }
+
+export function fromDateColumn(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+// "Tuesday 6 October", for messages.
+export function formatShopDate(shopDate: string): string {
+  return Temporal.PlainDate.from(shopDate).toLocaleString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+// How many days `to` is after `from`.
+export function daysBetween(from: string, to: string): number {
+  return Temporal.PlainDate.from(from).until(to).days;
+}
