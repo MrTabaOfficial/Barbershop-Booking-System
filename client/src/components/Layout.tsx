@@ -21,9 +21,10 @@ function Logo() {
 function Header() {
   const { status, user, logout } = useAuth();
   const navigate = useNavigate();
-  // A barber comes here to work, so their schedule takes the place of the
+  // Staff come here to work, so their own page takes the place of the
   // customer links. Booking is still one tap away on the home page.
   const isBarber = user?.role === "barber";
+  const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
     // Leave first. If the session ended while a protected page was still
@@ -41,6 +42,10 @@ function Header() {
             <NavLink to="/barber" className={NAV_LINK}>
               Schedule
             </NavLink>
+          ) : isAdmin ? (
+            <NavLink to="/admin" className={NAV_LINK}>
+              Admin
+            </NavLink>
           ) : (
             <NavLink to="/book" className={NAV_LINK}>
               Book
@@ -48,7 +53,7 @@ function Header() {
           )}
           {status === "authenticated" && (
             <>
-              {!isBarber && (
+              {!isBarber && !isAdmin && (
                 <NavLink to="/bookings" className={NAV_LINK}>
                   My bookings
                 </NavLink>

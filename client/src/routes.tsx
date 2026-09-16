@@ -1,4 +1,9 @@
 import { createBrowserRouter } from "react-router";
+import { AdminLayout } from "./admin/AdminLayout.tsx";
+import { BookingsPage } from "./admin/BookingsPage.tsx";
+import { OverviewPage } from "./admin/OverviewPage.tsx";
+import { ServicesPage } from "./admin/ServicesPage.tsx";
+import { StaffPage } from "./admin/StaffPage.tsx";
 import { RequireAuth } from "./auth/RequireAuth.tsx";
 import { Layout } from "./components/Layout.tsx";
 import { LoginPage, RegisterPage } from "./pages/AuthPages.tsx";
@@ -33,6 +38,20 @@ export const router = createBrowserRouter([
             <BarberPage />
           </RequireAuth>
         ),
+      },
+      {
+        path: "admin",
+        element: (
+          <RequireAuth role="admin">
+            <AdminLayout />
+          </RequireAuth>
+        ),
+        children: [
+          { index: true, element: <OverviewPage /> },
+          { path: "bookings", element: <BookingsPage /> },
+          { path: "services", element: <ServicesPage /> },
+          { path: "staff", element: <StaffPage /> },
+        ],
       },
       { path: "*", element: <NotFoundPage /> },
     ],

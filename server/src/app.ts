@@ -1,5 +1,6 @@
 import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
+import { createAdminRouter } from "./admin/routes.ts";
 import { createAuthRouter } from "./auth/routes.ts";
 import { createAvailabilityRouter } from "./availability/routes.ts";
 import { createBarberRouter } from "./barber/routes.ts";
@@ -24,6 +25,7 @@ export function createApp(): Express {
   app.use("/availability", createAvailabilityRouter());
   app.use("/bookings", createBookingsRouter());
   app.use("/barber", createBarberRouter());
+  app.use("/admin", createAdminRouter());
 
   // Order matters: these two come after every route.
   app.use(notFoundHandler);

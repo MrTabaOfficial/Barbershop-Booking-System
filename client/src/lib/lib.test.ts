@@ -7,7 +7,14 @@ import {
   startOfWeek,
   weekdayOf,
 } from "./dates.ts";
-import { formatClock, formatDuration, formatPrice } from "./format.ts";
+import {
+  formatClock,
+  formatDuration,
+  formatPrice,
+  parseClock,
+  parseLari,
+  toLariInput,
+} from "./format.ts";
 import { homeFor, safeNextPath } from "./nextPath.ts";
 
 describe("shop dates", () => {
@@ -59,6 +66,33 @@ describe("formatting", () => {
   });
 });
 
+describe("form values", () => {
+  it("turns lari typed into a form into tetri", () => {
+    expect(parseLari("45")).toBe(4500);
+    expect(parseLari("45.5")).toBe(4550);
+    expect(parseLari(" 12,30 ")).toBe(1230);
+    expect(parseLari("19.99")).toBe(1999);
+  });
+
+  it("refuses anything that isn't an amount", () => {
+    expect(parseLari("")).toBeNull();
+    expect(parseLari("free")).toBeNull();
+    expect(parseLari("-5")).toBeNull();
+    expect(parseLari("1.234")).toBeNull();
+  });
+
+  it("shows tetri as lari for editing", () => {
+    expect(toLariInput(4500)).toBe("45");
+    expect(toLariInput(4550)).toBe("45.50");
+  });
+
+  it("reads a clock time as minutes after midnight", () => {
+    expect(parseClock("10:00")).toBe(600);
+    expect(parseClock("15:30")).toBe(930);
+    expect(parseClock("")).toBeNull();
+  });
+});
+
 describe("safeNextPath", () => {
   it("accepts a path inside the app", () => {
     expect(safeNextPath("/book?service=1&barber=2")).toBe("/book?service=1&barber=2");
@@ -74,5 +108,6 @@ describe("safeNextPath", () => {
   it("sends each role to its own page when no page asked for the login", () => {
     expect(homeFor("customer")).toBe("/bookings");
     expect(homeFor("barber")).toBe("/barber");
+    expect(homeFor("admin")).toBe("/admin");
   });
 });

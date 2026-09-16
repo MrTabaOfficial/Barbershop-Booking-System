@@ -138,7 +138,7 @@ export function refreshSession(): Promise<Session | null> {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
 };
 
@@ -157,7 +157,10 @@ function send(path: string, options: RequestOptions): Promise<Response> {
   });
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+// Sends a request and returns the successful response. Everything about
+// tokens, refreshing and errors happens here, whatever the caller then
+// does with the body.
+async function request(path: string, options: RequestOptions): Promise<Response> {
   let response: Response;
   try {
     response = await send(path, options);
@@ -186,7 +189,28 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!response.ok) {
     throw await toApiError(response);
   }
+  return response;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await request(path, options);
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+}
+
+// Fetches a file and hands it to the browser to save. A plain link can't
+// be used for this, because a link can't send the access token.
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  const response = await request(path, {});
+  const fileName =
+    /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "")?.[1] ??
+    fallbackName;
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 // The message to show a person for any failure.

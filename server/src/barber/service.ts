@@ -165,7 +165,7 @@ export async function addDayOff(barber: Barber, input: AddDayOffInput) {
     throw new AppError(
       409,
       "DAY_HAS_BOOKINGS",
-      `You have ${count} on ${formatShopDate(input.date)}. They have to be moved or cancelled before you can take the day off.`,
+      `You have ${count} on ${formatShopDate(input.date)}. ${bookings.length === 1 ? "It has" : "They have"} to be moved or cancelled before you can take the day off.`,
       {
         bookings: bookings.map((booking) => ({
           id: booking.id,

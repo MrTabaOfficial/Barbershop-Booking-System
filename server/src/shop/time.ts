@@ -46,6 +46,16 @@ export function shopClockTimeOf(instant: Date, timeZone: string): string {
   return toShopClock(instant, timeZone).toPlainTime().toString({ smallestUnit: "minute" });
 }
 
+// A Date whose UTC fields read as the shop's clock at that instant. It is
+// not a real instant: it is for formats that have no time zones, such as
+// spreadsheets, where "15:00" has to mean 15:00 in the shop.
+export function shopClockAsUtc(instant: Date, timeZone: string): Date {
+  const clock = toShopClock(instant, timeZone);
+  return new Date(
+    Date.UTC(clock.year, clock.month - 1, clock.day, clock.hour, clock.minute, clock.second),
+  );
+}
+
 // 0 = Sunday ... 6 = Saturday, the numbering working_hours.weekday uses.
 export function weekdayOf(shopDate: string): number {
   // Temporal counts Monday as 1 and Sunday as 7.

@@ -12,8 +12,14 @@ export function safeNextPath(next: string | null): string | null {
 }
 
 // Where someone lands after logging in when no page asked for the login.
+const HOME: Record<Role, string> = {
+  customer: "/bookings",
+  barber: "/barber",
+  admin: "/admin",
+};
+
 export function homeFor(role: Role): string {
-  return role === "barber" ? "/barber" : "/bookings";
+  return HOME[role];
 }
 
 export function withNext(path: string, next: string): string {

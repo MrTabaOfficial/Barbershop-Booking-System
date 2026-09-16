@@ -74,8 +74,9 @@ The test database is created and migrated automatically on the first run.
 A small Playwright suite in `e2e/` drives the real website in a browser
 against the real API: booking as a visitor and registering on the way,
 recovering when the slot is taken at the last moment, rescheduling,
-cancelling, staying logged in across a reload, and a barber recording an
-outcome and managing days off.
+cancelling, staying logged in across a reload, a barber recording an
+outcome and managing days off, and the admin working through the overview,
+a service, the bookings table with its export, and a barber's hours.
 
 ```sh
 cd e2e
@@ -143,9 +144,49 @@ Barbers only, and always about the barber who is logged in:
 | POST   | `/barber/days-off`              | Adds a day off; refused if that date has bookings   |
 | DELETE | `/barber/days-off/:id`          | Removes a day off                                   |
 
+Admin only:
+
+| Method    | Path                               | What it does                                  |
+| --------- | ---------------------------------- | --------------------------------------------- |
+| GET, POST | `/admin/services`                  | All services, including inactive; create one  |
+| PATCH     | `/admin/services/:id`              | Edit, activate or deactivate                  |
+| GET, POST | `/admin/barbers`                   | All barbers; create a barber account          |
+| PATCH     | `/admin/barbers/:id`               | Edit name and bio, activate or deactivate     |
+| PUT       | `/admin/barbers/:id/working-hours` | Replace the week's hours and breaks           |
+| GET       | `/admin/bookings`                  | Filtered, sorted and paged on the server      |
+| POST      | `/admin/bookings/:id/cancel`       | Cancel any booking that has no outcome yet    |
+| GET       | `/admin/bookings/export.xlsx`      | The same filters, as an Excel file            |
+| GET       | `/admin/overview?from=&to=`        | Statistics for a range of shop dates          |
+
+`/admin/bookings` takes `from`, `to`, `barberId`, `status`, `search`
+(customer name, email or phone), `sort`, `order`, `page` and `pageSize`.
+Services and barbers are never deleted, because bookings point at them;
+deactivating takes them off the website and keeps the history.
+
 The role is checked on the server for every request. The website hides
 pages a user can't use, but nothing depends on that: a customer calling
-these gets a 403, and another barber's booking or day off is a 404.
+a barber or admin endpoint gets a 403, as does a barber calling an admin
+one, and another barber's booking or day off is a 404.
+
+## How the statistics are calculated
+
+The overview's numbers are counted in SQL (`server/src/admin/overview.ts`),
+not by loading bookings and adding them up in code:
+
+- **A day is the shop's day.** Bookings are grouped by
+  `(starts_at AT TIME ZONE <shop zone>)::date`, so one at 00:30 in the shop
+  lands on the right date even though it is still the previous day in UTC.
+- **Empty days are included.** `generate_series` lists every date in the
+  range, and bookings are joined onto it, so a chart never skips a day.
+- **Bookings per day** are all bookings that weren't cancelled.
+- **Revenue** counts completed bookings only.
+- **No-show rate** is no-shows divided by completed plus no-shows, so
+  cancelled and upcoming bookings don't dilute it.
+- **Most booked services** counts bookings that weren't cancelled.
+
+The export writes real spreadsheet dates and numbers with display formats,
+not text, so the file can be sorted, filtered and summed in Excel. Dates
+in it are on the shop's clock.
 
 ## How authentication works
 
@@ -216,7 +257,9 @@ bookings in mixed statuses, plus appointments for today.
 - Log in as a barber to land on the schedule at `/barber`: today's
   appointments, the week, and days off. Giorgi works Tuesday to Saturday,
   Luka Monday to Friday, Nika Thursday to Sunday.
-- The admin has no pages yet.
+- Log in as Tamar to land on the admin dashboard at `/admin`: an overview
+  with charts, the bookings table with filters and Excel export, services,
+  and staff with their working hours.
 
 The shop, its address and its phone number are fictional, and prices are
 in Georgian lari.
@@ -262,6 +305,13 @@ server/
       routes.ts        The /barber endpoints
       service.ts       Schedule, outcomes, days off
       schemas.ts       Request validation
+    admin/
+      routes.ts        The /admin endpoints
+      catalog.ts       Services, barbers and working hours
+      bookings.ts      Filtering, sorting, paging, cancelling
+      overview.ts      The statistics, in SQL
+      export.ts        The Excel file
+      schemas.ts       Request validation
   tests/               Vitest tests, run against a separate database
 client/
   index.html
@@ -275,6 +325,7 @@ client/
       http.ts          fetch wrapper: token in memory, refresh and retry
       queries.ts       TanStack Query hooks, one per endpoint
       barberQueries.ts The same for the barber dashboard
+      adminQueries.ts  The same for the admin dashboard
       types.ts         Shapes of API responses
     auth/
       AuthProvider.tsx Session state: restore on load, login, logout
@@ -287,6 +338,9 @@ client/
                        ConfirmStep, BookingCard, cancel and reschedule
                        dialogs
     barber/            Appointment, DayAgenda, DaysOff
+    admin/             AdminLayout (tabs), Overview, Bookings, Services
+                       and Staff pages, WorkingHoursDialog, and charts.tsx
+                       (our own SVG column chart and bar list)
     pages/             Home, Book, login and register, My bookings,
                        the barber's Schedule
     lib/               Dates, formatting, form errors, safe redirects
@@ -311,6 +365,19 @@ e2e/
 - `localStorage` holds one flag, `dalaki.hasSession`, which only says "this
   browser has logged in before". It saves anonymous visitors a refresh
   request that would always fail.
+
+## Known limitations
+
+- **Day-off race.** Adding a day off first checks that the date has no
+  bookings and then saves it, so a booking made in the instant between the
+  two can end up on a day off. Closing the gap would need the two steps to
+  lock against new bookings for that barber, which isn't worth it at this
+  size.
+- **Changed hours don't move bookings.** When the admin changes a barber's
+  working hours or deactivates a barber, bookings already made stay as they
+  are and have to be moved or cancelled by hand.
+- **Nobody is notified yet.** A cancellation by the admin frees the slot
+  but sends nothing to the customer; email comes in a later slice.
 
 ## How double-booking is prevented
 

@@ -5,6 +5,7 @@ import { ApiError } from "../api/http.ts";
 // them as a general error.
 const FIELD_FOR_CODE: Record<string, string> = {
   EMAIL_TAKEN: "email",
+  SERVICE_NAME_TAKEN: "name",
 };
 
 // Puts a failed request's messages where the user will look for them:

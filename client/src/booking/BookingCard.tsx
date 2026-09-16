@@ -27,7 +27,7 @@ export function BookingCard({ booking, onCancel, onReschedule }: BookingCardProp
             {booking.service.name} with {booking.barber.name}
           </p>
         </div>
-        <StatusBadge status={booking.status} />
+        <StatusBadge status={booking.status} audience="customer" />
       </div>
 
       <p className="mt-4 text-sm text-muted">
