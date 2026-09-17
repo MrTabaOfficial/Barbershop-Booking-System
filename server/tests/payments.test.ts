@@ -11,7 +11,9 @@ import type {
   Service,
   User,
 } from "../src/generated/prisma/client.ts";
-import { FakePaymentProvider } from "../src/payments/fake.ts";
+import type { Dependencies } from "../src/dependencies.ts";
+import type { FakePaymentProvider } from "../src/payments/fake.ts";
+import { PaymentProviders } from "../src/payments/index.ts";
 import { handlePaymentEvent } from "../src/payments/service.ts";
 import { StripePaymentProvider } from "../src/payments/stripe.ts";
 import { addDays, shopDateOf, shopTimeToUtc } from "../src/shop/time.ts";
@@ -20,6 +22,7 @@ import {
   authHeaderForBarber,
   createBarber,
   createService,
+  createTestDependencies,
   createUser,
   resetDatabase,
 } from "./helpers.ts";
@@ -33,6 +36,8 @@ function at(clockTime: string): Date {
   return shopTimeToUtc(DATE, (hours ?? 0) * 60 + (minutes ?? 0), env.shopTimeZone);
 }
 
+let deps: Dependencies;
+// The fake payment provider inside deps, to inspect what it was asked to do.
 let payments: FakePaymentProvider;
 let app: Express;
 let barber: Barber;
@@ -44,8 +49,8 @@ let ninoAuth: string;
 
 beforeEach(async () => {
   await resetDatabase();
-  payments = new FakePaymentProvider((sessionId) => `http://shop.test/pay/${sessionId}`);
-  app = createApp({ payments });
+  ({ deps, fake: payments } = createTestDependencies());
+  app = createApp(deps);
   barber = await createBarber("Giorgi Kapanadze");
   haircut = await createService("Haircut");
   davit = await createUser("davit@dalaki.example");
@@ -73,6 +78,7 @@ function insertBooking(
     paymentStatus?: PaymentStatus;
     paymentSessionId?: string;
     paymentId?: string;
+    paymentProvider?: string;
     holdExpiresAt?: Date;
     customer?: User;
   } = {},
@@ -92,9 +98,15 @@ function insertBooking(
   });
 }
 
-// A confirmed booking whose deposit has been paid.
-const insertPaidBooking = (startsAt: Date) =>
-  insertBooking(startsAt, { status: "CONFIRMED", paymentStatus: "PAID", paymentId: "pi_paid" });
+// A confirmed booking whose deposit has been paid, through the fake
+// provider unless a test says otherwise.
+const insertPaidBooking = (startsAt: Date, paymentProvider = "fake") =>
+  insertBooking(startsAt, {
+    status: "CONFIRMED",
+    paymentStatus: "PAID",
+    paymentId: "pi_paid",
+    paymentProvider,
+  });
 
 const reload = (bookingId: string) =>
   prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
@@ -131,6 +143,8 @@ describe("booking with a deposit", () => {
     // The slot is held for 30 minutes, and the checkout closes when the hold ends.
     const saved = await reload(response.body.booking.id);
     expect(saved.paymentSessionId).toBe(sessionId);
+    // Which provider it was, so a refund can go back the same way.
+    expect(saved.paymentProvider).toBe("fake");
     const heldForMinutes = ((saved.holdExpiresAt?.getTime() ?? 0) - before) / MINUTE_MS;
     expect(heldForMinutes).toBeGreaterThanOrEqual(30);
     expect(heldForMinutes).toBeLessThan(31);
@@ -192,7 +206,7 @@ describe("the Stripe webhook", () => {
     secretKey: "sk_test_not_a_real_key",
     webhookSecret: "whsec_test_secret",
   });
-  const stripeApp = createApp({ payments: stripe });
+  const stripeApp = createApp({ payments: new PaymentProviders(stripe) });
 
   function event(type: string, session: object) {
     return JSON.stringify({
@@ -341,7 +355,7 @@ describe("an unpaid booking's hold on its slot", () => {
 
   it("never expires a booking that has been paid", async () => {
     const { booking } = (await book(davitAuth, "10:00")).body;
-    await handlePaymentEvent(payments, {
+    await handlePaymentEvent(deps, {
       type: "payment_succeeded",
       sessionId: (await reload(booking.id)).paymentSessionId ?? "",
       paymentId: "pi_1",
@@ -362,7 +376,7 @@ describe("an unpaid booking's hold on its slot", () => {
     }
 
     const payLate = (sessionId: string | null) =>
-      handlePaymentEvent(payments, {
+      handlePaymentEvent(deps, {
         type: "payment_succeeded",
         sessionId: sessionId ?? "",
         paymentId: "pi_late",
@@ -467,6 +481,60 @@ describe("cancelling and the deposit", () => {
       status: "cancelled",
       paymentStatus: "refund_failed",
     });
+  });
+});
+
+describe("which provider a refund goes through", () => {
+  // Stripe is the one taking new deposits here, with the fake alongside it,
+  // as when Stripe keys are set. Nothing in these tests contacts Stripe:
+  // a call to it would fail, and show up as "refund failed".
+  const stripe = new StripePaymentProvider({
+    secretKey: "sk_test_not_a_real_key",
+    webhookSecret: "whsec_test_secret",
+  });
+  let withStripeActive: Express;
+
+  beforeEach(() => {
+    withStripeActive = createApp({ ...deps, payments: new PaymentProviders(stripe, [payments]) });
+  });
+
+  const cancel = (bookingId: string) =>
+    request(withStripeActive).post(`/bookings/${bookingId}/cancel`).set("Authorization", davitAuth);
+
+  it("refunds a deposit the fake provider took through the fake, even with Stripe active", async () => {
+    // What a seeded demo booking looks like.
+    const booking = await insertPaidBooking(new Date(Date.now() + 48 * HOUR_MS), "fake");
+
+    const response = await cancel(booking.id);
+
+    expect(response.body.booking.paymentStatus).toBe("refunded");
+    expect(payments.refunds).toEqual([
+      { paymentId: "pi_paid", idempotencyKey: `refund-${booking.id}` },
+    ]);
+  });
+
+  it("records a failed refund when the deposit's provider is no longer configured", async () => {
+    const booking = await insertPaidBooking(new Date(Date.now() + 48 * HOUR_MS), "retired-provider");
+
+    const response = await cancel(booking.id);
+
+    expect(response.body.booking).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refund_failed",
+    });
+    expect(payments.refunds).toEqual([]);
+  });
+
+  it("closes an unpaid checkout at the provider that opened it", async () => {
+    const pending = await insertBooking(at("10:00"), {
+      paymentSessionId: "fake_cs_open",
+      paymentProvider: "fake",
+      holdExpiresAt: new Date(Date.now() + 30 * MINUTE_MS),
+    });
+
+    await cancel(pending.id);
+
+    expect(payments.expiredSessionIds).toEqual(["fake_cs_open"]);
   });
 });
 

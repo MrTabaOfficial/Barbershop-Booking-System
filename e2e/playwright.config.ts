@@ -36,6 +36,10 @@ export default defineConfig({
         // payment provider, whose checkout page the tests can click through.
         STRIPE_SECRET_KEY: "",
         STRIPE_WEBHOOK_SECRET: "",
+        // Emails and owner alerts go to the log, not to Mailpit or Telegram.
+        SMTP_HOST: "",
+        TELEGRAM_BOT_TOKEN: "",
+        TELEGRAM_OWNER_CHAT_ID: "",
       },
       url: `${API_URL}/shop`,
       reuseExistingServer: false,

@@ -1,19 +1,19 @@
 import { isSlotTakenError } from "../bookings/errors.ts";
 import { prisma } from "../db.ts";
+import type { Dependencies } from "../dependencies.ts";
 import type { PaymentStatus } from "../generated/prisma/client.ts";
-import type { PaymentEvent, PaymentProvider } from "./provider.ts";
+import { notifyBookingConfirmed, notifyDepositReturned } from "../notifications/service.ts";
+import type { PaymentProviders } from "./index.ts";
+import type { PaymentEvent } from "./provider.ts";
 
 // What moves a booking because of money: a payment arriving, a hold running
 // out, a refund. Every change here is written as "update the row if it is
 // still in the state I expect", which is what makes a repeated webhook
 // harmless: the second time, nothing matches and nothing changes.
 
-export async function handlePaymentEvent(
-  payments: PaymentProvider,
-  event: PaymentEvent,
-): Promise<void> {
+export async function handlePaymentEvent(deps: Dependencies, event: PaymentEvent): Promise<void> {
   if (event.type === "payment_succeeded") {
-    await confirmPaidBooking(payments, event.sessionId, event.paymentId);
+    await confirmPaidBooking(deps, event.sessionId, event.paymentId);
   } else if (event.type === "checkout_expired") {
     await prisma.booking.updateMany({
       where: { paymentSessionId: event.sessionId, status: "PENDING" },
@@ -23,7 +23,7 @@ export async function handlePaymentEvent(
 }
 
 async function confirmPaidBooking(
-  payments: PaymentProvider,
+  deps: Dependencies,
   sessionId: string,
   paymentId: string,
 ): Promise<void> {
@@ -34,13 +34,18 @@ async function confirmPaidBooking(
     where: { paymentSessionId: sessionId, status: "PENDING" },
     data: { status: "CONFIRMED", ...paid },
   });
-  if (confirmed.count === 1) {
+  const booking = await prisma.booking.findUnique({ where: { paymentSessionId: sessionId } });
+  if (!booking) {
+    // A session this database doesn't know.
     return;
   }
-
-  const booking = await prisma.booking.findUnique({ where: { paymentSessionId: sessionId } });
-  if (!booking || booking.paymentStatus !== "UNPAID") {
-    // A session this database doesn't know, or an event already handled.
+  if (confirmed.count === 1) {
+    // Only now, with the confirmation saved, is anyone told.
+    await notifyBookingConfirmed(deps, booking.id);
+    return;
+  }
+  if (booking.paymentStatus !== "UNPAID") {
+    // This event was already handled.
     return;
   }
 
@@ -54,6 +59,7 @@ async function confirmPaidBooking(
         data: { status: "CONFIRMED", ...paid },
       });
       if (revived.count === 1) {
+        await notifyBookingConfirmed(deps, booking.id);
         return;
       }
     } catch (error) {
@@ -66,7 +72,8 @@ async function confirmPaidBooking(
 
   // It can't be honoured, so record the payment and give the money back.
   await prisma.booking.update({ where: { id: booking.id }, data: paid });
-  await refundDeposit(payments, { id: booking.id, paymentId });
+  await refundDeposit(deps.payments, { ...booking, paymentId });
+  await notifyDepositReturned(deps, booking.id);
 }
 
 // Marks every pending booking whose unpaid hold has run out as expired,
@@ -79,20 +86,33 @@ export async function expireUnpaidBookings(now = new Date()): Promise<number> {
   return result.count;
 }
 
+type PaidBooking = {
+  id: string;
+  paymentId: string | null;
+  // The name of the provider that took the deposit.
+  paymentProvider: string | null;
+};
+
 // Refunds a paid deposit and records how that went. A refund that fails
 // is logged and marked, never thrown: by this point the booking has already
 // been cancelled, and that must stand whatever the payment provider says.
 export async function refundDeposit(
-  payments: PaymentProvider,
-  booking: { id: string; paymentId: string | null },
+  payments: PaymentProviders,
+  booking: PaidBooking,
 ): Promise<PaymentStatus> {
   let paymentStatus: PaymentStatus;
   try {
+    // The money goes back the way it came: through the provider that took
+    // it, which is not necessarily the one taking new deposits today.
+    const provider = payments.named(booking.paymentProvider);
+    if (!provider) {
+      throw new Error(`Payment provider "${booking.paymentProvider}" is not configured`);
+    }
     if (!booking.paymentId) {
       throw new Error("The booking has no payment id to refund");
     }
     // The key makes a retry safe: the provider refunds a given booking once.
-    await payments.refund(booking.paymentId, `refund-${booking.id}`);
+    await provider.refund(booking.paymentId, `refund-${booking.id}`);
     paymentStatus = "REFUNDED";
   } catch (error) {
     console.error(`Refund failed for booking ${booking.id}`, error);
@@ -104,21 +124,17 @@ export async function refundDeposit(
 
 // What happens to the money once a booking has been cancelled.
 export async function settleCancelledBooking(
-  payments: PaymentProvider,
-  booking: {
-    id: string;
-    paymentStatus: PaymentStatus;
-    paymentSessionId: string | null;
-    paymentId: string | null;
-  },
+  payments: PaymentProviders,
+  booking: PaidBooking & { paymentStatus: PaymentStatus; paymentSessionId: string | null },
   refund: boolean,
 ): Promise<void> {
   if (booking.paymentStatus === "UNPAID") {
     // The customer may still have the checkout page open. Close it, so they
     // can't pay for a booking that no longer exists. If this fails, a late
     // payment is refunded by confirmPaidBooking above.
-    if (booking.paymentSessionId) {
-      await payments.expireCheckout(booking.paymentSessionId).catch((error: unknown) => {
+    const provider = payments.named(booking.paymentProvider);
+    if (provider && booking.paymentSessionId) {
+      await provider.expireCheckout(booking.paymentSessionId).catch((error: unknown) => {
         console.error(`Could not close the checkout of booking ${booking.id}`, error);
       });
     }

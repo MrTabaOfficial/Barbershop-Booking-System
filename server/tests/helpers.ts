@@ -4,8 +4,13 @@ import { hashPassword } from "../src/auth/password.ts";
 import { REFRESH_COOKIE } from "../src/auth/routes.ts";
 import { signAccessToken, toRoleName } from "../src/auth/tokens.ts";
 import { prisma } from "../src/db.ts";
+import type { Dependencies } from "../src/dependencies.ts";
 import { env } from "../src/env.ts";
 import type { Role, User } from "../src/generated/prisma/client.ts";
+import type { Email, Mailer } from "../src/notifications/mailer.ts";
+import type { OwnerAlerts } from "../src/notifications/ownerAlerts.ts";
+import { FakePaymentProvider } from "../src/payments/fake.ts";
+import { PaymentProviders } from "../src/payments/index.ts";
 
 export const TEST_PASSWORD = "correct-horse-battery";
 
@@ -80,6 +85,46 @@ export async function createService(name = "Haircut", isActive = true) {
   });
 }
 
+// A mailer that keeps what it is given instead of sending it, and can be
+// told to fail like a mail server that is down.
+export class RecordingMailer implements Mailer {
+  readonly name = "recording";
+  readonly sent: Email[] = [];
+  failing = false;
+
+  async send(email: Email): Promise<void> {
+    if (this.failing) {
+      throw new Error("The test mail server is down");
+    }
+    this.sent.push(email);
+  }
+}
+
+// The same for alerts to the owner.
+export class RecordingOwnerAlerts implements OwnerAlerts {
+  readonly name = "recording";
+  readonly sent: string[] = [];
+  failing = false;
+
+  async send(text: string): Promise<void> {
+    if (this.failing) {
+      throw new Error("The test Telegram bot is down");
+    }
+    this.sent.push(text);
+  }
+}
+
+// Stand-ins for everything outside the process, for createApp() and for
+// the functions that take dependencies directly. `fake` is the payment
+// provider inside `payments`, exposed so tests can inspect it.
+export function createTestDependencies() {
+  const fake = new FakePaymentProvider((sessionId) => `http://shop.test/pay/${sessionId}`);
+  const mailer = new RecordingMailer();
+  const ownerAlerts = new RecordingOwnerAlerts();
+  const deps: Dependencies = { payments: new PaymentProviders(fake), mailer, ownerAlerts };
+  return { deps, fake, mailer, ownerAlerts };
+}
+
 // What a successful deposit payment does to a booking, without going
 // through a checkout.
 export function markAsPaid(bookingId: string) {
@@ -89,6 +134,7 @@ export function markAsPaid(bookingId: string) {
       status: "CONFIRMED",
       paymentStatus: "PAID",
       paymentId: `pay_${bookingId}`,
+      paymentProvider: "fake",
       holdExpiresAt: null,
     },
   });

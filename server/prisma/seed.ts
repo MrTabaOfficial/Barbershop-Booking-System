@@ -67,9 +67,9 @@ function workingHoursRows({ weekdays, ...hours }: Shift) {
 let seededPayments = 0;
 
 // Every demo booking has had its deposit paid, as it would have been to
-// get past "pending". The payment ids are made up: no payment provider has
-// heard of them, so with real Stripe keys a refund of a seeded booking
-// fails and is recorded as "refund failed".
+// get past "pending". The payments are made up, and recorded as taken by
+// the fake provider, so that is where a refund of a seeded booking goes,
+// even when Stripe is the one taking new deposits.
 function bookingData(
   customer: User,
   barber: Barber,
@@ -89,6 +89,7 @@ function bookingData(
     depositCents: service.depositCents,
     paymentStatus: "PAID" as PaymentStatus,
     paymentId: `seed_pay_${seededPayments}`,
+    paymentProvider: "fake",
   };
 }
 

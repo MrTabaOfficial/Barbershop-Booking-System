@@ -1,7 +1,8 @@
 import express, { Router } from "express";
+import type { Dependencies } from "../dependencies.ts";
 import { AppError } from "../errors.ts";
 import { FakePaymentProvider } from "./fake.ts";
-import { InvalidWebhookError, type PaymentProvider } from "./provider.ts";
+import { InvalidWebhookError } from "./provider.ts";
 import { handlePaymentEvent } from "./service.ts";
 
 function escapeHtml(text: string): string {
@@ -45,8 +46,9 @@ function fakeCheckoutPage(description: string, amount: string, cancelUrl: string
 </html>`;
 }
 
-export function createPaymentsRouter(payments: PaymentProvider): Router {
+export function createPaymentsRouter(deps: Dependencies): Router {
   const router = Router();
+  const { payments } = deps;
 
   // The provider calls this when something happens to a payment. The body
   // is read as raw bytes, not parsed as JSON: the signature is calculated
@@ -58,22 +60,24 @@ export function createPaymentsRouter(payments: PaymentProvider): Router {
     }
     let event;
     try {
-      event = payments.parseWebhook(req.body, req.headers);
+      event = payments.active.parseWebhook(req.body, req.headers);
     } catch (error) {
       if (error instanceof InvalidWebhookError) {
         throw new AppError(400, "INVALID_SIGNATURE", error.message);
       }
       throw error;
     }
-    await handlePaymentEvent(payments, event);
+    await handlePaymentEvent(deps, event);
     // Any 2xx tells the provider not to send this event again.
     res.json({ received: true });
   });
 
-  // These two routes exist only while the fake provider is in use.
-  if (payments instanceof FakePaymentProvider) {
+  // The fake provider's payment page. With Stripe taking the deposits no
+  // fake checkout is ever created, so these routes have nothing to show.
+  const fake = payments.named("fake");
+  if (fake instanceof FakePaymentProvider) {
     router.get("/fake-checkout/:sessionId", (req, res) => {
-      const checkout = payments.checkouts.get(req.params.sessionId);
+      const checkout = fake.checkouts.get(req.params.sessionId);
       if (!checkout) {
         throw new AppError(404, "NOT_FOUND", "This checkout doesn't exist");
       }
@@ -83,17 +87,17 @@ export function createPaymentsRouter(payments: PaymentProvider): Router {
 
     router.post("/fake-checkout/:sessionId", async (req, res) => {
       const { sessionId } = req.params;
-      const checkout = payments.checkouts.get(sessionId);
+      const checkout = fake.checkouts.get(sessionId);
       if (!checkout) {
         throw new AppError(404, "NOT_FOUND", "This checkout doesn't exist");
       }
       // Paying here does what Stripe's webhook would do. Like Stripe, the
       // fake refuses payment once the checkout has run out.
       if (checkout.expiresAt > new Date()) {
-        await handlePaymentEvent(payments, {
+        await handlePaymentEvent(deps, {
           type: "payment_succeeded",
           sessionId,
-          paymentId: payments.paymentIdFor(sessionId),
+          paymentId: fake.paymentIdFor(sessionId),
         });
       }
       res.redirect(303, checkout.successUrl);

@@ -2,24 +2,18 @@ import { findAvailableSlots, getActiveService } from "../availability/service.ts
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { AppError } from "../errors.ts";
+import type { Dependencies } from "../dependencies.ts";
 import type { Prisma } from "../generated/prisma/client.ts";
-import type { PaymentProvider } from "../payments/provider.ts";
+import {
+  notifyBookingCancelled,
+  notifyBookingConfirmed,
+  notifyBookingRescheduled,
+} from "../notifications/service.ts";
 import { settleCancelledBooking } from "../payments/service.ts";
 import { formatShopDate, shopClockTimeOf, shopDateOf } from "../shop/time.ts";
 import { isSlotTakenError } from "./errors.ts";
+import { FREE_CANCELLATION_HOURS, PAYMENT_CURRENCY, PAYMENT_HOLD_MS } from "./rules.ts";
 import type { CreateBookingInput } from "./schemas.ts";
-
-// Cancelling this long before the start refunds the deposit, and a booking
-// can be moved only until then.
-export const FREE_CANCELLATION_HOURS = 24;
-
-// How long an unpaid booking holds its slot. Stripe won't create a checkout
-// that expires in under 30 minutes; the extra half minute covers the time
-// the request takes to reach Stripe, so the limit is never missed.
-export const PAYMENT_HOLD_MS = 30 * 60_000 + 30_000;
-
-// The shop charges in Georgian lari.
-const PAYMENT_CURRENCY = "gel";
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
@@ -74,7 +68,7 @@ async function assertSlotIsAvailable(request: {
 // customer pays it on. Until that payment arrives the booking is pending
 // and holds its slot only for a limited time.
 export async function createBooking(
-  payments: PaymentProvider,
+  deps: Dependencies,
   customerId: string,
   input: CreateBookingInput,
 ): Promise<{ booking: BookingWithDetails; checkoutUrl: string | null }> {
@@ -115,6 +109,7 @@ export async function createBooking(
   }
 
   if (!needsDeposit) {
+    await notifyBookingConfirmed(deps, booking.id);
     return { booking, checkoutUrl: null };
   }
 
@@ -123,7 +118,8 @@ export async function createBooking(
   try {
     const customer = await prisma.user.findUniqueOrThrow({ where: { id: customerId } });
     const when = `${formatShopDate(shopDateOf(booking.startsAt, env.shopTimeZone))} at ${shopClockTimeOf(booking.startsAt, env.shopTimeZone)}`;
-    const checkout = await payments.createCheckout({
+    const provider = deps.payments.active;
+    const checkout = await provider.createCheckout({
       bookingId: booking.id,
       amountCents: booking.depositCents,
       currency: PAYMENT_CURRENCY,
@@ -136,7 +132,12 @@ export async function createBooking(
     });
     booking = await prisma.booking.update({
       where: { id: booking.id },
-      data: { paymentSessionId: checkout.sessionId, paymentUrl: checkout.url },
+      data: {
+        paymentSessionId: checkout.sessionId,
+        paymentUrl: checkout.url,
+        // Remembered so that a refund goes back through the same provider.
+        paymentProvider: provider.name,
+      },
       include: bookingDetails,
     });
     return { booking, checkoutUrl: checkout.url };
@@ -197,7 +198,7 @@ function getBookingWithDetails(bookingId: string): Promise<BookingWithDetails> {
 // A customer may cancel a booking that is pending or confirmed and hasn't
 // started. What happens to the deposit depends on how early they do it.
 export async function cancelBooking(
-  payments: PaymentProvider,
+  deps: Dependencies,
   customerId: string,
   bookingId: string,
 ): Promise<BookingWithDetails> {
@@ -241,12 +242,19 @@ export async function cancelBooking(
 
   // The money is dealt with after the cancellation is saved. If the refund
   // fails the booking is still cancelled, and the failure is recorded.
-  await settleCancelledBooking(payments, booking, inFreeWindow);
+  await settleCancelledBooking(deps.payments, booking, inFreeWindow);
+
+  // A booking that was never confirmed was never announced to anyone, so
+  // its cancellation isn't either.
+  if (booking.status === "CONFIRMED") {
+    await notifyBookingCancelled(deps, booking.id, "customer");
+  }
 
   return getBookingWithDetails(booking.id);
 }
 
 export async function rescheduleBooking(
+  deps: Dependencies,
   customerId: string,
   bookingId: string,
   startsAt: Date,
@@ -299,6 +307,8 @@ export async function rescheduleBooking(
     }
     throw error;
   }
+
+  await notifyBookingRescheduled(deps, booking.id, booking.startsAt);
 
   return getBookingWithDetails(booking.id);
 }

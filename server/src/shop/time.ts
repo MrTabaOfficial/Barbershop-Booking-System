@@ -41,6 +41,12 @@ export function shopDateOf(instant: Date, timeZone: string): string {
   return toShopClock(instant, timeZone).toPlainDate().toString();
 }
 
+// Minutes after midnight on the shop's clock: 600 at 10:00.
+export function shopMinutesOf(instant: Date, timeZone: string): number {
+  const clock = toShopClock(instant, timeZone);
+  return clock.hour * 60 + clock.minute;
+}
+
 // "HH:MM" on the shop's clock.
 export function shopClockTimeOf(instant: Date, timeZone: string): string {
   return toShopClock(instant, timeZone).toPlainTime().toString({ smallestUnit: "minute" });

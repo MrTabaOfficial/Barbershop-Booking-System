@@ -17,5 +17,16 @@ services:
       timeout: 3s
       retries: 10
 
+  # A mail server for development. It accepts every email the API sends and
+  # delivers none of them: they are shown in a web inbox instead.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      # SMTP, which the API sends to.
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
+      # The inbox, at http://localhost:8025.
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
 volumes:
   db-data:

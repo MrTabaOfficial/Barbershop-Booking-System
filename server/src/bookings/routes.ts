@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuth, requireAuth } from "../auth/middleware.ts";
+import type { Dependencies } from "../dependencies.ts";
 import { env } from "../env.ts";
-import type { PaymentProvider } from "../payments/provider.ts";
 import { shopClockTimeOf, shopDateOf } from "../shop/time.ts";
 import {
   bookingParamsSchema,
@@ -50,14 +50,14 @@ function toPublicBooking(booking: BookingWithDetails) {
   };
 }
 
-export function createBookingsRouter(payments: PaymentProvider): Router {
+export function createBookingsRouter(deps: Dependencies): Router {
   const router = Router();
 
   router.use(requireAuth);
 
   router.post("/", async (req, res) => {
     const input = createBookingSchema.parse(req.body);
-    const { booking, checkoutUrl } = await createBooking(payments, getAuth(req).userId, input);
+    const { booking, checkoutUrl } = await createBooking(deps, getAuth(req).userId, input);
     // checkoutUrl is the page to send the customer to next. It is null when
     // the service has no deposit and the booking is confirmed already.
     res.status(201).json({ booking: toPublicBooking(booking), checkoutUrl });
@@ -73,14 +73,14 @@ export function createBookingsRouter(payments: PaymentProvider): Router {
 
   router.post("/:id/cancel", async (req, res) => {
     const { id } = bookingParamsSchema.parse(req.params);
-    const booking = await cancelBooking(payments, getAuth(req).userId, id);
+    const booking = await cancelBooking(deps, getAuth(req).userId, id);
     res.json({ booking: toPublicBooking(booking) });
   });
 
   router.post("/:id/reschedule", async (req, res) => {
     const { id } = bookingParamsSchema.parse(req.params);
     const { startsAt } = rescheduleBookingSchema.parse(req.body);
-    const booking = await rescheduleBooking(getAuth(req).userId, id, startsAt);
+    const booking = await rescheduleBooking(deps, getAuth(req).userId, id, startsAt);
     res.json({ booking: toPublicBooking(booking) });
   });
 

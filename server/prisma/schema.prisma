@@ -155,8 +155,13 @@ model Booking {
   paymentSessionId      String?       @unique @map("payment_session_id")
   paymentUrl            String?       @map("payment_url")
   paymentId             String?       @map("payment_id")
+  // Which payment provider took the deposit: "stripe" or "fake". A refund
+  // has to go back through the same one.
+  paymentProvider       String?       @map("payment_provider")
   // While the booking is pending: when its unpaid hold on the slot lapses.
   holdExpiresAt         DateTime?     @map("hold_expires_at") @db.Timestamptz(3)
+  // Set when the day-before reminder is sent, so it is sent only once.
+  reminderSentAt        DateTime?     @map("reminder_sent_at") @db.Timestamptz(3)
   createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -167,4 +172,13 @@ model Booking {
   @@index([barberId, startsAt])
   @@index([customerId])
   @@map("bookings")
+}
+
+// One row per shop day whose closing-time summary has gone to the owner.
+// The date is the primary key, which is what stops a second one going out.
+model DailySummary {
+  date   DateTime @id @db.Date
+  sentAt DateTime @default(now()) @map("sent_at") @db.Timestamptz(3)
+
+  @@map("daily_summaries")
 }

@@ -88,9 +88,10 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
         <p className="text-muted">No deposit was paid, so there is nothing to refund.</p>
       )}
       <p className="text-muted">
-        The time becomes free for other customers straight away. The customer is not told
-        automatically, so let them know
-        {booking.customer.phone ? ` on ${booking.customer.phone}` : ""}.
+        The time becomes free for other customers straight away.{" "}
+        {booking.status === "confirmed"
+          ? `${booking.customer.name} gets an email saying the booking is cancelled and what happened to the deposit.`
+          : "The booking was never confirmed, so no email is sent."}
       </p>
       {cancelBooking.isError && <Notice tone="error">{errorMessage(cancelBooking.error)}</Notice>}
     </Dialog>

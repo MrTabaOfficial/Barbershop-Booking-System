@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { MAX_DAYS_AHEAD } from "../availability/slots.ts";
-import { FREE_CANCELLATION_HOURS } from "../bookings/service.ts";
+import { FREE_CANCELLATION_HOURS } from "../bookings/rules.ts";
 import { env } from "../env.ts";
 import { addDays, shopDateOf } from "./time.ts";
 

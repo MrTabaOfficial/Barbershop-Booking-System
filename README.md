@@ -19,7 +19,7 @@ and bookings API, and the customer-facing website.
 ## Requirements
 
 - Node.js 26 or newer (the time zone code uses the built-in `Temporal` API)
-- Docker Desktop
+- Docker Desktop (for PostgreSQL and Mailpit)
 
 ## Setup
 
@@ -27,7 +27,7 @@ and bookings API, and the customer-facing website.
 # 1. Create your local environment file and change the passwords in it
 cp .env.example .env
 
-# 2. Start PostgreSQL
+# 2. Start PostgreSQL and Mailpit (the development mail inbox)
 docker compose up -d
 
 # 3. Install dependencies, create the tables, load demo data
@@ -59,6 +59,9 @@ npm run dev    # website on http://localhost:5173
 
 Open http://localhost:5173. The website's dev server forwards `/api/*` to
 the API, so the browser only ever talks to one address.
+
+Emails the app sends appear at http://localhost:8025, Mailpit's inbox.
+Nothing is ever delivered to a real address.
 
 Tests:
 
@@ -233,7 +236,11 @@ failed. A late cancellation is "cancelled" with the deposit still "paid".
   the admin to see, and the cancellation stands.
 
 Payments sit behind a small interface (`server/src/payments/provider.ts`)
-with two implementations. Which one runs depends only on `.env`.
+with two implementations. Which one takes new deposits depends only on
+`.env`. Each booking records which provider took its deposit, and a refund
+always goes back through that same one. The seeded demo bookings were
+"paid" through the fake provider, so they refund through it even when
+Stripe is switched on.
 
 ### Without Stripe (the default)
 
@@ -284,6 +291,82 @@ tells the server.
 Deposits are charged in Georgian lari (`gel`). If your Stripe account
 can't charge in that currency, change `PAYMENT_CURRENCY` in
 `server/src/bookings/service.ts`.
+
+## Notifications and scheduled jobs
+
+### Emails to the customer
+
+| When                               | Email                                                    |
+| ---------------------------------- | -------------------------------------------------------- |
+| The deposit is paid                | Booking confirmed, with what is still to pay at the shop |
+| The customer moves the booking     | The new time and the old one                             |
+| The customer or the admin cancels  | Cancelled, stating whether the deposit was refunded, kept, or is still owed |
+| 10:00 the day before               | A reminder                                               |
+| A payment arrives too late to keep the slot | The booking couldn't be confirmed; the deposit is back |
+
+They are plain HTML in the shop's colours, with a text version alongside,
+built in `server/src/notifications/emails.ts` and sent with Nodemailer.
+A booking that was never confirmed is never mentioned to anyone, so
+cancelling an unpaid one sends nothing.
+
+In development they go to **Mailpit**, a mail server that Docker Compose
+starts. It accepts everything and delivers nothing; read the messages at
+http://localhost:8025. With `SMTP_HOST` empty, emails are written to the
+server's log instead.
+
+### Alerts to the owner
+
+The owner gets a Telegram message for each newly confirmed booking, each
+cancellation, and a summary of the day at closing time (the latest finish
+among the barbers working that day). To switch it on:
+
+1. In Telegram, talk to **@BotFather**, send `/newbot`, and follow the
+   prompts. It gives you a token like `123456:ABC...`.
+2. Send your new bot any message, then open
+   `https://api.telegram.org/bot<token>/getUpdates` in a browser and find
+   `"chat":{"id":...}`. That number is your chat id.
+3. Put both in `.env` and restart the API:
+
+   ```
+   TELEGRAM_BOT_TOKEN=123456:ABC...
+   TELEGRAM_OWNER_CHAT_ID=987654321
+   ```
+
+With no bot token set, alerts are written to the server's log instead of
+failing.
+
+### A notification can never break a booking
+
+Every notification is sent after the change it reports has been saved, and
+a failure to send is logged and goes no further. If the mail server or
+Telegram is down, the booking is still confirmed, moved or cancelled, and
+the request still succeeds.
+
+### Jobs
+
+Scheduled with node-cron, on the shop's clock (`server/src/jobs/`):
+
+| How often        | What it does                                                    |
+| ---------------- | --------------------------------------------------------------- |
+| Every minute     | Expires pending bookings whose 30-minute hold has run out       |
+| Every 10 minutes | Sends tomorrow's reminders, from 10:00 onwards                  |
+| Every 5 minutes  | Sends the day's summary, once, after closing time               |
+| 03:30 each night | Deletes refresh tokens that have expired or were revoked over a week ago |
+
+Each job can run twice without doing its work twice, and each decides from
+the clock and the database whether there is anything to do, so the
+schedule only says how often to look:
+
+- **Reminders are sent once per booking.** The job stamps the booking as
+  reminded before sending, and the stamp can only be set while it is still
+  empty, so two runs can't both send. If the send fails, the stamp is
+  cleared and the next run tries again. Someone who books today for
+  tomorrow gets no reminder: their confirmation has only just arrived.
+- **The summary is sent once per day.** A row keyed by the date is inserted
+  first; a second run can't insert it again.
+- **Revoked refresh tokens are kept for a week** before being deleted,
+  because spotting a stolen token depends on recognising a revoked one
+  when it is presented again.
 
 ## How authentication works
 
@@ -406,9 +489,20 @@ server/
       provider.ts      The interface both providers implement
       stripe.ts        Stripe Checkout, refunds, webhook verification
       fake.ts          An in-memory stand-in, for tests and for no keys
-      index.ts         Picks one, from .env
+      index.ts         Which providers exist, and which takes new deposits
       service.ts       Confirming, expiring and refunding bookings
       routes.ts        The webhook, and the fake payment page
+    notifications/
+      emails.ts        The emails' wording and HTML
+      mailer.ts        Sending through SMTP, or logging
+      ownerAlerts.ts   Telegram messages to the owner, or logging
+      service.ts       Who is told what, and never failing because of it
+    jobs/
+      index.ts         The schedule
+      reminders.ts     The day-before reminder
+      dailySummary.ts  The owner's closing-time summary
+      cleanup.ts       Deleting dead refresh tokens
+    dependencies.ts    Payments, mailer and alerts, bundled for the app
     admin/
       routes.ts        The /admin endpoints
       catalog.ts       Services, barbers and working hours
@@ -480,18 +574,18 @@ e2e/
 - **Changed hours don't move bookings.** When the admin changes a barber's
   working hours or deactivates a barber, bookings already made stay as they
   are and have to be moved or cancelled by hand.
-- **Nobody is notified yet.** A cancellation by the admin frees the slot
-  but sends nothing to the customer; email comes in a later slice.
-- **A failed refund is recorded, not retried.** The booking shows "Refund
+- **A failed refund has no retry button.** The booking shows "Refund
   failed" in the admin's table, and the refund then has to be made by hand
   in the Stripe dashboard.
-- **Seeded bookings have made-up payments.** With real Stripe keys,
-  cancelling one of the demo bookings ends in "Refund failed", because
-  Stripe has never heard of its payment. Bookings made through the site
-  refund normally.
 - **The Stripe path is checked, not proven.** Its requests were validated
   against Stripe's official API mock and its signature check is tested, but
   the project's tests run on the fake provider and never reach Stripe.
+- **The Telegram path has never reached Telegram.** It is a single call to
+  Telegraf's `sendMessage`; the tests cover what is sent and what happens
+  when sending fails, using a stand-in.
+- **A reminder that keeps failing is retried, not escalated.** If the mail
+  server is down all day the reminder is attempted on every run and then
+  quietly becomes moot once the appointment's day arrives.
 
 ## How double-booking is prevented
 

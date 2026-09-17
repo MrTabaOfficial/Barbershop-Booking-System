@@ -1,9 +1,10 @@
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { AppError } from "../errors.ts";
-import { FREE_CANCELLATION_HOURS } from "../bookings/service.ts";
+import { FREE_CANCELLATION_HOURS } from "../bookings/rules.ts";
+import type { Dependencies } from "../dependencies.ts";
 import type { BookingStatus, Prisma } from "../generated/prisma/client.ts";
-import type { PaymentProvider } from "../payments/provider.ts";
+import { notifyBookingCancelled } from "../notifications/service.ts";
 import { settleCancelledBooking } from "../payments/service.ts";
 import { shopTimeToUtc } from "../shop/time.ts";
 import type { BookingFilter, BookingListQuery } from "./schemas.ts";
@@ -85,7 +86,7 @@ export function findBookingsForExport(filter: BookingFilter): Promise<AdminBooki
 // goes back: yes when the shop is the one cancelling, perhaps not when a
 // customer rings up an hour before to say they aren't coming.
 export async function cancelBookingAsAdmin(
-  payments: PaymentProvider,
+  deps: Dependencies,
   bookingId: string,
   refund: boolean,
 ): Promise<AdminBooking> {
@@ -122,7 +123,13 @@ export async function cancelBookingAsAdmin(
     );
   }
 
-  await settleCancelledBooking(payments, booking, refund);
+  await settleCancelledBooking(deps.payments, booking, refund);
+
+  // The customer hears about it by email, including what happened to the
+  // deposit. An unconfirmed booking was never announced, so neither is this.
+  if (booking.status === "CONFIRMED") {
+    await notifyBookingCancelled(deps, booking.id, "shop");
+  }
 
   return prisma.booking.findUniqueOrThrow({
     where: { id: booking.id },

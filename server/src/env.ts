@@ -24,6 +24,13 @@ const envSchema = z.object({
   // Both, or neither. Without them the fake payment provider is used.
   STRIPE_SECRET_KEY: optional,
   STRIPE_WEBHOOK_SECRET: optional,
+  // Where to send email. Without a host, emails are logged instead.
+  SMTP_HOST: optional,
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
+  MAIL_FROM: z.string().min(3).default("Dalaki <bookings@dalaki.example>"),
+  // Both, or neither. Without them, alerts to the owner are logged instead.
+  TELEGRAM_BOT_TOKEN: optional,
+  TELEGRAM_OWNER_CHAT_ID: optional,
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
@@ -41,6 +48,13 @@ if (Boolean(STRIPE_SECRET_KEY) !== Boolean(STRIPE_WEBHOOK_SECRET)) {
   );
 }
 
+const { TELEGRAM_BOT_TOKEN, TELEGRAM_OWNER_CHAT_ID, SMTP_HOST } = parsed.data;
+if (Boolean(TELEGRAM_BOT_TOKEN) !== Boolean(TELEGRAM_OWNER_CHAT_ID)) {
+  throw new Error(
+    "Set both TELEGRAM_BOT_TOKEN and TELEGRAM_OWNER_CHAT_ID, or neither. See .env.example.",
+  );
+}
+
 export const env = {
   databaseUrl: parsed.data.DATABASE_URL,
   jwtAccessSecret: parsed.data.JWT_ACCESS_SECRET,
@@ -52,6 +66,14 @@ export const env = {
   stripe:
     STRIPE_SECRET_KEY && STRIPE_WEBHOOK_SECRET
       ? { secretKey: STRIPE_SECRET_KEY, webhookSecret: STRIPE_WEBHOOK_SECRET }
+      : undefined,
+  // Undefined when no mail server is configured.
+  smtp: SMTP_HOST ? { host: SMTP_HOST, port: parsed.data.SMTP_PORT } : undefined,
+  mailFrom: parsed.data.MAIL_FROM,
+  // Undefined when the Telegram bot isn't configured.
+  telegram:
+    TELEGRAM_BOT_TOKEN && TELEGRAM_OWNER_CHAT_ID
+      ? { botToken: TELEGRAM_BOT_TOKEN, chatId: TELEGRAM_OWNER_CHAT_ID }
       : undefined,
   isProduction: parsed.data.NODE_ENV === "production",
 };
