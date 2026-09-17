@@ -80,6 +80,20 @@ export async function createService(name = "Haircut", isActive = true) {
   });
 }
 
+// What a successful deposit payment does to a booking, without going
+// through a checkout.
+export function markAsPaid(bookingId: string) {
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      status: "CONFIRMED",
+      paymentStatus: "PAID",
+      paymentId: `pay_${bookingId}`,
+      holdExpiresAt: null,
+    },
+  });
+}
+
 // The login of a barber made with createBarber().
 export async function authHeaderForBarber(barber: { userId: string }): Promise<string> {
   return authHeaderFor(await prisma.user.findUniqueOrThrow({ where: { id: barber.userId } }));

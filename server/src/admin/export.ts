@@ -9,6 +9,14 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
   NO_SHOW: "No-show",
+  EXPIRED: "Expired",
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  UNPAID: "Unpaid",
+  PAID: "Paid",
+  REFUNDED: "Refunded",
+  REFUND_FAILED: "Refund failed",
 };
 
 // Each column: its heading, its width in characters, and how to fill a
@@ -47,6 +55,13 @@ const COLUMNS = [
     heading: "Status",
     width: 12,
     cell: (booking: AdminBooking) => ({ value: STATUS_LABELS[booking.status] ?? booking.status }),
+  },
+  {
+    heading: "Deposit status",
+    width: 14,
+    cell: (booking: AdminBooking) => ({
+      value: PAYMENT_LABELS[booking.paymentStatus] ?? booking.paymentStatus,
+    }),
   },
   {
     heading: "Price (GEL)",

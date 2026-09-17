@@ -73,8 +73,10 @@ The test database is created and migrated automatically on the first run.
 
 A small Playwright suite in `e2e/` drives the real website in a browser
 against the real API: booking as a visitor and registering on the way,
-recovering when the slot is taken at the last moment, rescheduling,
-cancelling, staying logged in across a reload, a barber recording an
+paying the deposit (on the fake payment page), leaving without paying and
+paying later, recovering when the slot is taken at the last moment,
+rescheduling, cancelling with a refund, staying logged in across a reload,
+a barber recording an
 outcome and managing days off, and the admin working through the overview,
 a service, the bookings table with its export, and a barber's hours.
 
@@ -128,10 +130,16 @@ Logged-in users:
 
 | Method | Path                       | What it does                                  |
 | ------ | -------------------------- | --------------------------------------------- |
-| POST   | `/bookings`                | Books a slot returned by `/availability`      |
+| POST   | `/bookings`                | Holds a slot and returns `checkoutUrl`, the page to pay the deposit on |
 | GET    | `/bookings/mine`           | The user's upcoming and past bookings         |
-| POST   | `/bookings/:id/cancel`     | Cancels the user's own booking                |
-| POST   | `/bookings/:id/reschedule` | Moves the user's own booking to a new time    |
+| POST   | `/bookings/:id/cancel`     | Cancels the user's own booking; refunds if 24 hours or more before |
+| POST   | `/bookings/:id/reschedule` | Moves the user's own confirmed booking, until 24 hours before |
+
+Called by the payment provider, not by the website:
+
+| Method | Path                | What it does                                         |
+| ------ | ------------------- | ---------------------------------------------------- |
+| POST   | `/payments/webhook` | Verifies the signature, then confirms or expires the booking |
 
 Barbers only, and always about the barber who is logged in:
 
@@ -154,7 +162,7 @@ Admin only:
 | PATCH     | `/admin/barbers/:id`               | Edit name and bio, activate or deactivate     |
 | PUT       | `/admin/barbers/:id/working-hours` | Replace the week's hours and breaks           |
 | GET       | `/admin/bookings`                  | Filtered, sorted and paged on the server      |
-| POST      | `/admin/bookings/:id/cancel`       | Cancel any booking that has no outcome yet    |
+| POST      | `/admin/bookings/:id/cancel`       | Cancel any booking that has no outcome yet; `{ "refund": false }` keeps the deposit |
 | GET       | `/admin/bookings/export.xlsx`      | The same filters, as an Excel file            |
 | GET       | `/admin/overview?from=&to=`        | Statistics for a range of shop dates          |
 
@@ -187,6 +195,95 @@ not by loading bookings and adding them up in code:
 The export writes real spreadsheet dates and numbers with display formats,
 not text, so the file can be sorted, filtered and summed in Excel. Dates
 in it are on the shop's clock.
+
+## Payments
+
+Booking takes a deposit. The server holds the slot, creates a checkout for
+the deposit, and the website sends the customer there to pay.
+
+### A booking's states
+
+| From      | To                   | What causes it                                              |
+| --------- | -------------------- | ----------------------------------------------------------- |
+| (new)     | pending              | The customer books. The slot is held and a checkout is created. |
+| pending   | confirmed            | The payment provider's webhook reports the deposit paid.    |
+| pending   | expired              | 30 minutes pass without payment. The slot is free again.    |
+| pending   | cancelled            | The customer or admin cancels before paying.                |
+| confirmed | confirmed            | The customer reschedules, 24 hours or more before the start. |
+| confirmed | cancelled            | The customer cancels (refunded if 24 hours or more before, otherwise the deposit is kept), or the admin cancels and chooses. |
+| confirmed | completed or no-show | The barber records the outcome after the start, and may correct it. |
+
+The deposit has a status of its own: unpaid, paid, refunded, or refund
+failed. A late cancellation is "cancelled" with the deposit still "paid".
+
+### How it holds together
+
+- **The webhook is verified and idempotent.** The signature is checked
+  against the raw request body. Each event is applied as "update the
+  booking if it is still pending", so a repeated event matches nothing and
+  changes nothing.
+- **The hold is enforced by the clock.** Before free times are calculated,
+  any pending booking whose 30 minutes are up is marked expired. Nothing
+  depends on a background job having run.
+- **A payment that arrives late is not lost.** If the hold ran out a moment
+  before the customer paid, the booking is confirmed anyway when the slot
+  is still free, and refunded automatically when it has been taken.
+- **Cancelling never depends on the refund.** The booking is cancelled
+  first; if the refund then fails, that is recorded as "refund failed" for
+  the admin to see, and the cancellation stands.
+
+Payments sit behind a small interface (`server/src/payments/provider.ts`)
+with two implementations. Which one runs depends only on `.env`.
+
+### Without Stripe (the default)
+
+With no Stripe keys set, a fake provider is used. It sends the customer to
+a plain page, served by this API and labelled as fake, with a "Pay the
+deposit" button. Everything else behaves the same, so the project works
+straight after cloning, and the tests run on it.
+
+### With Stripe, in test mode
+
+No real money moves in test mode.
+
+1. **Get a test key.** Create a free account at https://stripe.com, make
+   sure the dashboard is in test mode, and open Developers, then API keys.
+   Copy the secret key (it starts with `sk_test_`) into `.env`:
+
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   ```
+
+2. **Run the Stripe CLI listener.** Stripe's servers can't reach
+   `localhost`, so the CLI relays webhooks to it. Install it from
+   https://docs.stripe.com/stripe-cli, then:
+
+   ```sh
+   stripe login
+   stripe listen --forward-to localhost:3000/payments/webhook
+   ```
+
+   It prints a signing secret that starts with `whsec_`. Put it in `.env`
+   and leave the listener running:
+
+   ```
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+3. **Restart the API.** It logs `Payments: Stripe` when the keys are read.
+
+4. **Pay with a test card.** On Stripe's checkout page use card number
+   `4242 4242 4242 4242`, any expiry date in the future, any three-digit
+   CVC and any postcode. Back on the site the booking turns "Confirmed" as
+   soon as the webhook arrives.
+
+If the listener isn't running, payments succeed at Stripe but the booking
+stays "Awaiting payment" and expires after 30 minutes, because nothing
+tells the server.
+
+Deposits are charged in Georgian lari (`gel`). If your Stripe account
+can't charge in that currency, change `PAYMENT_CURRENCY` in
+`server/src/bookings/service.ts`.
 
 ## How authentication works
 
@@ -305,6 +402,13 @@ server/
       routes.ts        The /barber endpoints
       service.ts       Schedule, outcomes, days off
       schemas.ts       Request validation
+    payments/
+      provider.ts      The interface both providers implement
+      stripe.ts        Stripe Checkout, refunds, webhook verification
+      fake.ts          An in-memory stand-in, for tests and for no keys
+      index.ts         Picks one, from .env
+      service.ts       Confirming, expiring and refunding bookings
+      routes.ts        The webhook, and the fake payment page
     admin/
       routes.ts        The /admin endpoints
       catalog.ts       Services, barbers and working hours
@@ -378,6 +482,16 @@ e2e/
   are and have to be moved or cancelled by hand.
 - **Nobody is notified yet.** A cancellation by the admin frees the slot
   but sends nothing to the customer; email comes in a later slice.
+- **A failed refund is recorded, not retried.** The booking shows "Refund
+  failed" in the admin's table, and the refund then has to be made by hand
+  in the Stripe dashboard.
+- **Seeded bookings have made-up payments.** With real Stripe keys,
+  cancelling one of the demo bookings ends in "Refund failed", because
+  Stripe has never heard of its payment. Bookings made through the site
+  refund normally.
+- **The Stripe path is checked, not proven.** Its requests were validated
+  against Stripe's official API mock and its signature check is tested, but
+  the project's tests run on the fake provider and never reach Stripe.
 
 ## How double-booking is prevented
 

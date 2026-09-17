@@ -62,7 +62,17 @@ export type Availability = {
   slots: Slot[];
 };
 
-export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+// pending: created, deposit not paid yet. expired: it never was paid.
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "no_show"
+  | "expired";
+
+// What became of the deposit.
+export type PaymentStatus = "unpaid" | "paid" | "refunded" | "refund_failed";
 
 export type Booking = {
   id: string;
@@ -75,6 +85,11 @@ export type Booking = {
   depositCents: number;
   cancelledAt: string | null;
   cancelledInFreeWindow: boolean | null;
+  paymentStatus: PaymentStatus;
+  // Only while the deposit is unpaid: where to pay it, and until what time
+  // on the shop's clock the slot is held.
+  paymentUrl: string | null;
+  heldUntilLocalTime: string | null;
   service: { id: string; name: string };
   barber: { id: string; name: string };
 };
@@ -141,6 +156,7 @@ export type AdminBooking = {
   localTime: string;
   priceCents: number;
   depositCents: number;
+  paymentStatus: PaymentStatus;
   service: { id: string; name: string };
   barber: { id: string; name: string };
   customer: { id: string; name: string; email: string; phone: string | null };

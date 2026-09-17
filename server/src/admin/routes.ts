@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../auth/middleware.ts";
 import { env } from "../env.ts";
 import type { Service } from "../generated/prisma/client.ts";
+import type { PaymentProvider } from "../payments/provider.ts";
 import { shopClockTimeOf, shopDateOf } from "../shop/time.ts";
 import {
   type AdminBooking,
@@ -24,6 +25,7 @@ import { getOverview } from "./overview.ts";
 import {
   bookingExportQuerySchema,
   bookingListQuerySchema,
+  cancelBookingSchema,
   createBarberSchema,
   createServiceSchema,
   idParamsSchema,
@@ -72,6 +74,7 @@ function toAdminBooking(booking: AdminBooking) {
     localTime: shopClockTimeOf(booking.startsAt, env.shopTimeZone),
     priceCents: booking.priceCents,
     depositCents: booking.depositCents,
+    paymentStatus: booking.paymentStatus.toLowerCase(),
     service: { id: booking.service.id, name: booking.service.name },
     barber: { id: booking.barber.id, name: booking.barber.user.name },
     customer: {
@@ -83,7 +86,7 @@ function toAdminBooking(booking: AdminBooking) {
   };
 }
 
-export function createAdminRouter(): Router {
+export function createAdminRouter(payments: PaymentProvider): Router {
   const router = Router();
 
   // Everything below is for the admin only.
@@ -154,7 +157,8 @@ export function createAdminRouter(): Router {
 
   router.post("/bookings/:id/cancel", async (req, res) => {
     const { id } = idParamsSchema.parse(req.params);
-    const booking = await cancelBookingAsAdmin(id);
+    const { refund } = cancelBookingSchema.parse(req.body);
+    const booking = await cancelBookingAsAdmin(payments, id, refund);
     res.json({ booking: toAdminBooking(booking) });
   });
 

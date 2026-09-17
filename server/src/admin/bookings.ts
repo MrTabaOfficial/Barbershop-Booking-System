@@ -1,7 +1,10 @@
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { AppError } from "../errors.ts";
+import { FREE_CANCELLATION_HOURS } from "../bookings/service.ts";
 import type { BookingStatus, Prisma } from "../generated/prisma/client.ts";
+import type { PaymentProvider } from "../payments/provider.ts";
+import { settleCancelledBooking } from "../payments/service.ts";
 import { shopTimeToUtc } from "../shop/time.ts";
 import type { BookingFilter, BookingListQuery } from "./schemas.ts";
 
@@ -78,8 +81,14 @@ export function findBookingsForExport(filter: BookingFilter): Promise<AdminBooki
 }
 
 // The admin may cancel any booking that hasn't had an outcome yet,
-// whoever made it and however close it is.
-export async function cancelBookingAsAdmin(bookingId: string): Promise<AdminBooking> {
+// whoever made it and however close it is, and decides whether the deposit
+// goes back: yes when the shop is the one cancelling, perhaps not when a
+// customer rings up an hour before to say they aren't coming.
+export async function cancelBookingAsAdmin(
+  payments: PaymentProvider,
+  bookingId: string,
+  refund: boolean,
+): Promise<AdminBooking> {
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
   if (!booking) {
     throw new AppError(404, "BOOKING_NOT_FOUND", "Booking not found");
@@ -92,14 +101,17 @@ export async function cancelBookingAsAdmin(bookingId: string): Promise<AdminBook
     );
   }
 
+  const now = new Date();
+  const hoursUntilStart = (booking.startsAt.getTime() - now.getTime()) / (60 * 60 * 1000);
   const result = await prisma.booking.updateMany({
     where: { id: booking.id, status: booking.status },
     data: {
       status: "CANCELLED",
-      cancelledAt: new Date(),
-      // When the shop cancels, the customer is never the one who pays for
-      // it: the deposit is refundable however late it is.
-      cancelledInFreeWindow: true,
+      cancelledAt: now,
+      // A plain fact about the timing. Whether the deposit went back is
+      // recorded separately, in the payment status.
+      cancelledInFreeWindow: hoursUntilStart >= FREE_CANCELLATION_HOURS,
+      holdExpiresAt: null,
     },
   });
   if (result.count === 0) {
@@ -109,6 +121,8 @@ export async function cancelBookingAsAdmin(bookingId: string): Promise<AdminBook
       "This booking was changed a moment ago. Reload it and try again.",
     );
   }
+
+  await settleCancelledBooking(payments, booking, refund);
 
   return prisma.booking.findUniqueOrThrow({
     where: { id: booking.id },

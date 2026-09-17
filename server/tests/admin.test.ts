@@ -494,8 +494,6 @@ describe("POST /admin/bookings/:id/cancel", () => {
     expect(response.body.booking).toMatchObject({ id: booking.id, status: "cancelled" });
     const saved = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(saved.cancelledAt).toBeInstanceOf(Date);
-    // Cancelled by the shop, so the customer keeps the right to a refund.
-    expect(saved.cancelledInFreeWindow).toBe(true);
   });
 
   it("works on a booking that starts within the hour", async () => {
@@ -548,12 +546,13 @@ describe("GET /admin/bookings/export.xlsx", () => {
       "Barber",
       "Service",
       "Status",
+      "Deposit status",
       "Price (GEL)",
       "Deposit (GEL)",
     ]);
     // Only the confirmed booking: the cancelled one was filtered out.
     expect(rows).toHaveLength(2);
-    const [start, minutes, customer, , phone, barber, service, status, price, deposit] =
+    const [start, minutes, customer, , phone, barber, service, status, payment, price, deposit] =
       rows[1] ?? [];
     // A date cell, holding the shop's clock time. A spreadsheet stores a
     // time as a fraction of a day, so it reads back within a millisecond.
@@ -565,12 +564,13 @@ describe("GET /admin/bookings/export.xlsx", () => {
     expect(minutes).toBe(30);
     expect(price).toBe(25);
     expect(deposit).toBe(10);
-    expect([customer, phone, barber, service, status]).toEqual([
+    expect([customer, phone, barber, service, status, payment]).toEqual([
       "Davit Maisuradze",
       "+995 555 01 01 01",
       "Giorgi Kapanadze",
       "Beard trim",
       "Confirmed",
+      "Unpaid",
     ]);
   });
 });
@@ -599,6 +599,9 @@ describe("GET /admin/overview", () => {
       ["2026-03-13", "23:45", haircut, "COMPLETED", giorgi],
       ["2026-03-09", "23:45", haircut, "COMPLETED", luka],
       ["2026-03-14", "00:15", haircut, "COMPLETED", luka],
+      // An unpaid booking that expired. It counts nowhere except under
+      // its own status.
+      ["2026-03-13", "10:00", haircut, "EXPIRED", luka],
     ];
     for (const [date, time, service, status, barber] of bookings) {
       await insertBooking(at(date, time), { service, status, barber });
@@ -632,7 +635,14 @@ describe("GET /admin/overview", () => {
   it("counts bookings by status", async () => {
     const { byStatus } = await overview();
 
-    expect(byStatus).toEqual({ pending: 1, confirmed: 1, completed: 4, cancelled: 1, no_show: 1 });
+    expect(byStatus).toEqual({
+      pending: 1,
+      confirmed: 1,
+      completed: 4,
+      cancelled: 1,
+      no_show: 1,
+      expired: 1,
+    });
   });
 
   it("works out the no-show rate from appointments that reached their time", async () => {

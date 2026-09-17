@@ -4,6 +4,10 @@ import { SLOT_STEP_MINUTES } from "../availability/slots.ts";
 
 export const idParamsSchema = z.object({ id: z.uuid() });
 
+// The admin decides whether a cancellation refunds the deposit. Refunding
+// is the default: a request with no body refunds.
+export const cancelBookingSchema = z.object({ refund: z.boolean().default(true) }).default({ refund: true });
+
 // --- services
 
 const serviceName = z.string().trim().min(1).max(100);
@@ -110,6 +114,7 @@ export const BOOKING_STATUS_NAMES = [
   "completed",
   "cancelled",
   "no_show",
+  "expired",
 ] as const;
 
 export const BOOKING_SORT_KEYS = [

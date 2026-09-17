@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { useMyBookings, useShop } from "../api/queries.ts";
 import type { Booking } from "../api/types.ts";
 import { BookingCard } from "../booking/BookingCard.tsx";
@@ -13,15 +13,61 @@ import { firstName } from "../lib/format.ts";
 
 type OpenDialog = { kind: "cancel" | "reschedule"; booking: Booking } | null;
 
-export function MyBookingsPage() {
-  const bookings = useMyBookings();
-  const shop = useShop();
-  const location = useLocation();
-  const [dialog, setDialog] = useState<OpenDialog>(null);
+// The rule is 24 hours; the fallback only matters if /shop failed to load.
+const DEFAULT_FREE_CANCELLATION_HOURS = 24;
 
-  // Set by the booking flow when it sends the customer here after booking.
+const describe = (booking: Booking) =>
+  `${formatLongDate(booking.localDate)} at ${booking.localTime} with ${firstName(booking.barber.name)}`;
+
+// The message for a customer who has just come back from the payment page,
+// or has just booked something that needed no payment.
+function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
+  const location = useLocation();
+  const [params] = useSearchParams();
+
+  // The payment page returns here with ?paid=<id> or ?unpaid=<id>. A
+  // booking with no deposit arrives with its id in the navigation state.
+  const paidId = params.get("paid");
+  const unpaidId = params.get("unpaid");
   const bookedId: unknown = location.state?.bookedId;
-  const justBooked = bookings.data?.upcoming.find((booking) => booking.id === bookedId);
+  const booking = bookings.find((entry) => [paidId, unpaidId, bookedId].includes(entry.id));
+  if (!booking) {
+    return null;
+  }
+
+  if (booking.status === "confirmed") {
+    return <Notice className="mb-8">You are booked for {describe(booking)}. See you then.</Notice>;
+  }
+  if (booking.status !== "pending") {
+    return null;
+  }
+  if (booking.id === paidId) {
+    // Paid, but the payment provider hasn't told the server yet. The list
+    // is refetching in the background until it has.
+    return (
+      <Notice className="mb-8">
+        Thank you. We are confirming your payment; this page will update by itself in a
+        moment.
+      </Notice>
+    );
+  }
+  return (
+    <Notice className="mb-8">
+      Your booking for {describe(booking)} isn't confirmed yet, because the deposit hasn't been
+      paid.
+      {booking.heldUntilLocalTime &&
+        ` We are holding the time until ${booking.heldUntilLocalTime}.`}
+    </Notice>
+  );
+}
+
+export function MyBookingsPage() {
+  const [params] = useSearchParams();
+  const bookings = useMyBookings(params.get("paid"));
+  const shop = useShop();
+  const [dialog, setDialog] = useState<OpenDialog>(null);
+  const freeCancellationHours =
+    shop.data?.freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS;
 
   function renderLists() {
     if (bookings.isPending) {
@@ -57,6 +103,7 @@ export function MyBookingsPage() {
                 <li key={booking.id}>
                   <BookingCard
                     booking={booking}
+                    freeCancellationHours={freeCancellationHours}
                     onCancel={() => setDialog({ kind: "cancel", booking })}
                     onReschedule={() => setDialog({ kind: "reschedule", booking })}
                   />
@@ -76,7 +123,7 @@ export function MyBookingsPage() {
             <ul className="space-y-4">
               {past.map((booking) => (
                 <li key={booking.id}>
-                  <BookingCard booking={booking} />
+                  <BookingCard booking={booking} freeCancellationHours={freeCancellationHours} />
                 </li>
               ))}
             </ul>
@@ -91,20 +138,14 @@ export function MyBookingsPage() {
       <title>My bookings · Dalaki</title>
       <h1 className="mb-8 text-4xl">My bookings</h1>
 
-      {justBooked && (
-        <Notice className="mb-8">
-          You are booked for {formatLongDate(justBooked.localDate)} at {justBooked.localTime}{" "}
-          with {firstName(justBooked.barber.name)}. See you then.
-        </Notice>
-      )}
+      {bookings.data && <ArrivalNotice bookings={bookings.data.upcoming} />}
 
       {renderLists()}
 
       {dialog?.kind === "cancel" && (
         <CancelDialog
           booking={dialog.booking}
-          // The rule is 24 hours; the fallback only matters if /shop failed.
-          freeCancellationHours={shop.data?.freeCancellationHours ?? 24}
+          freeCancellationHours={freeCancellationHours}
           onClose={() => setDialog(null)}
         />
       )}

@@ -13,7 +13,8 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
 
   // Both are instants, so this is right in any time zone. The server makes
   // the same check; this only decides whether to show the buttons.
-  const hasStarted = Date.parse(booking.startsAt) <= Date.now();
+  // An unpaid booking isn't confirmed, so it can't have an outcome.
+  const hasStarted = Date.parse(booking.startsAt) <= Date.now() && booking.status !== "pending";
 
   function record(outcome: Outcome, alreadyRecorded: boolean) {
     if (!alreadyRecorded) {

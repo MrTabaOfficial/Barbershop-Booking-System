@@ -1,5 +1,6 @@
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
+import { RELEASED_STATUSES } from "../bookings/status.ts";
 import { AppError } from "../errors.ts";
 import { type Barber, Prisma } from "../generated/prisma/client.ts";
 import {
@@ -53,12 +54,12 @@ export async function getSchedule(barber: Barber, from: string, to: string) {
     prisma.dayOff.findMany({
       where: { barberId: barber.id, date: { gte: toDateColumn(from), lte: toDateColumn(to) } },
     }),
-    // Cancelled bookings are left out: their time is free again, and may
-    // already belong to someone else.
+    // Cancelled and expired bookings are left out: their time is free
+    // again, and may already belong to someone else.
     prisma.booking.findMany({
       where: {
         barberId: barber.id,
-        status: { not: "CANCELLED" },
+        status: { notIn: [...RELEASED_STATUSES] },
         startsAt: {
           gte: shopTimeToUtc(from, 0, timeZone),
           lt: shopTimeToUtc(to, 24 * 60, timeZone),
@@ -97,8 +98,15 @@ export async function recordOutcome(
   if (!booking) {
     throw new AppError(404, "BOOKING_NOT_FOUND", "Booking not found");
   }
-  if (booking.status === "CANCELLED") {
+  if (booking.status === "CANCELLED" || booking.status === "EXPIRED") {
     throw new AppError(409, "BOOKING_NOT_ACTIVE", "This booking was cancelled");
+  }
+  if (booking.status === "PENDING") {
+    throw new AppError(
+      409,
+      "BOOKING_NOT_ACTIVE",
+      "This booking's deposit hasn't been paid, so it isn't confirmed",
+    );
   }
   if (booking.startsAt > new Date()) {
     throw new AppError(
@@ -151,7 +159,7 @@ export async function addDayOff(barber: Barber, input: AddDayOffInput) {
   const bookings = await prisma.booking.findMany({
     where: {
       barberId: barber.id,
-      status: { not: "CANCELLED" },
+      status: { notIn: [...RELEASED_STATUSES] },
       startsAt: {
         gte: shopTimeToUtc(input.date, 0, timeZone),
         lt: shopTimeToUtc(input.date, 24 * 60, timeZone),

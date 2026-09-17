@@ -19,10 +19,19 @@ type CancelDialogProps = {
 // before the customer commits.
 export function CancelDialog({ booking, freeCancellationHours, onClose }: CancelDialogProps) {
   const cancelBooking = useCancelBooking();
+  const deposit = formatPrice(booking.depositCents);
 
   // Both are instants, so this is right whatever time zone the visitor is in.
   const hoursUntilStart = (Date.parse(booking.startsAt) - Date.now()) / HOUR_MS;
   const isFree = hoursUntilStart >= freeCancellationHours;
+
+  // What cancelling now will do to the customer's money.
+  const consequence =
+    booking.paymentStatus !== "paid"
+      ? "You haven't paid anything for this booking, so cancelling costs nothing."
+      : isFree
+        ? `Your appointment is more than ${freeCancellationHours} hours away, so your ${deposit} deposit will be refunded to the card you paid with.`
+        : `Your appointment starts in less than ${freeCancellationHours} hours, so the ${deposit} deposit will be kept.`;
 
   return (
     <Dialog
@@ -49,14 +58,10 @@ export function CancelDialog({ booking, freeCancellationHours, onClose }: Cancel
         at {booking.localTime}.
       </p>
       <p className="text-muted">
-        Cancelling is free until {freeCancellationHours} hours before the appointment. After
-        that the deposit is kept.
+        Cancelling {freeCancellationHours} hours or more before the appointment refunds the
+        deposit. After that the deposit is kept.
       </p>
-      <Notice>
-        {isFree
-          ? `Your appointment is more than ${freeCancellationHours} hours away, so cancelling now is free.`
-          : `Your appointment starts in less than ${freeCancellationHours} hours, so the ${formatPrice(booking.depositCents)} deposit will be kept.`}
-      </Notice>
+      <Notice>{consequence}</Notice>
       {cancelBooking.isError && <Notice tone="error">{errorMessage(cancelBooking.error)}</Notice>}
     </Dialog>
   );

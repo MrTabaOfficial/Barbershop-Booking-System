@@ -2,17 +2,27 @@ import { findAvailableSlots, getActiveService } from "../availability/service.ts
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { AppError } from "../errors.ts";
-import { type BookingStatus, Prisma } from "../generated/prisma/client.ts";
-import { shopDateOf } from "../shop/time.ts";
+import type { Prisma } from "../generated/prisma/client.ts";
+import type { PaymentProvider } from "../payments/provider.ts";
+import { settleCancelledBooking } from "../payments/service.ts";
+import { formatShopDate, shopClockTimeOf, shopDateOf } from "../shop/time.ts";
+import { isSlotTakenError } from "./errors.ts";
 import type { CreateBookingInput } from "./schemas.ts";
 
+// Cancelling this long before the start refunds the deposit, and a booking
+// can be moved only until then.
 export const FREE_CANCELLATION_HOURS = 24;
+
+// How long an unpaid booking holds its slot. Stripe won't create a checkout
+// that expires in under 30 minutes; the extra half minute covers the time
+// the request takes to reach Stripe, so the limit is never missed.
+export const PAYMENT_HOLD_MS = 30 * 60_000 + 30_000;
+
+// The shop charges in Georgian lari.
+const PAYMENT_CURRENCY = "gel";
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
-
-// A booking can only be cancelled or moved while it is in one of these.
-const ACTIVE_STATUSES: BookingStatus[] = ["PENDING", "CONFIRMED"];
 
 const bookingDetails = {
   service: true,
@@ -39,20 +49,6 @@ function bookingChanged(): AppError {
   );
 }
 
-// True when PostgreSQL refused a write because another booking for that
-// barber covers the time. It reports this in one of two ways:
-// - a violation of the bookings_no_overlap exclusion constraint, when the
-//   other booking was already saved;
-// - a deadlock (Prisma code P2034), when both were being saved at the same
-//   instant. Each write waits to see if the other commits, and PostgreSQL
-//   breaks the tie by aborting one of them. The other one goes through.
-function isSlotTakenError(error: unknown): boolean {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
-    return false;
-  }
-  return error.code === "P2034" || error.message.includes("bookings_no_overlap");
-}
-
 // The availability rules, applied to one requested start time. The slot
 // list is the single source of truth: if the time isn't in it, it can't
 // be booked, whatever the reason.
@@ -74,10 +70,14 @@ async function assertSlotIsAvailable(request: {
   }
 }
 
+// Creates the booking and, when the service has a deposit, the checkout the
+// customer pays it on. Until that payment arrives the booking is pending
+// and holds its slot only for a limited time.
 export async function createBooking(
+  payments: PaymentProvider,
   customerId: string,
   input: CreateBookingInput,
-): Promise<BookingWithDetails> {
+): Promise<{ booking: BookingWithDetails; checkoutUrl: string | null }> {
   const service = await getActiveService(input.serviceId);
   await assertSlotIsAvailable({
     barberId: input.barberId,
@@ -85,8 +85,12 @@ export async function createBooking(
     startsAt: input.startsAt,
   });
 
+  const needsDeposit = service.depositCents > 0;
+  const holdExpiresAt = new Date(Date.now() + PAYMENT_HOLD_MS);
+
+  let booking: BookingWithDetails;
   try {
-    return await prisma.booking.create({
+    booking = await prisma.booking.create({
       data: {
         customerId,
         barberId: input.barberId,
@@ -95,6 +99,9 @@ export async function createBooking(
         endsAt: new Date(input.startsAt.getTime() + service.durationMinutes * MINUTE_MS),
         priceCents: service.priceCents,
         depositCents: service.depositCents,
+        // With nothing to pay there is nothing to wait for.
+        status: needsDeposit ? "PENDING" : "CONFIRMED",
+        holdExpiresAt: needsDeposit ? holdExpiresAt : null,
       },
       include: bookingDetails,
     });
@@ -106,11 +113,53 @@ export async function createBooking(
     }
     throw error;
   }
+
+  if (!needsDeposit) {
+    return { booking, checkoutUrl: null };
+  }
+
+  // The slot is held first and the checkout created second, so there is
+  // never a payable checkout for a slot that isn't held.
+  try {
+    const customer = await prisma.user.findUniqueOrThrow({ where: { id: customerId } });
+    const when = `${formatShopDate(shopDateOf(booking.startsAt, env.shopTimeZone))} at ${shopClockTimeOf(booking.startsAt, env.shopTimeZone)}`;
+    const checkout = await payments.createCheckout({
+      bookingId: booking.id,
+      amountCents: booking.depositCents,
+      currency: PAYMENT_CURRENCY,
+      description: `Deposit for ${service.name} with ${booking.barber.user.name}, ${when}`,
+      customerEmail: customer.email,
+      expiresAt: holdExpiresAt,
+      // The website shows the outcome on the customer's bookings page.
+      successUrl: `${env.appUrl}/bookings?paid=${booking.id}`,
+      cancelUrl: `${env.appUrl}/bookings?unpaid=${booking.id}`,
+    });
+    booking = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { paymentSessionId: checkout.sessionId, paymentUrl: checkout.url },
+      include: bookingDetails,
+    });
+    return { booking, checkoutUrl: checkout.url };
+  } catch (error) {
+    // Without a way to pay, the booking can never be confirmed. Release
+    // its slot now rather than leave it blocked for half an hour.
+    console.error(`Could not start the deposit payment for booking ${booking.id}`, error);
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: "EXPIRED", holdExpiresAt: null },
+    });
+    throw new AppError(
+      502,
+      "PAYMENT_UNAVAILABLE",
+      "We couldn't start the payment, so nothing was booked. Please try again in a moment.",
+    );
+  }
 }
 
 export async function listBookings(customerId: string) {
   const bookings = await prisma.booking.findMany({
-    where: { customerId },
+    // A checkout the customer abandoned isn't a booking they need to see.
+    where: { customerId, status: { not: "EXPIRED" } },
     include: bookingDetails,
     orderBy: { startsAt: "asc" },
   });
@@ -134,21 +183,8 @@ async function getOwnBooking(customerId: string, bookingId: string) {
   return booking;
 }
 
-function assertCanStillChange(booking: { status: BookingStatus; startsAt: Date }, now: Date) {
-  if (!ACTIVE_STATUSES.includes(booking.status)) {
-    throw new AppError(
-      409,
-      "BOOKING_NOT_ACTIVE",
-      `This booking is ${booking.status.toLowerCase().replace("_", " ")} and can't be changed`,
-    );
-  }
-  if (booking.startsAt <= now) {
-    throw new AppError(
-      409,
-      "BOOKING_ALREADY_STARTED",
-      "This booking has already started and can't be changed",
-    );
-  }
+function describeStatus(status: string): string {
+  return status.toLowerCase().replace("_", " ");
 }
 
 function getBookingWithDetails(bookingId: string): Promise<BookingWithDetails> {
@@ -158,30 +194,54 @@ function getBookingWithDetails(bookingId: string): Promise<BookingWithDetails> {
   });
 }
 
+// A customer may cancel a booking that is pending or confirmed and hasn't
+// started. What happens to the deposit depends on how early they do it.
 export async function cancelBooking(
+  payments: PaymentProvider,
   customerId: string,
   bookingId: string,
 ): Promise<BookingWithDetails> {
   const booking = await getOwnBooking(customerId, bookingId);
   const now = new Date();
-  assertCanStillChange(booking, now);
+
+  if (booking.status !== "PENDING" && booking.status !== "CONFIRMED") {
+    throw new AppError(
+      409,
+      "BOOKING_NOT_ACTIVE",
+      `This booking is ${describeStatus(booking.status)} and can't be cancelled`,
+    );
+  }
+  if (booking.startsAt <= now) {
+    throw new AppError(
+      409,
+      "BOOKING_ALREADY_STARTED",
+      "This booking has already started and can't be cancelled",
+    );
+  }
 
   const hoursUntilStart = (booking.startsAt.getTime() - now.getTime()) / HOUR_MS;
+  const inFreeWindow = hoursUntilStart >= FREE_CANCELLATION_HOURS;
 
   // The status and start time are repeated in the condition so that this
   // only succeeds if the booking is still as it was when it was checked.
-  // A second cancel, or a reschedule that slipped in between, gets count 0.
+  // A second cancel, a reschedule or a payment that slipped in between
+  // gets count 0.
   const result = await prisma.booking.updateMany({
     where: { id: booking.id, status: booking.status, startsAt: booking.startsAt },
     data: {
       status: "CANCELLED",
       cancelledAt: now,
-      cancelledInFreeWindow: hoursUntilStart >= FREE_CANCELLATION_HOURS,
+      cancelledInFreeWindow: inFreeWindow,
+      holdExpiresAt: null,
     },
   });
   if (result.count === 0) {
     throw bookingChanged();
   }
+
+  // The money is dealt with after the cancellation is saved. If the refund
+  // fails the booking is still cancelled, and the failure is recorded.
+  await settleCancelledBooking(payments, booking, inFreeWindow);
 
   return getBookingWithDetails(booking.id);
 }
@@ -192,7 +252,26 @@ export async function rescheduleBooking(
   startsAt: Date,
 ): Promise<BookingWithDetails> {
   const booking = await getOwnBooking(customerId, bookingId);
-  assertCanStillChange(booking, new Date());
+  const now = new Date();
+
+  if (booking.status !== "CONFIRMED") {
+    throw new AppError(
+      409,
+      "BOOKING_NOT_ACTIVE",
+      booking.status === "PENDING"
+        ? "Pay the deposit first: a booking can be moved once it is confirmed"
+        : `This booking is ${describeStatus(booking.status)} and can't be moved`,
+    );
+  }
+  // The same limit as free cancellation. Without it, a customer too late to
+  // cancel for free could move the booking a month ahead and cancel that.
+  if (booking.startsAt.getTime() - now.getTime() < FREE_CANCELLATION_HOURS * HOUR_MS) {
+    throw new AppError(
+      409,
+      "TOO_LATE_TO_RESCHEDULE",
+      `A booking can be moved until ${FREE_CANCELLATION_HOURS} hours before it starts`,
+    );
+  }
 
   // The booking keeps its original length even if the service's duration
   // has been edited since.

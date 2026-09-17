@@ -68,10 +68,20 @@ export function useAvailability(params: AvailabilityParams | null) {
   });
 }
 
-export function useMyBookings() {
+// `awaitingPaymentOf` is the id of a booking whose payment was just made.
+// The payment provider tells the server separately, a moment later, so the
+// list is fetched again every two seconds until that booking stops being
+// pending.
+export function useMyBookings(awaitingPaymentOf: string | null = null) {
   return useQuery({
     queryKey: ["bookings", "mine"],
     queryFn: () => apiRequest<MyBookings>("/bookings/mine"),
+    refetchInterval: (query) => {
+      const stillPending = query.state.data?.upcoming.some(
+        (booking) => booking.id === awaitingPaymentOf && booking.status === "pending",
+      );
+      return stillPending ? 2000 : false;
+    },
   });
 }
 
@@ -89,9 +99,13 @@ function useRefreshBookingData() {
 export function useCreateBooking() {
   const refreshBookingData = useRefreshBookingData();
   return useMutation({
-    mutationFn: async (input: { barberId: string; serviceId: string; startsAt: string }) =>
-      (await apiRequest<{ booking: Booking }>("/bookings", { method: "POST", body: input }))
-        .booking,
+    // checkoutUrl is where to send the customer to pay the deposit. It is
+    // null when the service has none and the booking is confirmed already.
+    mutationFn: (input: { barberId: string; serviceId: string; startsAt: string }) =>
+      apiRequest<{ booking: Booking; checkoutUrl: string | null }>("/bookings", {
+        method: "POST",
+        body: input,
+      }),
     onSettled: refreshBookingData,
   });
 }

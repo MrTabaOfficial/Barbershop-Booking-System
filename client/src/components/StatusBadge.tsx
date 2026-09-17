@@ -6,12 +6,15 @@ const STAFF_LABELS: Record<BookingStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
   no_show: "No-show",
+  expired: "Expired",
 };
 
-// "No-show" is the shop's word for it. A customer reading their own
-// history is told, more gently, that they missed the appointment.
+// Staff use the shop's words. A customer is told what a status means for
+// them: a pending booking is waiting for their payment, and a no-show is,
+// more gently, an appointment they missed.
 const CUSTOMER_LABELS: Record<BookingStatus, string> = {
   ...STAFF_LABELS,
+  pending: "Awaiting payment",
   no_show: "Missed",
 };
 

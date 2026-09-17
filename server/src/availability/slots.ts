@@ -1,3 +1,4 @@
+import { holdsSlot } from "../bookings/status.ts";
 import { addDays, shopDateOf, shopTimeToUtc } from "../shop/time.ts";
 
 export const SLOT_STEP_MINUTES = 15;
@@ -55,7 +56,7 @@ export function calculateSlots(input: SlotInput): Date[] {
   const closing = toInstant(workingHours.endMinute);
 
   const busy: Interval[] = input.bookings
-    .filter((booking) => booking.status !== "CANCELLED")
+    .filter((booking) => holdsSlot(booking.status))
     .map((booking) => ({
       start: booking.startsAt.getTime(),
       end: booking.endsAt.getTime(),

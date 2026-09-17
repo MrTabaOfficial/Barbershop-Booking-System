@@ -26,10 +26,22 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
   // with every choice still in the URL.
   const thisStep = location.pathname + location.search;
 
+  const hasDeposit = service.depositCents > 0;
+
   function confirm() {
     createBooking.mutate(
       { barberId: barber.id, serviceId: service.id, startsAt: slot.startsAt },
-      { onSuccess: (booking) => navigate("/bookings", { state: { bookedId: booking.id } }) },
+      {
+        onSuccess: ({ booking, checkoutUrl }) => {
+          if (checkoutUrl) {
+            // Off to the payment page. It sends the customer back to their
+            // bookings when they are done.
+            window.location.assign(checkoutUrl);
+          } else {
+            navigate("/bookings", { state: { bookedId: booking.id } });
+          }
+        },
+      },
     );
   }
 
@@ -51,8 +63,11 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
           </div>
         </dl>
         <p className="mt-5 text-sm leading-relaxed text-muted">
-          You can cancel free of charge until {shop.freeCancellationHours} hours before the
-          appointment. After that the deposit is kept.
+          {hasDeposit
+            ? "You pay the deposit now, by card, and the rest at the shop. We hold the time for 30 minutes while you pay. "
+            : ""}
+          You can cancel or move the booking until {shop.freeCancellationHours} hours before
+          the appointment{hasDeposit ? " and get the deposit back. After that it is kept." : "."}
         </p>
       </Card>
 
@@ -62,11 +77,13 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
         <Button
           size="lg"
           className="w-full"
-          loading={createBooking.isPending}
-          loadingLabel="Booking…"
+          // Still "loading" after success, while the browser leaves for
+          // the payment page: a second click must not book a second slot.
+          loading={createBooking.isPending || createBooking.isSuccess}
+          loadingLabel={hasDeposit ? "Taking you to the payment page…" : "Booking…"}
           onClick={confirm}
         >
-          Confirm booking
+          {hasDeposit ? "Continue to payment" : "Confirm booking"}
         </Button>
       ) : status === "loading" ? (
         <Button size="lg" className="w-full" disabled>
@@ -75,11 +92,11 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted">
-            Log in to confirm. Your choices are kept and you will come straight back here.
+            Log in to continue. Your choices are kept and you will come straight back here.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <ButtonLink size="lg" className="flex-1" to={withNext("/login", thisStep)}>
-              Log in to confirm
+              Log in to continue
             </ButtonLink>
             <ButtonLink
               size="lg"

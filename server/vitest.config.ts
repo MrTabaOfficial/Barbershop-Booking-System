@@ -15,7 +15,13 @@ testDatabaseUrl.pathname += "_test";
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
-    env: { DATABASE_URL: testDatabaseUrl.href },
+    env: {
+      DATABASE_URL: testDatabaseUrl.href,
+      // Tests never talk to Stripe, whatever keys are in .env: with these
+      // empty the app uses the fake payment provider.
+      STRIPE_SECRET_KEY: "",
+      STRIPE_WEBHOOK_SECRET: "",
+    },
     globalSetup: "tests/global-setup.ts",
     // Every test file uses the same database, so files run one at a time.
     fileParallelism: false,

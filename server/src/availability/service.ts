@@ -1,6 +1,7 @@
 import { prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { AppError } from "../errors.ts";
+import { expireUnpaidBookings } from "../payments/service.ts";
 import type { Service } from "../generated/prisma/client.ts";
 import { shopTimeToUtc, toDateColumn, weekdayOf } from "../shop/time.ts";
 import { calculateSlots } from "./slots.ts";
@@ -53,6 +54,11 @@ export async function findAvailableSlots(query: SlotQuery): Promise<Date[]> {
   if (!barber) {
     throw new AppError(404, "BARBER_NOT_FOUND", "This barber is not available");
   }
+
+  // An unpaid booking holds its slot only for a limited time. Releasing
+  // the ones whose time is up here, just before looking, means a slot is
+  // free the moment its hold ends, whether or not a scheduled job has run.
+  await expireUnpaidBookings();
 
   const dayStart = shopTimeToUtc(shopDate, 0, timeZone);
   const dayEnd = shopTimeToUtc(shopDate, 24 * 60, timeZone);

@@ -4,6 +4,7 @@ import { env } from "../src/env.ts";
 import type {
   Barber,
   BookingStatus,
+  PaymentStatus,
   Service,
   User,
 } from "../src/generated/prisma/client.ts";
@@ -63,6 +64,12 @@ function workingHoursRows({ weekdays, ...hours }: Shift) {
   return weekdays.map((weekday) => ({ weekday, ...hours }));
 }
 
+let seededPayments = 0;
+
+// Every demo booking has had its deposit paid, as it would have been to
+// get past "pending". The payment ids are made up: no payment provider has
+// heard of them, so with real Stripe keys a refund of a seeded booking
+// fails and is recorded as "refund failed".
 function bookingData(
   customer: User,
   barber: Barber,
@@ -70,6 +77,7 @@ function bookingData(
   startsAt: Date,
   status: BookingStatus,
 ) {
+  seededPayments += 1;
   return {
     customerId: customer.id,
     barberId: barber.id,
@@ -79,6 +87,8 @@ function bookingData(
     status,
     priceCents: service.priceCents,
     depositCents: service.depositCents,
+    paymentStatus: "PAID" as PaymentStatus,
+    paymentId: `seed_pay_${seededPayments}`,
   };
 }
 
@@ -165,6 +175,8 @@ function generateHistory(
               status: "CANCELLED" as const,
               cancelledAt: new Date(startsAt.getTime() - (cancelledLate ? 6 : 48) * HOUR_MS),
               cancelledInFreeWindow: !cancelledLate,
+              // Cancelled in time: refunded. Cancelled late: the deposit was kept.
+              paymentStatus: cancelledLate ? ("PAID" as const) : ("REFUNDED" as const),
             });
             // A cancelled booking frees its time, so the cursor stays put
             // and the next booking may take the same slot.
@@ -354,12 +366,13 @@ async function seed() {
       ...bookingData(irakli, giorgi, haircut, at(giorgiNextWorkday, 11), "CANCELLED"),
       cancelledAt: new Date(),
       cancelledInFreeWindow: true,
+      paymentStatus: "REFUNDED" as const,
     },
     bookingData(davit, giorgi, haircut, at(giorgiNextWorkday, 11), "CONFIRMED"),
     // Back to back with the booking above: one ends at 11:45, this starts at 11:45.
     bookingData(irakli, giorgi, beardTrim, at(giorgiNextWorkday, 11, 45), "CONFIRMED"),
 
-    bookingData(irakli, luka, hotTowelShave, at(lukaNextWorkday, 12), "PENDING"),
+    bookingData(irakli, luka, hotTowelShave, at(lukaNextWorkday, 12), "CONFIRMED"),
     bookingData(nino, nika, kidsHaircut, at(nikaNextWorkday, 13), "CONFIRMED"),
   ];
 

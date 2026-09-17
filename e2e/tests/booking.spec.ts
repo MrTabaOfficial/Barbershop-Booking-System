@@ -6,12 +6,13 @@ import {
   chooseHaircutWithLuka,
   fillRegistrationForm,
   newCustomer,
+  payDeposit,
   signUp,
   timeButton,
 } from "./helpers.ts";
 
 // Every test books with the same barber on the same day, so each one uses
-// its own time: 11:00, 12:00 and 13:00, 16:00, 18:00.
+// its own time: 11:00, 12:00 and 13:00, 14:00, 16:00, 18:00.
 
 test("a visitor books a haircut and registers on the way", async ({ page }) => {
   await page.goto("/");
@@ -29,15 +30,19 @@ test("a visitor books a haircut and registers on the way", async ({ page }) => {
   await fillRegistrationForm(page);
 
   // Registering leads straight back to the same step, choices intact.
-  await expect(page.getByRole("button", { name: "Confirm booking" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue to payment" })).toBeVisible();
   expect(page.url()).toBe(confirmStepUrl);
   await expect(page.getByText(`${day} at 11:00`)).toBeVisible();
 
-  await page.getByRole("button", { name: "Confirm booking" }).click();
+  // The deposit is paid on the payment page, which then returns here.
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await payDeposit(page);
 
   await expect(page.getByRole("heading", { name: "My bookings" })).toBeVisible();
   await expect(page.getByText(`You are booked for ${day} at 11:00 with Luka`)).toBeVisible();
-  await expect(bookingCard(page, day, "11:00")).toContainText("Haircut with Luka Gelashvili");
+  const card = bookingCard(page, day, "11:00");
+  await expect(card).toContainText("Haircut with Luka Gelashvili");
+  await expect(card).toContainText("Confirmed");
 });
 
 test("a slot taken before confirming is reported and the times are reloaded", async ({
@@ -47,7 +52,7 @@ test("a slot taken before confirming is reported and the times are reloaded", as
   await signUp(page);
   await chooseHaircutWithLuka(page);
   await timeButton(page, "12:00").click();
-  await expect(page.getByRole("button", { name: "Confirm booking" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue to payment" })).toBeVisible();
 
   // While the customer looks at the confirm step, someone else books the
   // same slot, directly through the API.
@@ -64,7 +69,7 @@ test("a slot taken before confirming is reported and the times are reloaded", as
   });
   expect(rivalBooking.status()).toBe(201);
 
-  await page.getByRole("button", { name: "Confirm booking" }).click();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
 
   // Back on the time step, told why, with that time gone.
   await expect(page.getByText("That time has just been taken")).toBeVisible();
@@ -74,8 +79,33 @@ test("a slot taken before confirming is reported and the times are reloaded", as
 
   // Another time still works.
   await timeButton(page, "13:00").click();
-  await page.getByRole("button", { name: "Confirm booking" }).click();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await payDeposit(page);
   await expect(page.getByText("at 13:00 with Luka")).toBeVisible();
+});
+
+test("a customer who leaves the payment page can pay later from My bookings", async ({ page }) => {
+  await signUp(page);
+  const day = await chooseHaircutWithLuka(page);
+  await timeButton(page, "14:00").click();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+
+  // They change their mind on the payment page.
+  await page.getByRole("link", { name: "Go back without paying" }).click();
+
+  // The booking is there, unconfirmed, with its slot held for now.
+  await expect(page.getByText("isn't confirmed yet, because the deposit hasn't been paid")).toBeVisible();
+  const card = bookingCard(page, day, "14:00");
+  await expect(card).toContainText("Awaiting payment");
+  await expect(card).toContainText("We are holding the time until");
+  // An unpaid booking can be cancelled or paid, but not moved.
+  await expect(card.getByRole("button", { name: "Reschedule" })).toHaveCount(0);
+
+  await card.getByRole("link", { name: "Pay the deposit" }).click();
+  await payDeposit(page);
+
+  await expect(page.getByText(`You are booked for ${day} at 14:00 with Luka`)).toBeVisible();
+  await expect(bookingCard(page, day, "14:00")).toContainText("Confirmed");
 });
 
 test("a customer moves a booking to a time that overlaps the current one", async ({ page }) => {
@@ -105,12 +135,12 @@ test("a customer cancels a booking after seeing the 24-hour rule", async ({ page
 
   await card.getByRole("button", { name: "Cancel" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("Cancelling is free until 24 hours before the appointment");
-  await expect(dialog).toContainText("more than 24 hours away, so cancelling now is free");
+  await expect(dialog).toContainText("Cancelling 24 hours or more before the appointment refunds");
+  await expect(dialog).toContainText("your 15 ₾ deposit will be refunded");
   await dialog.getByRole("button", { name: "Cancel booking" }).click();
 
   await expect(dialog).toBeHidden();
-  await expect(card).toContainText("Cancelled in time, free of charge.");
+  await expect(card).toContainText("Your 15 ₾ deposit was refunded.");
   await expect(card.getByRole("button")).toHaveCount(0);
 });
 

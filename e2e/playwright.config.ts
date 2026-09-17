@@ -27,7 +27,16 @@ export default defineConfig({
     {
       command: "npm run start",
       cwd: path.join(repoRoot, "server"),
-      env: { DATABASE_URL, PORT: String(API_PORT) },
+      env: {
+        DATABASE_URL,
+        PORT: String(API_PORT),
+        // Payment pages send the customer back to the website under test.
+        APP_URL: WEB_URL,
+        // Never Stripe, whatever keys are in .env: empty means the fake
+        // payment provider, whose checkout page the tests can click through.
+        STRIPE_SECRET_KEY: "",
+        STRIPE_WEBHOOK_SECRET: "",
+      },
       url: `${API_URL}/shop`,
       reuseExistingServer: false,
     },

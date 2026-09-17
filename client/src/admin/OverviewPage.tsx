@@ -13,7 +13,14 @@ import { BarList, ColumnChart } from "./charts.tsx";
 
 const PRESET_DAYS = [7, 30, 90];
 const DEFAULT_DAYS = 30;
-const STATUS_ORDER: BookingStatus[] = ["completed", "confirmed", "pending", "no_show", "cancelled"];
+const STATUS_ORDER: BookingStatus[] = [
+  "completed",
+  "confirmed",
+  "pending",
+  "no_show",
+  "cancelled",
+  "expired",
+];
 
 // A headline number. The value is in the body font: a display face at
 // this size reads as decoration rather than as data.
@@ -47,7 +54,11 @@ function Figures({ overview }: { overview: Overview }) {
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Bookings" value={String(totals.bookings)} note="Not counting cancelled" />
+        <Stat
+          label="Bookings"
+          value={String(totals.bookings)}
+          note="Not counting cancelled or expired"
+        />
         <Stat
           label="Revenue"
           value={formatPrice(totals.revenueCents)}

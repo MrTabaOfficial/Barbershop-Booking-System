@@ -135,6 +135,12 @@ describe("existing bookings", () => {
     expect(slots).toContain("10:00");
   });
 
+  it("treats an expired booking's time as free", () => {
+    const slots = slotTimes({ bookings: [booking("10:00", "10:30", "EXPIRED")] });
+
+    expect(slots).toContain("10:00");
+  });
+
   it("still blocks the slot for pending, completed and no-show bookings", () => {
     for (const status of ["PENDING", "COMPLETED", "NO_SHOW"]) {
       const slots = slotTimes({ bookings: [booking("10:00", "10:30", status)] });

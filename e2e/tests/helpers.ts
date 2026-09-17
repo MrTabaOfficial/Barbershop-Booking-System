@@ -59,12 +59,19 @@ export async function chooseHaircutWithLuka(page: Page): Promise<string> {
   return label;
 }
 
-// Books that haircut at the given time as the logged-in customer and ends
-// on "My bookings". Returns the day, as above.
+// Pays on the fake payment page that stands in for Stripe in these tests.
+export async function payDeposit(page: Page) {
+  await expect(page.getByRole("heading", { name: "Fake payment page" })).toBeVisible();
+  await page.getByRole("button", { name: "Pay the deposit" }).click();
+}
+
+// Books that haircut at the given time as the logged-in customer, pays the
+// deposit, and ends on "My bookings". Returns the day, as above.
 export async function bookHaircutWithLuka(page: Page, time: string): Promise<string> {
   const day = await chooseHaircutWithLuka(page);
   await timeButton(page, time).click();
-  await page.getByRole("button", { name: "Confirm booking" }).click();
+  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await payDeposit(page);
   await expect(page.getByText(`You are booked for ${day} at ${time} with Luka`)).toBeVisible();
   return day;
 }

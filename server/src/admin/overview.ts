@@ -36,11 +36,13 @@ export async function getOverview(from: string, to: string) {
   const rangeEnd = shopTimeToUtc(to, 24 * 60, timeZone);
 
   const [perDay, statusRows, topServices] = await Promise.all([
-    // One row per date. "Bookings" are the ones that weren't cancelled;
-    // revenue counts only the completed ones.
+    // One row per date. "Bookings" are the ones that were neither
+    // cancelled nor left unpaid until they expired; revenue counts only
+    // the completed ones.
     prisma.$queryRaw<DayRow[]>`
       SELECT to_char(day, 'YYYY-MM-DD') AS "date",
-             (count(b.id) FILTER (WHERE b.status <> 'CANCELLED'))::int AS "bookings",
+             (count(b.id) FILTER (WHERE b.status NOT IN ('CANCELLED', 'EXPIRED')))::int
+               AS "bookings",
              coalesce(sum(b.price_cents) FILTER (WHERE b.status = 'COMPLETED'), 0)::int
                AS "revenueCents"
       FROM generate_series(${from}::date, ${to}::date, interval '1 day') AS day
@@ -62,7 +64,7 @@ export async function getOverview(from: string, to: string) {
       FROM bookings b
       JOIN services s ON s.id = b.service_id
       WHERE b.starts_at >= ${rangeStart} AND b.starts_at < ${rangeEnd}
-        AND b.status <> 'CANCELLED'
+        AND b.status NOT IN ('CANCELLED', 'EXPIRED')
       GROUP BY s.id, s.name
       ORDER BY "bookings" DESC, s.name ASC
       LIMIT ${TOP_SERVICES}

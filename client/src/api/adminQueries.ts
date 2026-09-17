@@ -112,9 +112,10 @@ export function useAdminBookings(query: string) {
 export function useCancelBookingAsAdmin() {
   const refresh = useRefreshEverything();
   return useMutation({
-    mutationFn: (bookingId: string) =>
-      apiRequest<{ booking: AdminBooking }>(`/admin/bookings/${bookingId}/cancel`, {
+    mutationFn: (input: { bookingId: string; refund: boolean }) =>
+      apiRequest<{ booking: AdminBooking }>(`/admin/bookings/${input.bookingId}/cancel`, {
         method: "POST",
+        body: { refund: input.refund },
       }),
     onSettled: refresh,
   });

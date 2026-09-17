@@ -11,6 +11,7 @@ import {
   createBarber,
   createService,
   createUser,
+  markAsPaid,
   resetDatabase,
 } from "./helpers.ts";
 
@@ -53,6 +54,13 @@ function book(auth: string, clockTime: string) {
     .post("/bookings")
     .set("Authorization", auth)
     .send({ barberId: barber.id, serviceId: haircut.id, startsAt: at(clockTime).toISOString() });
+}
+
+// Books a slot and pays its deposit, which is what makes it "confirmed".
+async function bookAndPay(auth: string, clockTime: string) {
+  const { booking } = (await book(auth, clockTime)).body;
+  await markAsPaid(booking.id);
+  return booking as { id: string };
 }
 
 function cancel(auth: string, bookingId: string) {
@@ -442,14 +450,14 @@ describe("POST /bookings/:id/cancel", () => {
 
 describe("POST /bookings/:id/reschedule", () => {
   it("moves the booking, freeing the old slot and taking the new one", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
 
     const response = await reschedule(alexAuth, booking.id, "15:00");
 
     expect(response.status).toBe(200);
     expect(response.body.booking).toMatchObject({
       id: booking.id,
-      status: "pending",
+      status: "confirmed",
       localTime: "15:00",
       endsAt: at("15:30").toISOString(),
     });
@@ -459,7 +467,7 @@ describe("POST /bookings/:id/reschedule", () => {
   });
 
   it("allows a new time that overlaps the booking's own current time", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
 
     const response = await reschedule(alexAuth, booking.id, "10:15");
 
@@ -468,7 +476,7 @@ describe("POST /bookings/:id/reschedule", () => {
   });
 
   it("keeps the old slot when the new one is taken", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
     await book(priyaAuth, "15:00");
 
     const response = await reschedule(alexAuth, booking.id, "15:00");
@@ -477,18 +485,18 @@ describe("POST /bookings/:id/reschedule", () => {
     expect(response.body.error.code).toBe("SLOT_UNAVAILABLE");
     const saved = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(saved.startsAt).toEqual(at("10:00"));
-    expect(saved.status).toBe("PENDING");
+    expect(saved.status).toBe("CONFIRMED");
   });
 
   it("applies the same rules as a new booking", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
 
     expect((await reschedule(alexAuth, booking.id, "13:15")).status).toBe(409);
     expect((await reschedule(alexAuth, booking.id, "10:07")).status).toBe(409);
   });
 
   it("refuses a cancelled booking", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
     await cancel(alexAuth, booking.id);
 
     const response = await reschedule(alexAuth, booking.id, "15:00");
@@ -498,7 +506,7 @@ describe("POST /bookings/:id/reschedule", () => {
   });
 
   it("does not let a customer reschedule someone else's booking", async () => {
-    const { booking } = (await book(alexAuth, "10:00")).body;
+    const booking = await bookAndPay(alexAuth, "10:00");
 
     const response = await reschedule(priyaAuth, booking.id, "15:00");
 

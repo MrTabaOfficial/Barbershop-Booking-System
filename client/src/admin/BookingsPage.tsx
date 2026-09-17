@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useAdminBarbers, useAdminBookings, useCancelBookingAsAdmin } from "../api/adminQueries.ts";
 import { apiDownload, errorMessage } from "../api/http.ts";
-import type { AdminBooking, BookingStatus } from "../api/types.ts";
+import type { AdminBooking, BookingStatus, PaymentStatus } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Input } from "../components/Input.tsx";
@@ -13,7 +13,21 @@ import { StatusBadge, statusLabel } from "../components/StatusBadge.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 
-const STATUSES: BookingStatus[] = ["pending", "confirmed", "completed", "no_show", "cancelled"];
+const STATUSES: BookingStatus[] = [
+  "pending",
+  "confirmed",
+  "completed",
+  "no_show",
+  "cancelled",
+  "expired",
+];
+
+const PAYMENT_LABELS: Record<PaymentStatus, string> = {
+  unpaid: "Deposit unpaid",
+  paid: "Deposit paid",
+  refunded: "Deposit refunded",
+  refund_failed: "Refund failed",
+};
 
 // The parameters that narrow the list, as opposed to ordering or paging it.
 const FILTERS = ["from", "to", "barberId", "status", "search"];
@@ -31,6 +45,9 @@ const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
 
 function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: () => void }) {
   const cancelBooking = useCancelBookingAsAdmin();
+  // There is only something to decide when a deposit was actually paid.
+  const depositPaid = booking.paymentStatus === "paid";
+  const [refund, setRefund] = useState(true);
   return (
     <Dialog
       title="Cancel this booking?"
@@ -44,7 +61,9 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
             variant="danger"
             loading={cancelBooking.isPending}
             loadingLabel="Cancelling…"
-            onClick={() => cancelBooking.mutate(booking.id, { onSuccess: onClose })}
+            onClick={() =>
+              cancelBooking.mutate({ bookingId: booking.id, refund }, { onSuccess: onClose })
+            }
           >
             Cancel booking
           </Button>
@@ -55,10 +74,23 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
         {booking.service.name} for {booking.customer.name} with {booking.barber.name} on{" "}
         {formatLongDate(booking.localDate)} at {booking.localTime}.
       </p>
+      {depositPaid ? (
+        <label className="flex min-h-11 items-center gap-3 font-semibold">
+          <input
+            type="checkbox"
+            className="size-5 accent-brass"
+            checked={refund}
+            onChange={(event) => setRefund(event.target.checked)}
+          />
+          Refund the {formatPrice(booking.depositCents)} deposit
+        </label>
+      ) : (
+        <p className="text-muted">No deposit was paid, so there is nothing to refund.</p>
+      )}
       <p className="text-muted">
-        The time becomes free for other customers straight away. A cancellation by the shop
-        never costs the customer their deposit. They are not told automatically, so let them
-        know{booking.customer.phone ? ` on ${booking.customer.phone}` : ""}.
+        The time becomes free for other customers straight away. The customer is not told
+        automatically, so let them know
+        {booking.customer.phone ? ` on ${booking.customer.phone}` : ""}.
       </p>
       {cancelBooking.isError && <Notice tone="error">{errorMessage(cancelBooking.error)}</Notice>}
     </Dialog>
@@ -211,6 +243,11 @@ export function BookingsPage() {
                   </td>
                   <td className="whitespace-nowrap py-3 pr-4 text-right tabular-nums">
                     {formatPrice(booking.priceCents)}
+                    <span
+                      className={`block text-xs ${booking.paymentStatus === "refund_failed" ? "text-danger" : "text-muted"}`}
+                    >
+                      {PAYMENT_LABELS[booking.paymentStatus]}
+                    </span>
                   </td>
                   <td className="py-2 text-right">
                     {(booking.status === "pending" || booking.status === "confirmed") && (

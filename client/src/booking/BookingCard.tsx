@@ -5,16 +5,47 @@ import { StatusBadge } from "../components/StatusBadge.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 
+const HOUR_MS = 60 * 60 * 1000;
+
+const PAY_LINK =
+  "inline-flex min-h-11 items-center justify-center rounded-sm bg-brass px-5 py-2 text-center text-sm font-semibold text-ink transition-colors hover:bg-brass-light";
+
 type BookingCardProps = {
   booking: Booking;
+  // How long before the start a booking can still be moved for free.
+  freeCancellationHours: number;
   // Left out for past bookings, which can't be changed.
   onCancel?: () => void;
   onReschedule?: () => void;
 };
 
-export function BookingCard({ booking, onCancel, onReschedule }: BookingCardProps) {
-  // The server refuses changes to anything else; don't offer them.
-  const canChange = booking.status === "pending" || booking.status === "confirmed";
+// What happened to the deposit of a cancelled booking, in the customer's terms.
+function describeCancellation(booking: Booking): string | null {
+  switch (booking.paymentStatus) {
+    case "refunded":
+      return `Your ${formatPrice(booking.depositCents)} deposit was refunded.`;
+    case "paid":
+      return `The ${formatPrice(booking.depositCents)} deposit was kept.`;
+    case "refund_failed":
+      return "Your deposit is due back to you but the refund didn't go through. Please call us and we will sort it out.";
+    default:
+      return null;
+  }
+}
+
+export function BookingCard({
+  booking,
+  freeCancellationHours,
+  onCancel,
+  onReschedule,
+}: BookingCardProps) {
+  const awaitingPayment = booking.status === "pending";
+  const confirmed = booking.status === "confirmed";
+
+  // The server applies the same rule; this only decides what to offer.
+  const hoursUntilStart = (Date.parse(booking.startsAt) - Date.now()) / HOUR_MS;
+  const canStillMove = hoursUntilStart >= freeCancellationHours;
+  const cancellationNote = booking.status === "cancelled" ? describeCancellation(booking) : null;
 
   return (
     <Card>
@@ -35,17 +66,30 @@ export function BookingCard({ booking, onCancel, onReschedule }: BookingCardProp
         deposit
       </p>
 
-      {booking.status === "cancelled" && booking.cancelledInFreeWindow !== null && (
+      {awaitingPayment && (
+        <p className="mt-2 text-sm">
+          This booking isn't confirmed until the deposit is paid.
+          {booking.heldUntilLocalTime &&
+            ` We are holding the time until ${booking.heldUntilLocalTime}.`}
+        </p>
+      )}
+      {cancellationNote && <p className="mt-2 text-sm text-muted">{cancellationNote}</p>}
+      {confirmed && onReschedule && !canStillMove && (
         <p className="mt-2 text-sm text-muted">
-          {booking.cancelledInFreeWindow
-            ? "Cancelled in time, free of charge."
-            : "Cancelled late, so the deposit was kept."}
+          With less than {freeCancellationHours} hours to go, this booking can no longer be
+          moved.
         </p>
       )}
 
-      {canChange && (onCancel || onReschedule) && (
+      {(awaitingPayment || confirmed) && (onCancel || onReschedule) && (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          {onReschedule && (
+          {/* A plain link: the payment page is on another site. */}
+          {awaitingPayment && booking.paymentUrl && (
+            <a href={booking.paymentUrl} className={PAY_LINK}>
+              Pay the deposit
+            </a>
+          )}
+          {confirmed && onReschedule && canStillMove && (
             <Button variant="secondary" onClick={onReschedule}>
               Reschedule
             </Button>

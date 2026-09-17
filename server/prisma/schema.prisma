@@ -16,13 +16,23 @@ enum Role {
 }
 
 enum BookingStatus {
-  PENDING // created, deposit not paid yet
-  CONFIRMED
+  PENDING // created, deposit not paid yet; holds the slot for a limited time
+  CONFIRMED // deposit paid
   COMPLETED
   CANCELLED
   NO_SHOW
+  EXPIRED // the deposit wasn't paid in time; the slot is free again
 
   @@map("booking_status")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  REFUND_FAILED // a refund was due but the payment provider refused it
+
+  @@map("payment_status")
 }
 
 model User {
@@ -120,26 +130,35 @@ model DayOff {
 
 // Overlapping bookings for the same barber are rejected by an exclusion
 // constraint that Prisma can't express here; see the booking_no_overlap
-// migration.
+// and booking_overlap_ignores_expired migrations.
 model Booking {
-  id         String        @id @default(uuid())
-  customerId String        @map("customer_id")
-  barberId   String        @map("barber_id")
-  serviceId  String        @map("service_id")
-  startsAt   DateTime      @map("starts_at") @db.Timestamptz(3)
-  endsAt     DateTime      @map("ends_at") @db.Timestamptz(3)
-  status     BookingStatus @default(PENDING)
+  id                    String        @id @default(uuid())
+  customerId            String        @map("customer_id")
+  barberId              String        @map("barber_id")
+  serviceId             String        @map("service_id")
+  startsAt              DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt                DateTime      @map("ends_at") @db.Timestamptz(3)
+  status                BookingStatus @default(PENDING)
   // Copied from the service at booking time, so later price changes don't
   // rewrite what the customer agreed to.
-  priceCents   Int      @map("price_cents")
-  depositCents Int      @map("deposit_cents")
+  priceCents            Int           @map("price_cents")
+  depositCents          Int           @map("deposit_cents")
   // Both are set when the booking is cancelled. The second records whether
   // that happened 24 hours or more before the start, which decides whether
   // the deposit is refunded.
-  cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz(3)
-  cancelledInFreeWindow Boolean?  @map("cancelled_in_free_window")
-  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cancelledAt           DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelledInFreeWindow Boolean?      @map("cancelled_in_free_window")
+  // The deposit. paymentSessionId is the checkout the customer was sent to
+  // and paymentUrl its address. paymentId is the payment itself: it is
+  // known once the payment succeeds and is what a refund refers to.
+  paymentStatus         PaymentStatus @default(UNPAID) @map("payment_status")
+  paymentSessionId      String?       @unique @map("payment_session_id")
+  paymentUrl            String?       @map("payment_url")
+  paymentId             String?       @map("payment_id")
+  // While the booking is pending: when its unpaid hold on the slot lapses.
+  holdExpiresAt         DateTime?     @map("hold_expires_at") @db.Timestamptz(3)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   customer User    @relation(fields: [customerId], references: [id], onDelete: Restrict)
   barber   Barber  @relation(fields: [barberId], references: [id], onDelete: Restrict)
