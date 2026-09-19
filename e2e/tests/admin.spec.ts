@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { logIn } from "./helpers.ts";
+import { bookWithBarber, logIn } from "./helpers.ts";
 
 test.use({ viewport: { width: 1280, height: 900 } });
 
 test("the admin reads the overview, manages a service, the bookings and a barber's hours", async ({
   page,
+  request,
 }) => {
   await logIn(page, "tamar@dalaki.example");
 
@@ -43,6 +44,10 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await page.goto("/book");
   await expect(page.getByRole("heading", { name: "Choose a service" })).toBeVisible();
   await expect(onTheBookingPage).toHaveCount(0);
+
+  // On the days Nika doesn't work the seed leaves her one confirmed booking,
+  // so the test adds two of its own to have rows left after cancelling one.
+  await bookWithBarber(request, "Nika Tsiklauri", "Kids haircut", 2);
 
   await page.goto("/admin/bookings");
   await page.getByLabel("Status").selectOption({ label: "Confirmed" });

@@ -6,8 +6,8 @@ import { ButtonLink } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { weekdayOf } from "../lib/dates.ts";
-import { firstName, formatClock, formatDuration, formatPrice } from "../lib/format.ts";
-import { shop } from "../shop.ts";
+import { brand } from "../brand.ts";
+import { firstName, formatClock, formatDuration, formatPrice, phoneLink } from "../lib/format.ts";
 
 const TEXT_LINK = "font-medium text-brass-light underline underline-offset-4 hover:text-cream";
 
@@ -46,20 +46,20 @@ function Hero() {
   return (
     <section className="py-16 sm:py-24">
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brass-light">
-        Barbershop · {shop.district}, Tbilisi
+        Barbershop · Sololaki, Tbilisi
       </p>
       <p
         lang="ka"
         aria-hidden="true"
         className="mt-6 font-georgian text-6xl font-semibold leading-none text-brass sm:text-8xl"
       >
-        {shop.wordmark}
+        {brand.wordmark}
       </p>
       <h1 className="mt-8 max-w-3xl text-4xl leading-tight sm:text-6xl sm:leading-[1.1]">
         A proper haircut, in an unhurried chair.
       </h1>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-        {shop.name} is a small barbershop on Asatiani Street. Classic cuts, beard work and hot
+        {brand.name} is a small barbershop on Asatiani Street. Classic cuts, beard work and hot
         towel shaves, by appointment, so the chair is yours when you walk in.
       </p>
       <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -76,6 +76,7 @@ function Hero() {
 
 function Services() {
   const services = useServices();
+  const shop = useShop();
 
   if (services.isPending) {
     return <LoadingBlock label="Loading services" rows={4} />;
@@ -92,7 +93,8 @@ function Services() {
   if (services.data.length === 0) {
     return (
       <EmptyState title="The price list is being updated">
-        Call us on {shop.phone} and we will tell you what is on offer.
+        {shop.data ? `Call us on ${shop.data.phone}` : "Call us"} and we will tell you what is on
+        offer.
       </EmptyState>
     );
   }
@@ -170,6 +172,39 @@ function Barbers() {
   );
 }
 
+function Address() {
+  const shop = useShop();
+
+  if (shop.isPending) {
+    return <LoadingBlock label="Loading the address" rows={2} />;
+  }
+  if (shop.isError) {
+    return (
+      <ErrorState
+        title="We couldn't load the address"
+        error={shop.error}
+        onRetry={() => void shop.refetch()}
+      />
+    );
+  }
+
+  const { address, directions, phone } = shop.data;
+  return (
+    <address className="space-y-1 not-italic leading-relaxed">
+      <p>{address.street}</p>
+      <p>
+        {address.district}, {address.city}
+      </p>
+      <p className="pt-2 text-muted">{directions}</p>
+      <p className="pt-2">
+        <a href={phoneLink(phone)} className={TEXT_LINK}>
+          {phone}
+        </a>
+      </p>
+    </address>
+  );
+}
+
 function OpeningHours() {
   const barbers = useBarbers();
   const shopInfo = useShop();
@@ -242,18 +277,7 @@ export function HomePage() {
           </div>
           <div>
             <h3 className="mb-4 text-xl">Address</h3>
-            <address className="space-y-1 not-italic leading-relaxed">
-              <p>{shop.street}</p>
-              <p>
-                {shop.district}, {shop.city}
-              </p>
-              <p className="pt-2 text-muted">{shop.directions}</p>
-              <p className="pt-2">
-                <a href={`tel:${shop.phone.replaceAll(" ", "")}`} className={TEXT_LINK}>
-                  {shop.phone}
-                </a>
-              </p>
-            </address>
+            <Address />
             <ButtonLink to="/book" className="mt-8">
               Book an appointment
             </ButtonLink>

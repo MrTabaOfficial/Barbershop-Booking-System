@@ -20,6 +20,7 @@ import {
   type RecordingMailer,
   type RecordingOwnerAlerts,
   resetDatabase,
+  silenceErrorLog,
 } from "./helpers.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -225,11 +226,13 @@ describe("when a booking is cancelled", () => {
   });
 
   it("owns up when the refund didn't go through", async () => {
+    const errorLog = silenceErrorLog();
     const booking = await insertPaidBooking(48);
     payments.failRefunds = true;
 
     await cancel(booking.id);
 
+    expect(errorLog).toHaveBeenCalled();
     expect(mailer.sent[0]?.text).toContain("the refund did not go through");
     expect(ownerAlerts.sent[0]).toContain("refund FAILED");
   });
@@ -267,7 +270,7 @@ describe("when sending fails", () => {
   beforeEach(() => {
     mailer.failing = true;
     ownerAlerts.failing = true;
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    silenceErrorLog();
   });
 
   it("still confirms the booking", async () => {

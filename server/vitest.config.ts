@@ -25,5 +25,8 @@ export default defineConfig({
     },
     globalSetup: "tests/global-setup.ts",
     fileParallelism: false,
+    // Without this, a test that silences console.error would silence it for
+    // every later test in its file, and hide errors nobody expected.
+    restoreMocks: true,
   },
 });

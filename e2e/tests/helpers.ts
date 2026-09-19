@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from "@playwright/test";
-import { SEED_PASSWORD } from "../environment.ts";
+import { type APIRequestContext, expect, type Locator, type Page } from "@playwright/test";
+import { API_URL, SEED_PASSWORD } from "../environment.ts";
 
 const PASSWORD = "e2e-test-password";
 let customerCount = 0;
@@ -67,6 +67,53 @@ export async function bookHaircutWithLuka(page: Page, time: string): Promise<str
 
 export function bookingCard(page: Page, day: string, time: string): Locator {
   return page.getByRole("listitem").filter({ hasText: `${day}, ${time}` });
+}
+
+export function addDays(date: string, days: number): string {
+  const moved = new Date(`${date}T00:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
+}
+
+type Named = { id: string; name: string };
+
+export async function bookWithBarber(
+  request: APIRequestContext,
+  barberName: string,
+  serviceName: string,
+  count: number,
+) {
+  const registration = await request.post(`${API_URL}/auth/register`, { data: newCustomer() });
+  const { accessToken } = await registration.json();
+  const { barbers } = (await (await request.get(`${API_URL}/barbers`)).json()) as { barbers: Named[] };
+  const { services } = (await (await request.get(`${API_URL}/services`)).json()) as { services: Named[] };
+  const { today } = await (await request.get(`${API_URL}/shop`)).json();
+  const barberId = barbers.find((barber) => barber.name === barberName)?.id;
+  const serviceId = services.find((service) => service.name === serviceName)?.id;
+  expect(barberId, `${barberName} should be on the public list`).toBeDefined();
+  expect(serviceId, `${serviceName} should be on the public list`).toBeDefined();
+
+  let booked = 0;
+  for (let daysAhead = 7; booked < count && daysAhead <= 28; daysAhead++) {
+    const availability = await request.get(
+      `${API_URL}/availability?barberId=${barberId}&serviceId=${serviceId}&date=${addDays(today, daysAhead)}`,
+    );
+    const { slots } = (await availability.json()) as { slots: { startsAt: string }[] };
+    const slot = slots[0];
+    if (!slot) {
+      continue;
+    }
+    const booking = await request.post(`${API_URL}/bookings`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: { serviceId, barberId, startsAt: slot.startsAt },
+    });
+    expect(booking.status()).toBe(201);
+    const { checkoutUrl } = await booking.json();
+    const payment = await request.post(checkoutUrl, { maxRedirects: 0 });
+    expect(payment.status()).toBe(303);
+    booked += 1;
+  }
+  expect(booked, `${barberName} should have ${count} free days in the next four weeks`).toBe(count);
 }
 
 export async function logIn(page: Page, email: string) {

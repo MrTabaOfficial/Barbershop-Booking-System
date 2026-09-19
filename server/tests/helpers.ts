@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Response } from "supertest";
+import { vi } from "vitest";
 import { hashPassword } from "../src/auth/password.ts";
 import { REFRESH_COOKIE } from "../src/auth/routes.ts";
 import { signAccessToken, toRoleName } from "../src/auth/tokens.ts";
@@ -112,6 +113,10 @@ export function createTestDependencies() {
   const ownerAlerts = new RecordingOwnerAlerts();
   const deps: Dependencies = { payments: new PaymentProviders(fake), mailer, ownerAlerts };
   return { deps, fake, mailer, ownerAlerts };
+}
+
+export function silenceErrorLog() {
+  return vi.spyOn(console, "error").mockImplementation(() => {});
 }
 
 export function markAsPaid(bookingId: string) {

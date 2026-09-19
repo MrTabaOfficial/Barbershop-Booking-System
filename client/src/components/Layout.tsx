@@ -1,18 +1,20 @@
 import { Link, NavLink, Outlet, ScrollRestoration, useNavigate } from "react-router";
+import { useShop } from "../api/queries.ts";
 import { useAuth } from "../auth/AuthContext.ts";
-import { shop } from "../shop.ts";
+import { brand } from "../brand.ts";
+import { phoneLink } from "../lib/format.ts";
 
 const NAV_LINK =
   "py-2 text-sm font-medium text-muted hover:text-cream aria-[current=page]:text-brass-light";
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-baseline gap-3" aria-label={`${shop.name}, home`}>
+    <Link to="/" className="flex items-baseline gap-3" aria-label={`${brand.name}, home`}>
       <span lang="ka" className="font-georgian text-2xl font-semibold text-brass-light">
-        {shop.wordmark}
+        {brand.wordmark}
       </span>
       <span className="hidden text-xs font-semibold uppercase tracking-[0.3em] text-muted sm:inline">
-        {shop.name}
+        {brand.name}
       </span>
     </Link>
   );
@@ -73,14 +75,21 @@ function Header() {
 }
 
 function Footer() {
+  const shop = useShop();
   return (
     <footer className="mt-20 border-t border-line">
       <div className="mx-auto max-w-5xl space-y-2 px-4 py-8 text-sm text-muted sm:px-6">
         <p>
-          {shop.name} · {shop.street}, {shop.district}, {shop.city} ·{" "}
-          <a href={`tel:${shop.phone.replaceAll(" ", "")}`} className="hover:text-cream">
-            {shop.phone}
-          </a>
+          {brand.name}
+          {shop.data && (
+            <>
+              {" "}
+              · {shop.data.address.street}, {shop.data.address.district}, {shop.data.address.city} ·{" "}
+              <a href={phoneLink(shop.data.phone)} className="hover:text-cream">
+                {shop.data.phone}
+              </a>
+            </>
+          )}
         </p>
         <p>A portfolio project. The shop, its address and its phone number are fictional.</p>
       </div>

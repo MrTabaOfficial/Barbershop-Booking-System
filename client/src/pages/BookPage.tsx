@@ -10,7 +10,6 @@ import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { formatLongDate, isShopDate } from "../lib/dates.ts";
 import { formatDuration, formatPrice } from "../lib/format.ts";
-import { shop as shopFacts } from "../shop.ts";
 
 const STEP_TITLES = [
   "Choose a service",
@@ -84,7 +83,7 @@ export function BookPage() {
     if (services.data.length === 0 || barbers.data.length === 0) {
       return (
         <EmptyState title="Online booking is closed for now">
-          Call us on {shopFacts.phone} and we will find you a time.
+          Call us on {shop.data.phone} and we will find you a time.
         </EmptyState>
       );
     }

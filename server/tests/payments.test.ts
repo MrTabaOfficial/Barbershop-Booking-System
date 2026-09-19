@@ -25,6 +25,7 @@ import {
   createTestDependencies,
   createUser,
   resetDatabase,
+  silenceErrorLog,
 } from "./helpers.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -158,10 +159,15 @@ describe("booking with a deposit", () => {
   });
 
   it("books nothing when the payment can't be started", async () => {
+    const errorLog = silenceErrorLog();
     payments.failCheckouts = true;
 
     const response = await book(davitAuth, "10:00");
 
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("Could not start the deposit payment"),
+      expect.any(Error),
+    );
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe("PAYMENT_UNAVAILABLE");
     expect(await freeTimes()).toContain("10:00");
@@ -196,7 +202,10 @@ describe("the Stripe webhook", () => {
     secretKey: "sk_test_not_a_real_key",
     webhookSecret: "whsec_test_secret",
   });
-  const stripeApp = createApp({ payments: new PaymentProviders(stripe) });
+  const stripeApp = createApp({
+    ...createTestDependencies().deps,
+    payments: new PaymentProviders(stripe),
+  });
 
   function event(type: string, session: object) {
     return JSON.stringify({
@@ -453,11 +462,16 @@ describe("cancelling and the deposit", () => {
   });
 
   it("still cancels the booking when the refund fails, and records the failure", async () => {
+    const errorLog = silenceErrorLog();
     const booking = await insertPaidBooking(new Date(Date.now() + 48 * HOUR_MS));
     payments.failRefunds = true;
 
     const response = await cancel(davitAuth, booking.id);
 
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("Refund failed"),
+      expect.any(Error),
+    );
     expect(response.status).toBe(200);
     expect(response.body.booking).toMatchObject({
       status: "cancelled",
@@ -492,10 +506,15 @@ describe("which provider a refund goes through", () => {
   });
 
   it("records a failed refund when the deposit's provider is no longer configured", async () => {
+    const errorLog = silenceErrorLog();
     const booking = await insertPaidBooking(new Date(Date.now() + 48 * HOUR_MS), "retired-provider");
 
     const response = await cancel(booking.id);
 
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("Refund failed"),
+      expect.any(Error),
+    );
     expect(response.body.booking).toMatchObject({
       status: "cancelled",
       paymentStatus: "refund_failed",

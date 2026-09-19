@@ -13,6 +13,12 @@ import {
 
 test("a visitor books a haircut and registers on the way", async ({ page }) => {
   await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  await expect(footer).toContainText("27 Lado Asatiani Street, Sololaki, Tbilisi 0105");
+  await expect(footer.getByRole("link", { name: "+995 555 00 00 00" })).toHaveAttribute(
+    "href",
+    "tel:+995555000000",
+  );
   await page.getByRole("link", { name: "Book an appointment" }).first().click();
   await expect(page.getByRole("heading", { name: "Choose a service" })).toBeVisible();
 

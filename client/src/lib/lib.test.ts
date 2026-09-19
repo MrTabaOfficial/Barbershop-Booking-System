@@ -13,6 +13,7 @@ import {
   formatPrice,
   parseClock,
   parseLari,
+  phoneLink,
   toLariInput,
 } from "./format.ts";
 import { homeFor, safeNextPath } from "./nextPath.ts";
@@ -63,6 +64,12 @@ describe("formatting", () => {
   it("shows minutes after midnight as a clock time", () => {
     expect(formatClock(600)).toBe("10:00");
     expect(formatClock(930)).toBe("15:30");
+  });
+});
+
+describe("phoneLink", () => {
+  it("drops the spaces a phone number is written with", () => {
+    expect(phoneLink("+995 555 00 00 00")).toBe("tel:+995555000000");
   });
 });
 

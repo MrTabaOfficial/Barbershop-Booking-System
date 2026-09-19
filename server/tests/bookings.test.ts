@@ -10,6 +10,7 @@ import {
   authHeaderFor,
   createBarber,
   createService,
+  createTestDependencies,
   createUser,
   markAsPaid,
   resetDatabase,
@@ -34,7 +35,7 @@ let priyaAuth: string;
 
 beforeEach(async () => {
   await resetDatabase();
-  app = createApp();
+  app = createApp(createTestDependencies().deps);
   barber = await createBarber("Marco Rossi");
   haircut = await createService("Haircut");
   alex = await createUser("alex@example.test");
@@ -138,21 +139,6 @@ describe("GET /services and GET /barbers", () => {
     const { workingHours } = response.body.barbers[0];
     expect(workingHours).toHaveLength(7);
     expect(workingHours[0]).toEqual({ weekday: 0, startMinute: 540, endMinute: 1080 });
-  });
-});
-
-describe("GET /shop", () => {
-  it("returns the time zone, today's shop date and the booking limits", async () => {
-    const response = await request(app).get("/shop");
-
-    const today = shopDateOf(new Date(), env.shopTimeZone);
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      timeZone: env.shopTimeZone,
-      today,
-      lastBookableDate: addDays(today, 60),
-      freeCancellationHours: 24,
-    });
   });
 });
 

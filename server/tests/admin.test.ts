@@ -11,6 +11,7 @@ import {
   authHeaderFor,
   authHeaderForBarber,
   createBarber,
+  createTestDependencies,
   createUser,
   resetDatabase,
   TEST_PASSWORD,
@@ -36,7 +37,7 @@ let nino: User;
 
 beforeEach(async () => {
   await resetDatabase();
-  app = createApp();
+  app = createApp(createTestDependencies().deps);
   adminAuth = await authHeaderFor(await createUser("tamar@dalaki.example", "ADMIN"));
   giorgi = await createBarber("Giorgi Kapanadze");
   luka = await createBarber("Luka Gelashvili");

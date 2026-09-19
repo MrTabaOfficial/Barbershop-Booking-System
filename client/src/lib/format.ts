@@ -46,6 +46,10 @@ export function formatPercent(ratio: number): string {
   return `${Math.round(ratio * 100)}%`;
 }
 
+export function phoneLink(phone: string): string {
+  return `tel:${phone.replaceAll(" ", "")}`;
+}
+
 export function firstName(fullName: string): string {
   return fullName.split(" ")[0] ?? fullName;
 }

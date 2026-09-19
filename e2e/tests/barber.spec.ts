@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { API_URL, SEED_PASSWORD } from "../environment.ts";
-import { logIn, signUp } from "./helpers.ts";
+import { addDays, logIn, signUp } from "./helpers.ts";
 
 const GIORGI = "giorgi@dalaki.example";
 
@@ -71,9 +71,3 @@ test("a customer who opens the barber page is told it isn't theirs", async ({ pa
   await expect(page.getByRole("heading", { name: "This page isn't for your account" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today" })).toHaveCount(0);
 });
-
-function addDays(date: string, days: number): string {
-  const moved = new Date(`${date}T00:00:00Z`);
-  moved.setUTCDate(moved.getUTCDate() + days);
-  return moved.toISOString().slice(0, 10);
-}

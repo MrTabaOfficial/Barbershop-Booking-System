@@ -1,6 +1,6 @@
 import { env } from "../env.ts";
 import type { Prisma } from "../generated/prisma/client.ts";
-import { formatLari, shopDetails } from "../shop/details.ts";
+import { formatLari, shopAddressLine, shopDetails } from "../shop/details.ts";
 import { formatShopDate, shopClockTimeOf, shopDateOf } from "../shop/time.ts";
 import type { Email } from "./mailer.ts";
 
@@ -58,7 +58,7 @@ function compose(content: Content): Email {
     content.details.map(([label, value]) => `${label}: ${value}`).join("\n"),
     ...content.notes,
     content.action ? `${content.action.label}: ${content.action.url}` : "",
-    `${shopDetails.name}, ${shopDetails.address}, ${shopDetails.phone}`,
+    `${shopDetails.name}, ${shopAddressLine}, ${shopDetails.phone}`,
   ]
     .filter((part) => part !== "")
     .join("\n\n");
@@ -113,7 +113,7 @@ function compose(content: Content): Email {
             </tr>
             <tr>
               <td style="padding:20px 4px 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${MUTED};">
-                ${escapeHtml(shopDetails.name)} · ${escapeHtml(shopDetails.address)}<br />
+                ${escapeHtml(shopDetails.name)} · ${escapeHtml(shopAddressLine)}<br />
                 ${escapeHtml(shopDetails.phone)}
               </td>
             </tr>
@@ -132,7 +132,7 @@ function appointmentDetails(booking: BookingForEmail): [string, string][] {
     ["Service", booking.service.name],
     ["Barber", booking.barber.user.name],
     ["When", `${describeTime(booking.startsAt)} (${shopCity} time)`],
-    ["Where", shopDetails.address],
+    ["Where", shopAddressLine],
   ];
 }
 
@@ -173,7 +173,7 @@ export function rescheduledEmail(booking: BookingForEmail, previousStartsAt: Dat
       ["Was", describeTime(previousStartsAt)],
       ["Service", booking.service.name],
       ["Barber", booking.barber.user.name],
-      ["Where", shopDetails.address],
+      ["Where", shopAddressLine],
     ],
     notes: ["Everything else stays the same, and your deposit carries over."],
     action: myBookings,

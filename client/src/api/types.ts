@@ -18,6 +18,9 @@ export type Shop = {
   today: string;
   lastBookableDate: string;
   freeCancellationHours: number;
+  address: { street: string; district: string; city: string };
+  directions: string;
+  phone: string;
 };
 
 export type Service = {

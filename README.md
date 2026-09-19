@@ -119,7 +119,7 @@ Public:
 
 | Method | Path            | What it does                                             |
 | ------ | --------------- | -------------------------------------------------------- |
-| GET    | `/shop`         | Time zone, today's date in the shop, booking limits      |
+| GET    | `/shop`         | Time zone, today's date, booking limits, address, phone  |
 | GET    | `/services`     | Active services with duration, price and deposit         |
 | GET    | `/barbers`      | Active barbers with their working hours                  |
 | GET    | `/availability` | Free start times for `barberId`, `serviceId` and `date`  |
@@ -470,6 +470,7 @@ server/
       middleware.ts    requireAuth and requireRole
     shop/
       time.ts          Conversions between shop clock time and UTC
+      details.ts       Name, address and phone, for the emails and GET /shop
       routes.ts        GET /shop
     availability/
       slots.ts         The slot calculation (pure function)
@@ -518,7 +519,7 @@ client/
     main.tsx           Entry: fonts, providers, router
     index.css          Tailwind, brand colours and fonts, base styles
     routes.tsx         Route table
-    shop.ts            Shop facts: name, wordmark, address, phone
+    brand.ts           Name and wordmark, for the logo
     api/
       http.ts          fetch wrapper: token in memory, refresh and retry
       queries.ts       TanStack Query hooks, one per endpoint
@@ -586,6 +587,10 @@ e2e/
 - **A reminder that keeps failing is retried, not escalated.** If the mail
   server is down all day the reminder is attempted on every run and then
   quietly becomes moot once the appointment's day arrives.
+- **Notifications are sent in the request.** The email and the owner's
+  alert go out before the response does, so a slow mail server slows the
+  booking down and a message that fails is logged, not retried. A
+  production version would hand them to a queue.
 
 ## How double-booking is prevented
 

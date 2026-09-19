@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "../src/db.ts";
 import { env } from "../src/env.ts";
 import type { Barber, BookingStatus, Service, User } from "../src/generated/prisma/client.ts";
@@ -14,6 +14,7 @@ import {
   RecordingMailer,
   RecordingOwnerAlerts,
   resetDatabase,
+  silenceErrorLog,
 } from "./helpers.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -132,7 +133,7 @@ describe("reminders", () => {
   });
 
   it("tries again later when the mail server was down", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    silenceErrorLog();
     const booking = await insertBooking(at(TOMORROW, "11:00"));
     mailer.failing = true;
 
@@ -214,7 +215,7 @@ describe("the daily summary", () => {
   });
 
   it("tries again later when Telegram was down", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    silenceErrorLog();
     ownerAlerts.failing = true;
 
     expect(await sendDailySummary({ ownerAlerts }, AFTER_CLOSING)).toBe(false);
