@@ -1,19 +1,14 @@
 @import "tailwindcss";
 
-/* The brand. Each token becomes a Tailwind utility: --color-brass gives
-   bg-brass, text-brass and border-brass; --font-display gives font-display. */
 @theme {
   --color-ink: #141210;
   --color-surface: #1d1a17;
   --color-line: #38322b;
-  /* Borders of inputs and outlined buttons need 3:1 against the background. */
   --color-line-strong: #6e6557;
   --color-cream: #f2ebdd;
   --color-muted: #b4aa99;
   --color-brass: #b8893b;
-  /* The same accent, lighter, for hover and for brass text at small sizes. */
   --color-brass-light: #cfa55c;
-  /* Used only to mark errors and destructive actions. */
   --color-danger: #e39483;
 
   --font-display: "Fraunces Variable", Georgia, serif;
@@ -37,15 +32,14 @@
     @apply font-display;
   }
 
-  /* One focus style everywhere, shown only for keyboard navigation. */
   :focus-visible {
     outline: 2px solid var(--color-brass-light);
     outline-offset: 3px;
   }
 
-  /* The colour is set even while no outline is drawn. Otherwise elements
-     that animate their colours would fade the ring in from the text colour,
-     leaving it invisible for a moment on a brass button. */
+  /* The colour is set even while no outline is drawn, because elements that
+     animate their colours would otherwise fade the ring in from the text
+     colour, leaving it invisible for a moment on a brass button. */
   * {
     outline-color: var(--color-brass-light);
   }

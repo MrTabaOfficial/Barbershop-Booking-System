@@ -8,8 +8,6 @@ const deps = createDependencies();
 createApp(deps).listen(env.port, () => {
   console.log(`API listening on http://localhost:${env.port}`);
 
-  // Say which outside services are really connected, because each one
-  // quietly falls back to a stand-in when it isn't configured.
   console.log(
     deps.payments.active.name === "stripe"
       ? "Payments: Stripe. Webhooks are expected at /payments/webhook."
@@ -27,6 +25,6 @@ createApp(deps).listen(env.port, () => {
   );
 });
 
-// Only here, not in createApp: tests build the app many times and must not
-// start a set of timers each time.
+// The jobs start here rather than in createApp, because tests build the app
+// many times and must not start a set of timers each time.
 startJobs(deps);

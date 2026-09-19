@@ -43,9 +43,6 @@ function bookingChanged(): AppError {
   );
 }
 
-// The availability rules, applied to one requested start time. The slot
-// list is the single source of truth: if the time isn't in it, it can't
-// be booked, whatever the reason.
 async function assertSlotIsAvailable(request: {
   barberId: string;
   durationMinutes: number;
@@ -64,9 +61,6 @@ async function assertSlotIsAvailable(request: {
   }
 }
 
-// Creates the booking and, when the service has a deposit, the checkout the
-// customer pays it on. Until that payment arrives the booking is pending
-// and holds its slot only for a limited time.
 export async function createBooking(
   deps: Dependencies,
   customerId: string,
@@ -93,15 +87,12 @@ export async function createBooking(
         endsAt: new Date(input.startsAt.getTime() + service.durationMinutes * MINUTE_MS),
         priceCents: service.priceCents,
         depositCents: service.depositCents,
-        // With nothing to pay there is nothing to wait for.
         status: needsDeposit ? "PENDING" : "CONFIRMED",
         holdExpiresAt: needsDeposit ? holdExpiresAt : null,
       },
       include: bookingDetails,
     });
   } catch (error) {
-    // Two requests can both pass the check above before either has saved.
-    // The database then lets exactly one of them in.
     if (isSlotTakenError(error)) {
       throw slotUnavailable();
     }
@@ -113,8 +104,8 @@ export async function createBooking(
     return { booking, checkoutUrl: null };
   }
 
-  // The slot is held first and the checkout created second, so there is
-  // never a payable checkout for a slot that isn't held.
+  // The slot is held first and the checkout created second, so there is never
+  // a payable checkout for a slot that isn't held.
   try {
     const customer = await prisma.user.findUniqueOrThrow({ where: { id: customerId } });
     const when = `${formatShopDate(shopDateOf(booking.startsAt, env.shopTimeZone))} at ${shopClockTimeOf(booking.startsAt, env.shopTimeZone)}`;
@@ -126,7 +117,6 @@ export async function createBooking(
       description: `Deposit for ${service.name} with ${booking.barber.user.name}, ${when}`,
       customerEmail: customer.email,
       expiresAt: holdExpiresAt,
-      // The website shows the outcome on the customer's bookings page.
       successUrl: `${env.appUrl}/bookings?paid=${booking.id}`,
       cancelUrl: `${env.appUrl}/bookings?unpaid=${booking.id}`,
     });
@@ -135,15 +125,12 @@ export async function createBooking(
       data: {
         paymentSessionId: checkout.sessionId,
         paymentUrl: checkout.url,
-        // Remembered so that a refund goes back through the same provider.
         paymentProvider: provider.name,
       },
       include: bookingDetails,
     });
     return { booking, checkoutUrl: checkout.url };
   } catch (error) {
-    // Without a way to pay, the booking can never be confirmed. Release
-    // its slot now rather than leave it blocked for half an hour.
     console.error(`Could not start the deposit payment for booking ${booking.id}`, error);
     await prisma.booking.update({
       where: { id: booking.id },
@@ -159,21 +146,19 @@ export async function createBooking(
 
 export async function listBookings(customerId: string) {
   const bookings = await prisma.booking.findMany({
-    // A checkout the customer abandoned isn't a booking they need to see.
     where: { customerId, status: { not: "EXPIRED" } },
     include: bookingDetails,
     orderBy: { startsAt: "asc" },
   });
   const now = new Date();
   return {
-    // Soonest first.
     upcoming: bookings.filter((booking) => booking.startsAt > now),
-    // Most recent first.
     past: bookings.filter((booking) => booking.startsAt <= now).reverse(),
   };
 }
 
-// Someone else's booking gets the same answer as one that doesn't exist.
+// Someone else's booking gets the same answer as one that doesn't exist, so
+// ids can't be probed.
 async function getOwnBooking(customerId: string, bookingId: string) {
   const booking = await prisma.booking.findFirst({
     where: { id: bookingId, customerId },
@@ -195,8 +180,6 @@ function getBookingWithDetails(bookingId: string): Promise<BookingWithDetails> {
   });
 }
 
-// A customer may cancel a booking that is pending or confirmed and hasn't
-// started. What happens to the deposit depends on how early they do it.
 export async function cancelBooking(
   deps: Dependencies,
   customerId: string,
@@ -223,10 +206,9 @@ export async function cancelBooking(
   const hoursUntilStart = (booking.startsAt.getTime() - now.getTime()) / HOUR_MS;
   const inFreeWindow = hoursUntilStart >= FREE_CANCELLATION_HOURS;
 
-  // The status and start time are repeated in the condition so that this
-  // only succeeds if the booking is still as it was when it was checked.
-  // A second cancel, a reschedule or a payment that slipped in between
-  // gets count 0.
+  // The status and start time are repeated in the condition, so a cancel,
+  // reschedule or payment that slipped in since the check makes this update
+  // match nothing.
   const result = await prisma.booking.updateMany({
     where: { id: booking.id, status: booking.status, startsAt: booking.startsAt },
     data: {
@@ -240,12 +222,10 @@ export async function cancelBooking(
     throw bookingChanged();
   }
 
-  // The money is dealt with after the cancellation is saved. If the refund
-  // fails the booking is still cancelled, and the failure is recorded.
+  // The money is dealt with after the cancellation is saved, so a failed
+  // refund leaves the booking cancelled and is recorded.
   await settleCancelledBooking(deps.payments, booking, inFreeWindow);
 
-  // A booking that was never confirmed was never announced to anyone, so
-  // its cancellation isn't either.
   if (booking.status === "CONFIRMED") {
     await notifyBookingCancelled(deps, booking.id, "customer");
   }
@@ -271,8 +251,9 @@ export async function rescheduleBooking(
         : `This booking is ${describeStatus(booking.status)} and can't be moved`,
     );
   }
-  // The same limit as free cancellation. Without it, a customer too late to
-  // cancel for free could move the booking a month ahead and cancel that.
+  // Moving has the same limit as free cancellation; without it, a customer
+  // too late to cancel for free could move the booking a month ahead and
+  // cancel that.
   if (booking.startsAt.getTime() - now.getTime() < FREE_CANCELLATION_HOURS * HOUR_MS) {
     throw new AppError(
       409,
@@ -281,8 +262,6 @@ export async function rescheduleBooking(
     );
   }
 
-  // The booking keeps its original length even if the service's duration
-  // has been edited since.
   const durationMs = booking.endsAt.getTime() - booking.startsAt.getTime();
   await assertSlotIsAvailable({
     barberId: booking.barberId,
@@ -292,8 +271,6 @@ export async function rescheduleBooking(
   });
 
   try {
-    // Moving the booking is a single UPDATE, so it either gets the new time
-    // or keeps the old one. There is no moment where it holds neither.
     const result = await prisma.booking.updateMany({
       where: { id: booking.id, status: booking.status, startsAt: booking.startsAt },
       data: { startsAt, endsAt: new Date(startsAt.getTime() + durationMs) },

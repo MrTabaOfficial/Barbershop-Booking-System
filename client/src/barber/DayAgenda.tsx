@@ -2,8 +2,6 @@ import type { ScheduleDay } from "../api/types.ts";
 import { formatClock } from "../lib/format.ts";
 import { Appointment } from "./Appointment.tsx";
 
-// "10:00 to 19:00, break 14:00 to 15:00", "Day off: Family event" or
-// "Not a working day".
 export function describeHours(day: ScheduleDay): string {
   if (day.dayOff) {
     return day.dayOff.reason ? `Day off: ${day.dayOff.reason}` : "Day off";
@@ -18,7 +16,6 @@ export function describeHours(day: ScheduleDay): string {
     : hours;
 }
 
-// "3 appointments", "1 appointment", "No appointments"
 export function countAppointments(day: ScheduleDay): string {
   const count = day.bookings.length;
   if (count === 0) {
@@ -27,7 +24,6 @@ export function countAppointments(day: ScheduleDay): string {
   return count === 1 ? "1 appointment" : `${count} appointments`;
 }
 
-// The appointments of one day, in order.
 export function DayAgenda({ day }: { day: ScheduleDay }) {
   if (day.bookings.length === 0) {
     return (

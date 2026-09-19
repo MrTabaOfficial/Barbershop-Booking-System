@@ -19,8 +19,6 @@ type DayOffValues = z.infer<typeof dayOffSchema>;
 
 type BlockingBooking = { id: string; localTime: string; customerName: string; serviceName: string };
 
-// When a day off is refused because of bookings, the API lists them in the
-// error's details. Anything else in there is ignored.
 function blockingBookings(error: unknown): BlockingBooking[] {
   if (!(error instanceof ApiError) || error.code !== "DAY_HAS_BOOKINGS") {
     return [];

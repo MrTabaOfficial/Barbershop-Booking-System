@@ -1,6 +1,5 @@
-// A cancelled or expired booking no longer holds its slot: someone else can
-// book that time. Every other status does. The database's overlap
-// constraint encodes the same rule.
+// The database's overlap constraint names the same two statuses, so changing
+// this list needs a migration as well.
 export const RELEASED_STATUSES = ["CANCELLED", "EXPIRED"] as const;
 
 export function holdsSlot(status: string): boolean {

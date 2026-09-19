@@ -22,8 +22,6 @@ const STATUS_ORDER: BookingStatus[] = [
   "expired",
 ];
 
-// A headline number. The value is in the body font: a display face at
-// this size reads as decoration rather than as data.
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <Card className="p-4 sm:p-5">
@@ -72,8 +70,6 @@ function Figures({ overview }: { overview: Overview }) {
         <Stat label="Cancelled" value={String(byStatus.cancelled)} />
       </div>
 
-      {/* Two charts, not one with two scales: bookings and lari can't
-          honestly share an axis. */}
       <div className="grid gap-10 lg:grid-cols-2">
         <ColumnChart
           title="Bookings per day"
@@ -103,8 +99,6 @@ function Figures({ overview }: { overview: Overview }) {
         )}
       </div>
 
-      {/* The same numbers without the charts, for anyone who can't hover
-          or would rather read them. */}
       <details>
         <summary className="cursor-pointer text-sm font-medium text-brass-light underline underline-offset-4">
           Show the daily numbers as a table
@@ -143,7 +137,6 @@ function Figures({ overview }: { overview: Overview }) {
 }
 
 function OverviewFor({ today }: { today: string }) {
-  // The range lives in the URL, so it survives a reload and can be shared.
   const [params, setParams] = useSearchParams();
   const fromParam = params.get("from");
   const toParam = params.get("to");
@@ -156,7 +149,6 @@ function OverviewFor({ today }: { today: string }) {
 
   return (
     <div className="space-y-8">
-      {/* One row of filters, above everything they apply to. */}
       <div className="flex flex-wrap items-end gap-3">
         {PRESET_DAYS.map((days) => {
           const presetFrom = addDays(today, -(days - 1));
@@ -195,7 +187,6 @@ function OverviewFor({ today }: { today: string }) {
           onRetry={() => void overview.refetch()}
         />
       ) : overview.data ? (
-        // While a new range loads, the previous figures stay in place, dimmed.
         <div className={overview.isPlaceholderData ? "opacity-50 transition-opacity" : ""}>
           <Figures overview={overview.data} />
         </div>
@@ -207,7 +198,6 @@ function OverviewFor({ today }: { today: string }) {
 }
 
 export function OverviewPage() {
-  // "Today" is the shop's date, which the server knows.
   const shop = useShop();
 
   return (

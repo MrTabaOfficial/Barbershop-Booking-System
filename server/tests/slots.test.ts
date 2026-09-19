@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { calculateSlots, type SlotInput } from "../src/availability/slots.ts";
 import { shopClockTimeOf, shopTimeToUtc } from "../src/shop/time.ts";
 
-// Tbilisi is UTC+4 all year, so most tests don't have to think about
-// daylight saving. The ones that do use Berlin.
 const TBILISI = "Asia/Tbilisi";
 const BERLIN = "Europe/Berlin";
 
@@ -30,8 +28,6 @@ function booking(from: string, to: string, status = "CONFIRMED") {
   return { startsAt: at(from), endsAt: at(to), status };
 }
 
-// Runs the calculation with sensible defaults and returns the slots as
-// shop clock times, which are easier to read in assertions than instants.
 function slotTimes(overrides: Partial<SlotInput> = {}): string[] {
   const input: SlotInput = {
     shopDate: DATE,
@@ -54,7 +50,7 @@ describe("an open day with no bookings", () => {
     expect(slots).toHaveLength(35);
   });
 
-  it("returns each slot as a UTC instant", () => {
+  it("returns each slot as a UTC instant: 09:00 in Tbilisi is 05:00 UTC", () => {
     const [first] = calculateSlots({
       shopDate: DATE,
       timeZone: TBILISI,
@@ -65,7 +61,6 @@ describe("an open day with no bookings", () => {
       bookings: [],
     });
 
-    // 09:00 in Tbilisi is 05:00 UTC.
     expect(first?.toISOString()).toBe("2026-11-10T05:00:00.000Z");
   });
 
@@ -163,7 +158,6 @@ describe("how far ahead a slot may be", () => {
   });
 
   it("offers slots 60 days ahead but not 61", () => {
-    // NOW is 12:00 on 2026-11-01 in Tbilisi.
     expect(slotTimes({ shopDate: "2026-12-31" })).not.toEqual([]);
     expect(slotTimes({ shopDate: "2027-01-01" })).toEqual([]);
   });
@@ -189,14 +183,11 @@ describe("daylight saving", () => {
         bookings: [],
       })[0]?.toISOString();
 
-    // Berlin moves from UTC+1 to UTC+2 on 2027-03-28.
     expect(firstSlotOn("2027-03-27")).toBe("2027-03-27T08:00:00.000Z");
     expect(firstSlotOn("2027-03-29")).toBe("2027-03-29T07:00:00.000Z");
   });
 
   it("skips the hour that doesn't exist when clocks go forward", () => {
-    // On 2027-03-28 in Berlin the clock jumps from 02:00 to 03:00, so
-    // 01:00-04:00 is only two real hours.
     const slots = slotTimes({
       shopDate: "2027-03-28",
       timeZone: BERLIN,
@@ -209,8 +200,6 @@ describe("daylight saving", () => {
   });
 
   it("offers both passes through the hour that repeats when clocks go back", () => {
-    // On 2026-10-25 in Berlin 03:00 becomes 02:00 again, so 01:00-04:00 is
-    // four real hours.
     const slots = slotTimes({
       shopDate: "2026-10-25",
       timeZone: BERLIN,

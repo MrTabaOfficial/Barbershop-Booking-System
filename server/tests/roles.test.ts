@@ -7,8 +7,6 @@ import { type RoleName, signAccessToken } from "../src/auth/tokens.ts";
 import { env } from "../src/env.ts";
 import { errorHandler } from "../src/errors.ts";
 
-// No real route is role-protected yet, so the middleware is tested on a
-// small app with two protected routes.
 const app = express();
 app.get("/admin-only", requireAuth, requireRole("admin"), (_req, res) => {
   res.json({ ok: true });

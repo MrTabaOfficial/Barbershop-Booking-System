@@ -1,6 +1,5 @@
-// Helpers for "shop dates": calendar dates in the shop's time zone, written
-// YYYY-MM-DD. They are plain calendar arithmetic, so each date is handled
-// as midnight UTC and the visitor's own time zone never comes into it.
+// Shop dates are handled as midnight UTC, so the visitor's own time zone
+// never enters the calendar arithmetic.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -20,17 +19,14 @@ export function addDays(shopDate: string, days: number): string {
   return new Date(toUtcMidnight(shopDate).getTime() + days * DAY_MS).toISOString().slice(0, 10);
 }
 
-// How many days `to` is after `from`.
 export function daysBetween(from: string, to: string): number {
   return Math.round((toUtcMidnight(to).getTime() - toUtcMidnight(from).getTime()) / DAY_MS);
 }
 
-// 0 = Sunday ... 6 = Saturday, the numbering the API uses for working hours.
 export function weekdayOf(shopDate: string): number {
   return toUtcMidnight(shopDate).getUTCDay();
 }
 
-// The Monday of the week a date falls in.
 export function startOfWeek(shopDate: string): string {
   const daysSinceMonday = (weekdayOf(shopDate) + 6) % 7;
   return addDays(shopDate, -daysSinceMonday);
@@ -43,7 +39,6 @@ const longDateFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
-// "Tuesday 6 October"
 export function formatLongDate(shopDate: string): string {
   return longDateFormat.format(toUtcMidnight(shopDate));
 }
@@ -55,7 +50,6 @@ const dayPartsFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
-// The pieces of a date, for the day buttons in the date picker.
 export function dayParts(shopDate: string): { weekday: string; day: string; month: string } {
   const parts = dayPartsFormat.formatToParts(toUtcMidnight(shopDate));
   const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";

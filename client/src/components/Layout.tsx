@@ -21,14 +21,12 @@ function Logo() {
 function Header() {
   const { status, user, logout } = useAuth();
   const navigate = useNavigate();
-  // Staff come here to work, so their own page takes the place of the
-  // customer links. Booking is still one tap away on the home page.
   const isBarber = user?.role === "barber";
   const isAdmin = user?.role === "admin";
 
   async function handleLogout() {
-    // Leave first. If the session ended while a protected page was still
-    // showing, that page would redirect to the login form instead.
+    // Leaving comes first: if the session ended while a protected page was
+    // still showing, that page would redirect to the login form instead.
     await navigate("/");
     await logout();
   }
@@ -90,11 +88,9 @@ function Footer() {
   );
 }
 
-// The frame around every page.
 export function Layout() {
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* The first thing a keyboard user reaches: a way past the header. */}
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-sm focus:bg-brass focus:px-4 focus:py-2 focus:text-ink"

@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers.ts";
 
-// The admin pages are tables and charts, so this test uses a desktop window.
 test.use({ viewport: { width: 1280, height: 900 } });
 
 test("the admin reads the overview, manages a service, the bookings and a barber's hours", async ({
@@ -9,7 +8,6 @@ test("the admin reads the overview, manages a service, the bookings and a barber
 }) => {
   await logIn(page, "tamar@dalaki.example");
 
-  // --- overview: the admin lands here, with figures from the seeded history
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Admin" })).toBeVisible();
   await expect(page.getByText("No-show rate")).toBeVisible();
@@ -17,7 +15,6 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await expect(page.getByRole("group", { name: /^Revenue per day/ })).toBeVisible();
   await expect(page.getByText("Most booked services")).toBeVisible();
 
-  // The range is kept in the URL.
   await page.getByRole("button", { name: "Last 7 days" }).click();
   await expect(page).toHaveURL(/from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}/);
   await expect(page.getByRole("button", { name: "Last 7 days" })).toHaveAttribute(
@@ -25,7 +22,6 @@ test("the admin reads the overview, manages a service, the bookings and a barber
     "true",
   );
 
-  // --- services: a new one reaches the website, a deactivated one leaves it
   await page.getByRole("link", { name: "Services" }).click();
   await page.getByRole("button", { name: "Add a service" }).click();
   const serviceDialog = page.getByRole("dialog");
@@ -48,16 +44,13 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await expect(page.getByRole("heading", { name: "Choose a service" })).toBeVisible();
   await expect(onTheBookingPage).toHaveCount(0);
 
-  // --- bookings: filters live in the URL and survive a reload
   await page.goto("/admin/bookings");
   await page.getByLabel("Status").selectOption({ label: "Confirmed" });
-  // Nika's, because the other tests rely on Giorgi's and Luka's bookings.
   await page.getByLabel("Barber").selectOption({ label: "Nika Tsiklauri" });
   await expect(page).toHaveURL(/status=confirmed/);
   await expect(page).toHaveURL(/barberId=/);
   const showing = page.getByText(/^Showing 1 to \d+ of \d+$/);
   await expect(showing).toBeVisible();
-  // Every row left is one of Nika's confirmed bookings.
   const rows = page.locator("tbody tr");
   await expect(rows.first()).toContainText("Nika Tsiklauri");
   await expect(rows.first()).toContainText("Confirmed");
@@ -67,23 +60,19 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await expect(showing).toBeVisible();
   const totalBefore = Number((await showing.textContent())?.split(" of ")[1]);
 
-  // Sorting is the server's job too: the order is part of the URL.
   await page.getByRole("button", { name: "Customer" }).click();
   await expect(page).toHaveURL(/sort=customer&order=asc/);
 
-  // The admin can cancel any booking.
   await rows.first().getByRole("button", { name: /^Cancel / }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Cancel booking" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(showing).toHaveText(new RegExp(` of ${totalBefore - 1}$`));
 
-  // --- export: a real .xlsx download of what is filtered
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export to Excel" }).click();
   const download = await downloading;
   expect(download.suggestedFilename()).toMatch(/^dalaki-bookings-\d{4}-\d{2}-\d{2}\.xlsx$/);
 
-  // --- staff: give Nika a Monday
   await page.getByRole("link", { name: "Staff" }).click();
   await page.getByRole("button", { name: "Working hours of Nika Tsiklauri" }).click();
   const hoursDialog = page.getByRole("dialog");

@@ -12,7 +12,6 @@ let app: Express;
 
 beforeEach(async () => {
   await resetDatabase();
-  // A fresh app per test also gives each test a fresh login rate limiter.
   app = createApp();
 });
 
@@ -160,7 +159,6 @@ describe("POST /auth/refresh", () => {
 
     expect(reuse.status).toBe(401);
     expect(reuse.body.error.code).toBe("INVALID_REFRESH_TOKEN");
-    // The token issued by the legitimate refresh is dead too.
     expect((await refresh(secondCookie)).status).toBe(401);
   });
 

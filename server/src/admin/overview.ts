@@ -10,18 +10,9 @@ type ServiceRow = { serviceId: string; name: string; bookings: number };
 
 const TOP_SERVICES = 5;
 
-// The numbers behind the admin's overview, for the shop dates `from` to
-// `to`, both included.
-//
-// They are counted in SQL rather than in code, for three reasons:
-// - a "day" must be the shop's day. A booking at 00:30 in the shop is still
-//   the previous day in UTC, and PostgreSQL's AT TIME ZONE moves it to the
-//   right date, daylight saving included;
-// - generate_series lists every date in the range, so a day with nothing
-//   booked comes back as a zero instead of being missing;
-// - the database only sends back the totals, never the bookings.
-//
-// The ${...} values are sent as bound parameters, not pasted into the text.
+// The figures are counted in SQL because a "day" must be the shop's day (AT
+// TIME ZONE gets that right, daylight saving included), generate_series
+// returns an empty day as a zero, and only totals leave the database.
 export async function getOverview(from: string, to: string) {
   if (daysBetween(from, to) >= MAX_OVERVIEW_DAYS) {
     throw new AppError(400, "VALIDATION_ERROR", "The request is not valid", [
@@ -30,15 +21,12 @@ export async function getOverview(from: string, to: string) {
   }
 
   const timeZone = env.shopTimeZone;
-  // The same range as instants, so each query can use the index on
-  // starts_at before doing anything per row.
   const rangeStart = shopTimeToUtc(from, 0, timeZone);
   const rangeEnd = shopTimeToUtc(to, 24 * 60, timeZone);
 
   const [perDay, statusRows, topServices] = await Promise.all([
-    // One row per date. "Bookings" are the ones that were neither
-    // cancelled nor left unpaid until they expired; revenue counts only
-    // the completed ones.
+    // The ${...} values in these queries are sent as bound parameters, not
+    // pasted into the SQL text.
     prisma.$queryRaw<DayRow[]>`
       SELECT to_char(day, 'YYYY-MM-DD') AS "date",
              (count(b.id) FILTER (WHERE b.status NOT IN ('CANCELLED', 'EXPIRED')))::int
@@ -71,7 +59,6 @@ export async function getOverview(from: string, to: string) {
     `,
   ]);
 
-  // Every status gets a number, including the ones with no bookings.
   const byStatus = Object.fromEntries(
     BOOKING_STATUS_NAMES.map((name) => [
       name,
@@ -79,9 +66,6 @@ export async function getOverview(from: string, to: string) {
     ]),
   ) as Record<(typeof BOOKING_STATUS_NAMES)[number], number>;
 
-  // Of the appointments that reached their time, how many did the customer
-  // miss. Cancelled and upcoming bookings are in neither number, so they
-  // can't dilute the rate. Null when nothing has reached its time yet.
   const attended = byStatus.completed + byStatus.no_show;
   const noShowRate = attended === 0 ? null : byStatus.no_show / attended;
 

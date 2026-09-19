@@ -8,11 +8,9 @@ export const MAX_DAYS_AHEAD = 60;
 const MINUTE_MS = 60_000;
 
 export type SlotInput = {
-  // The day to find slots for, as a calendar date in the shop's time zone.
   shopDate: string;
   timeZone: string;
   now: Date;
-  // The barber's hours for that weekday, or null if they don't work then.
   workingHours: {
     startMinute: number;
     endMinute: number;
@@ -21,19 +19,17 @@ export type SlotInput = {
   } | null;
   isDayOff: boolean;
   durationMinutes: number;
-  // The barber's bookings around that day, in any status.
   bookings: { startsAt: Date; endsAt: Date; status: string }[];
 };
 
 type Interval = { start: number; end: number };
 
-// Touching intervals don't overlap: one may end exactly when the other starts.
+// Touching intervals don't overlap: one may end exactly when the other
+// starts.
 function overlaps(a: Interval, b: Interval): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
-// Returns the free start times for one barber on one day. Pure: it reads
-// nothing but its input, so it can be tested without a database or a clock.
 export function calculateSlots(input: SlotInput): Date[] {
   const { shopDate, timeZone, now, workingHours } = input;
 
@@ -47,8 +43,9 @@ export function calculateSlots(input: SlotInput): Date[] {
     return [];
   }
 
-  // The only place shop clock times become instants. Everything after this
-  // is real elapsed time, which is what keeps daylight saving days correct.
+  // This is the only place shop clock times become instants; everything after
+  // it is real elapsed time, which is what keeps daylight saving days
+  // correct.
   const toInstant = (minutesAfterMidnight: number) =>
     shopTimeToUtc(shopDate, minutesAfterMidnight, timeZone).getTime();
 

@@ -4,18 +4,11 @@ import { env } from "../env.ts";
 import { bookingForEmail, reminderEmail } from "../notifications/emails.ts";
 import { addDays, shopDateOf, shopMinutesOf, shopTimeToUtc } from "../shop/time.ts";
 
-// Reminders go out from this time of day on the shop's clock: late enough
-// that nobody's phone buzzes at breakfast.
 const SEND_FROM_MINUTE = 10 * 60;
 
-// Emails a reminder to every customer with a confirmed appointment
-// tomorrow who hasn't had one. Returns how many were sent.
-//
-// It is safe to run as often as anyone likes. Each booking is "claimed" by
-// stamping reminderSentAt before the email goes out, and the claim only
-// succeeds while the stamp is still empty, so two runs, even overlapping
-// ones, can't both send. If the send then fails, the stamp is cleared and
-// the next run tries again.
+// Each booking is claimed by stamping reminderSentAt before the email goes
+// out, so overlapping runs can't both send, and a failed send clears the
+// stamp for the next run.
 export async function sendReminders(
   deps: Pick<Dependencies, "mailer">,
   now = new Date(),
@@ -35,8 +28,6 @@ export async function sendReminders(
         gte: shopTimeToUtc(tomorrow, 0, timeZone),
         lt: shopTimeToUtc(tomorrow, 24 * 60, timeZone),
       },
-      // Someone who booked today for tomorrow has just had the
-      // confirmation email. A reminder minutes later would only be noise.
       createdAt: { lt: shopTimeToUtc(today, 0, timeZone) },
     },
     include: bookingForEmail,
@@ -49,7 +40,6 @@ export async function sendReminders(
       data: { reminderSentAt: now },
     });
     if (claim.count === 0) {
-      // Another run got there first, or the booking was just cancelled.
       continue;
     }
     try {

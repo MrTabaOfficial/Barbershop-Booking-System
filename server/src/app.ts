@@ -12,16 +12,14 @@ import { createPaymentsRouter } from "./payments/routes.ts";
 import { createServicesRouter } from "./services/routes.ts";
 import { createShopRouter } from "./shop/routes.ts";
 
-// Builds the app without starting it, so tests can drive it directly.
-// Tests pass their own stand-ins for whichever dependencies they want to
-// watch; the rest are created as usual.
 export function createApp(overrides: Partial<Dependencies> = {}): Express {
   const deps: Dependencies = { ...createDependencies(), ...overrides };
   const app = express();
   app.disable("x-powered-by");
 
-  // Before express.json(): the payment webhook needs its body as the raw
-  // bytes that were sent, and express.json() would consume them first.
+  // The payment routes come before express.json() because the webhook needs
+  // its body as the raw bytes that were sent, which express.json() would
+  // consume.
   app.use("/payments", createPaymentsRouter(deps));
 
   app.use(express.json());
@@ -36,7 +34,6 @@ export function createApp(overrides: Partial<Dependencies> = {}): Express {
   app.use("/barber", createBarberRouter());
   app.use("/admin", createAdminRouter(deps));
 
-  // Order matters: these two come after every route.
   app.use(notFoundHandler);
   app.use(errorHandler);
 

@@ -13,8 +13,6 @@ function escapeHtml(text: string): string {
     .replaceAll('"', "&quot;");
 }
 
-// The page the fake provider sends customers to instead of Stripe's. It is
-// deliberately plain, so nobody mistakes it for a real payment page.
 function fakeCheckoutPage(description: string, amount: string, cancelUrl: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -50,10 +48,6 @@ export function createPaymentsRouter(deps: Dependencies): Router {
   const router = Router();
   const { payments } = deps;
 
-  // The provider calls this when something happens to a payment. The body
-  // is read as raw bytes, not parsed as JSON: the signature is calculated
-  // over the exact bytes that were sent, and parsing then re-serialising
-  // them would not reproduce those bytes.
   router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     if (!Buffer.isBuffer(req.body)) {
       throw new AppError(400, "BAD_REQUEST", "A webhook must be sent as application/json");
@@ -72,8 +66,6 @@ export function createPaymentsRouter(deps: Dependencies): Router {
     res.json({ received: true });
   });
 
-  // The fake provider's payment page. With Stripe taking the deposits no
-  // fake checkout is ever created, so these routes have nothing to show.
   const fake = payments.named("fake");
   if (fake instanceof FakePaymentProvider) {
     router.get("/fake-checkout/:sessionId", (req, res) => {
@@ -91,8 +83,6 @@ export function createPaymentsRouter(deps: Dependencies): Router {
       if (!checkout) {
         throw new AppError(404, "NOT_FOUND", "This checkout doesn't exist");
       }
-      // Paying here does what Stripe's webhook would do. Like Stripe, the
-      // fake refuses payment once the checkout has run out.
       if (checkout.expiresAt > new Date()) {
         await handlePaymentEvent(deps, {
           type: "payment_succeeded",

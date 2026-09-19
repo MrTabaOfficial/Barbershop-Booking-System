@@ -1,19 +1,12 @@
 import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 
-// Our own charts, drawn as plain SVG and HTML so they carry the brand
-// rather than a library's defaults. One hue throughout: brass for the
-// data, hairline greys for the grid, and text in the usual text colours.
-
 const HEIGHT = 220;
 const MARGIN = { top: 12, right: 8, bottom: 26 };
-// Roughly how wide one character of an axis label is, at 11px.
 const AXIS_CHARACTER_WIDTH = 6.5;
 const MAX_BAR_WIDTH = 24;
 const BAR_GAP = 2;
 const CORNER = 4;
 
-// The smallest "round" number at or above a value: 1, 2 or 5 times a power
-// of ten, so the axis ends on 20 or 500 rather than 17 or 463.
 function niceCeiling(value: number): number {
   if (value <= 0) {
     return 1;
@@ -23,8 +16,6 @@ function niceCeiling(value: number): number {
   return step * magnitude;
 }
 
-// Tracks an element's width, so the chart can be drawn at its real size
-// and text stays the size it was set to.
 function useWidth() {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -48,20 +39,13 @@ type ColumnChartProps = {
   formatValue: (value: number) => string;
 };
 
-// One column per day. Hovering, or focusing the chart and pressing the
-// arrow keys, shows the day and its value; the same numbers are in the
-// table under the charts, so nothing depends on being able to hover.
 export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState<number | null>(null);
 
   const top = niceCeiling(Math.max(...columns.map((column) => column.value), 0));
-  // A middle gridline only where it lands on a whole number: "2.5
-  // bookings" is not a helpful label.
   const ticks = top % 2 === 0 ? [0, top / 2, top] : [0, top];
 
-  // The left margin makes room for the longest axis label, so "1,000 ₾"
-  // gets more space than "20".
   const longestLabel = Math.max(...ticks.map((tick) => formatValue(tick).length));
   const left = longestLabel * AXIS_CHARACTER_WIDTH + 16;
 
@@ -73,7 +57,6 @@ export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
   const y = (value: number) => MARGIN.top + innerHeight * (1 - value / top);
   const x = (index: number) => left + band * index + (band - barWidth) / 2;
 
-  // A handful of date labels, evenly spread, however many days there are.
   const labelEvery = Math.max(Math.ceil(columns.length / 6), 1);
 
   function activateFromPointer(event: PointerEvent<SVGSVGElement>) {
@@ -137,7 +120,6 @@ export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
 
           {columns.map((column, index) => {
             const height = innerHeight * (column.value / top);
-            // Rounded at the top, square where it meets the baseline.
             const radius = Math.min(CORNER, height, barWidth / 2);
             const barLeft = x(index);
             const bottom = MARGIN.top + innerHeight;
@@ -164,13 +146,11 @@ export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
           })}
         </svg>
 
-        {/* Announced to screen readers as the arrow keys move along. */}
         <div aria-live="polite">
           {activeColumn && active !== null && (
             <div
               className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-sm border border-line-strong bg-ink px-3 py-2 text-sm shadow-lg"
               style={{
-                // Kept inside the chart at both ends.
                 left: Math.min(Math.max(x(active) + barWidth / 2, 70), Math.max(width - 70, 70)),
                 top: 0,
               }}
@@ -192,7 +172,6 @@ type BarListProps = {
   rows: { label: string; value: number }[];
 };
 
-// A short ranked list: a label, its number, and a bar for comparison.
 export function BarList({ title, rows }: BarListProps) {
   const longest = Math.max(...rows.map((row) => row.value), 1);
   return (

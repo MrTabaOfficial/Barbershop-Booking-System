@@ -7,8 +7,8 @@ import { addDays, shopDateOf } from "./time.ts";
 export function createShopRouter(): Router {
   const router = Router();
 
-  // The facts a client needs to build a date picker and explain the
-  // booking rules, so it doesn't guess them from the visitor's own clock.
+  // The client gets these facts from the server so that it doesn't guess them
+  // from the visitor's own clock.
   router.get("/", (_req, res) => {
     const today = shopDateOf(new Date(), env.shopTimeZone);
     res.json({

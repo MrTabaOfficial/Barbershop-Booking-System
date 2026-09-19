@@ -1,16 +1,11 @@
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 import { ApiError } from "../api/http.ts";
 
-// Error codes that are really about one field, even though the API reports
-// them as a general error.
 const FIELD_FOR_CODE: Record<string, string> = {
   EMAIL_TAKEN: "email",
   SERVICE_NAME_TAKEN: "name",
 };
 
-// Puts a failed request's messages where the user will look for them:
-// next to the field when the API names one, otherwise returned as a single
-// message for the top of the form.
 export function showApiErrorOnForm<Values extends FieldValues>(
   error: unknown,
   fields: readonly Path<Values>[],

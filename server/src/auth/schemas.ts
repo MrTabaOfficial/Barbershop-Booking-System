@@ -3,8 +3,8 @@ import { MAX_PASSWORD_LENGTH } from "./password.ts";
 
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
-// Unknown keys are dropped, so a "role" sent by the client never reaches
-// the database.
+// Unknown keys are dropped, so a "role" sent by the client never reaches the
+// database.
 export const registerSchema = z.object({
   email,
   password: z.string().min(8).max(MAX_PASSWORD_LENGTH),

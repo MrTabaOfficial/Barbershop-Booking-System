@@ -78,8 +78,6 @@ function addDayOff(auth: string, date: string, reason?: string) {
 }
 
 describe("who may use the barber endpoints", () => {
-  // One request per endpoint. The ids don't need to exist: the role is
-  // checked before anything is looked up.
   const SOME_ID = "7b1d7d0e-3c0a-4f6e-9d55-2f0c1a9e4b11";
   const endpoints = [
     ["get", "/barber/schedule?from=2026-10-06&to=2026-10-06"],
@@ -143,8 +141,6 @@ describe("GET /barber/schedule", () => {
   });
 
   it("puts a booking on the shop's calendar day, not the UTC one", async () => {
-    // 00:30 in the shop is still the previous day in UTC for any zone
-    // east of Greenwich, and the next day for any zone west of it.
     await insertBooking(giorgi, at(NEXT_WEEK, "00:30"));
 
     const response = await getSchedule(giorgiAuth, addDays(NEXT_WEEK, -1), addDays(NEXT_WEEK, 1));
@@ -342,7 +338,6 @@ describe("days off", () => {
   it("keeps each barber's days off separate", async () => {
     await addDayOff(giorgiAuth, NEXT_WEEK);
 
-    // Luka can take the same date, and Giorgi's bookings don't block him.
     await insertBooking(giorgi, at(addDays(NEXT_WEEK, 1), "10:00"));
     const sameDate = await addDayOff(lukaAuth, NEXT_WEEK);
     const giorgiIsBooked = await addDayOff(lukaAuth, addDays(NEXT_WEEK, 1));

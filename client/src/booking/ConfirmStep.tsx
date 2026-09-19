@@ -22,8 +22,6 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
   const navigate = useNavigate();
   const createBooking = useCreateBooking();
 
-  // Where login and register send the customer back to: this exact step,
-  // with every choice still in the URL.
   const thisStep = location.pathname + location.search;
 
   const hasDeposit = service.depositCents > 0;
@@ -34,8 +32,6 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
       {
         onSuccess: ({ booking, checkoutUrl }) => {
           if (checkoutUrl) {
-            // Off to the payment page. It sends the customer back to their
-            // bookings when they are done.
             window.location.assign(checkoutUrl);
           } else {
             navigate("/bookings", { state: { bookedId: booking.id } });
@@ -77,8 +73,9 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
         <Button
           size="lg"
           className="w-full"
-          // Still "loading" after success, while the browser leaves for
-          // the payment page: a second click must not book a second slot.
+          // The button keeps loading after success, while the browser leaves
+          // for the payment page, so that a second click can't book a second
+          // slot.
           loading={createBooking.isPending || createBooking.isSuccess}
           loadingLabel={hasDeposit ? "Taking you to the payment page…" : "Booking…"}
           onClick={confirm}

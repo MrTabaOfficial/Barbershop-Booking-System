@@ -12,13 +12,11 @@ test("a barber records how an appointment went and manages days off", async ({
 }) => {
   await logIn(page, GIORGI);
 
-  // A barber lands on the schedule, with their own navigation.
   await expect(page).toHaveURL(/\/barber$/);
   await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
   await expect(page.getByRole("link", { name: "My bookings" })).toHaveCount(0);
 
-  // --- an outcome, on an appointment from last week (so it has started)
   await page.getByRole("button", { name: "Previous week" }).click();
   const day = page
     .locator("details")
@@ -31,14 +29,10 @@ test("a barber records how an appointment went and manages days off", async ({
 
   await noShow.click();
   await expect(noShow).toHaveAttribute("aria-pressed", "true");
-  // A mis-tap can be corrected.
   await completed.click();
   await expect(completed).toHaveAttribute("aria-pressed", "true");
   await expect(noShow).toHaveAttribute("aria-pressed", "false");
 
-  // --- a day off on a day with bookings is refused, and says which ones.
-  // The seed gives Giorgi two bookings on one of the next few days; ask
-  // the API which day that is.
   const login = await request.post(`${API_URL}/auth/login`, {
     data: { email: GIORGI, password: SEED_PASSWORD },
   });
@@ -59,7 +53,6 @@ test("a barber records how an appointment went and manages days off", async ({
   await expect(refusal).toContainText("You have 2 bookings on");
   await expect(refusal).toContainText("11:00 Davit Maisuradze, Haircut");
 
-  // --- a free day is accepted, shows in the list, and can be removed
   await page.getByLabel("Date").fill(addDays(today, 40));
   await page.getByLabel("Reason (optional)").fill("Dentist");
   await page.getByRole("button", { name: "Add day off" }).click();
@@ -79,7 +72,6 @@ test("a customer who opens the barber page is told it isn't theirs", async ({ pa
   await expect(page.getByRole("heading", { name: "Today" })).toHaveCount(0);
 });
 
-// Calendar arithmetic on a YYYY-MM-DD date.
 function addDays(date: string, days: number): string {
   const moved = new Date(`${date}T00:00:00Z`);
   moved.setUTCDate(moved.getUTCDate() + days);

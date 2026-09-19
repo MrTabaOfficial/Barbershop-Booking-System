@@ -1,8 +1,5 @@
-// Facts about the shop that are content, not data: they change when the
-// shop moves, not when a barber changes their hours. The shop is fictional.
 export const shop = {
   name: "Dalaki",
-  // "Barber" in Georgian.
   wordmark: "დალაქი",
   street: "27 Lado Asatiani Street",
   district: "Sololaki",

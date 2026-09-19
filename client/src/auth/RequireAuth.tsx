@@ -6,17 +6,12 @@ import { LoadingBlock } from "../components/States.tsx";
 import { withNext } from "../lib/nextPath.ts";
 import { useAuth } from "./AuthContext.ts";
 
-// Wraps a page that needs a logged-in user, optionally with a given role.
-// Anonymous visitors are sent to log in and brought back here afterwards.
-//
-// This only decides what the browser shows. It protects nothing: the API
-// checks the role on every request, whatever page made it.
+// This guard only decides what the browser shows; it protects nothing,
+// because the API checks the role on every request.
 export function RequireAuth({ role, children }: { role?: Role; children: ReactNode }) {
   const { status, user } = useAuth();
   const location = useLocation();
 
-  // Wait for the session check, or a logged-in user who reloads the page
-  // would be bounced to the login form for a moment.
   if (status === "loading") {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">

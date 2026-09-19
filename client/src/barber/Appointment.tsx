@@ -6,14 +6,9 @@ import { Card } from "../components/Card.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
 
-// One appointment on the barber's schedule: who, when, what, how to reach
-// them, and, once it has started, how it went.
 export function Appointment({ booking }: { booking: ScheduleBooking }) {
   const recordOutcome = useRecordOutcome();
 
-  // Both are instants, so this is right in any time zone. The server makes
-  // the same check; this only decides whether to show the buttons.
-  // An unpaid booking isn't confirmed, so it can't have an outcome.
   const hasStarted = Date.parse(booking.startsAt) <= Date.now() && booking.status !== "pending";
 
   function record(outcome: Outcome, alreadyRecorded: boolean) {
@@ -50,8 +45,6 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
       )}
 
       {hasStarted && (
-        // The outcome can be changed afterwards, so a mis-tap is fixable:
-        // the recorded one is highlighted and the other stays available.
         <div role="group" aria-label="How did it go?" className="mt-3 grid grid-cols-2 gap-3">
           <Button
             variant={completed ? "primary" : "secondary"}

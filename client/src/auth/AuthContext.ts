@@ -1,8 +1,6 @@
 import { createContext, useContext } from "react";
 import type { User } from "../api/types.ts";
 
-// "loading" is the moment after a page load when the app is still asking
-// the server whether the refresh cookie holds a valid session.
 export type AuthStatus = "loading" | "anonymous" | "authenticated";
 
 export type Credentials = { email: string; password: string };

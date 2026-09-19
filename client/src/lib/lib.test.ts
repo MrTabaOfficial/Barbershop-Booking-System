@@ -30,8 +30,8 @@ describe("shop dates", () => {
   });
 
   it("finds the Monday of a week", () => {
-    expect(startOfWeek("2026-10-04")).toBe("2026-09-28"); // a Sunday
-    expect(startOfWeek("2026-10-05")).toBe("2026-10-05"); // a Monday
+    expect(startOfWeek("2026-10-04")).toBe("2026-09-28");
+    expect(startOfWeek("2026-10-05")).toBe("2026-10-05");
     expect(startOfWeek("2026-10-08")).toBe("2026-10-05");
   });
 

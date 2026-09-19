@@ -16,8 +16,6 @@ import {
   rescheduleBooking,
 } from "./service.ts";
 
-// The booking as the API returns it. Statuses are lower case in the API,
-// like roles. localDate and localTime are the start on the shop's clock.
 function toPublicBooking(booking: BookingWithDetails) {
   const awaitingPayment = booking.status === "PENDING";
   return {
@@ -32,8 +30,6 @@ function toPublicBooking(booking: BookingWithDetails) {
     cancelledAt: booking.cancelledAt,
     cancelledInFreeWindow: booking.cancelledInFreeWindow,
     paymentStatus: booking.paymentStatus.toLowerCase(),
-    // Only while the deposit is unpaid: where to pay it, and the shop clock
-    // time at which the slot stops being held.
     paymentUrl: awaitingPayment ? booking.paymentUrl : null,
     heldUntilLocalTime:
       awaitingPayment && booking.holdExpiresAt
@@ -58,8 +54,6 @@ export function createBookingsRouter(deps: Dependencies): Router {
   router.post("/", async (req, res) => {
     const input = createBookingSchema.parse(req.body);
     const { booking, checkoutUrl } = await createBooking(deps, getAuth(req).userId, input);
-    // checkoutUrl is the page to send the customer to next. It is null when
-    // the service has no deposit and the booking is confirmed already.
     res.status(201).json({ booking: toPublicBooking(booking), checkoutUrl });
   });
 

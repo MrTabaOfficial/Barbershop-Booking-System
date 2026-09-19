@@ -12,7 +12,6 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
 
-    // Vite builds the code, so tsc only type-checks.
     "noEmit": true,
     "allowImportingTsExtensions": true
   },

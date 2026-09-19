@@ -9,16 +9,10 @@ import type {
   WorkingDay,
 } from "./types.ts";
 
-// Everything the admin pages read sits under the ["admin"] key.
-
-// After the admin changes something, both their own lists and the public
-// ones the website shows (services, barbers, free times) are out of date.
 function useRefreshEverything() {
   const queryClient = useQueryClient();
   return () => void queryClient.invalidateQueries();
 }
-
-// --- services
 
 export function useAdminServices() {
   return useQuery({
@@ -36,7 +30,6 @@ export type ServiceInput = {
   depositCents: number;
 };
 
-// Creates a service, or updates the one with the given id.
 export function useSaveService() {
   const refresh = useRefreshEverything();
   return useMutation({
@@ -48,8 +41,6 @@ export function useSaveService() {
     onSuccess: refresh,
   });
 }
-
-// --- barbers
 
 export function useAdminBarbers() {
   return useQuery({
@@ -95,16 +86,10 @@ export function useSaveWorkingHours() {
   });
 }
 
-// --- bookings
-
-// `query` is the filters, sorting and page as a query string, straight
-// from the page's URL.
 export function useAdminBookings(query: string) {
   return useQuery({
     queryKey: ["admin", "bookings", query],
     queryFn: () => apiRequest<AdminBookingPage>(`/admin/bookings?${query}`),
-    // While the next page or filter loads, keep showing the current rows
-    // instead of flashing an empty table.
     placeholderData: keepPreviousData,
   });
 }
@@ -120,8 +105,6 @@ export function useCancelBookingAsAdmin() {
     onSettled: refresh,
   });
 }
-
-// --- overview
 
 export function useOverview(from: string, to: string) {
   return useQuery({

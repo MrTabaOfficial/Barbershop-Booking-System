@@ -63,7 +63,6 @@ afterAll(async () => {
 const reload = (bookingId: string) =>
   prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
 
-// Books 10:00 through the API, which leaves the booking pending.
 async function book(): Promise<string> {
   const response = await request(app)
     .post("/bookings")
@@ -72,7 +71,6 @@ async function book(): Promise<string> {
   return response.body.booking.id;
 }
 
-// The deposit arriving, as the payment provider would report it.
 async function pay(bookingId: string) {
   const { paymentSessionId } = await reload(bookingId);
   await handlePaymentEvent(deps, {
@@ -82,7 +80,6 @@ async function pay(bookingId: string) {
   });
 }
 
-// A confirmed, paid booking that starts the given number of hours from now.
 function insertPaidBooking(hoursFromNow: number) {
   const startsAt = new Date(Date.now() + hoursFromNow * HOUR_MS);
   return prisma.booking.create({
@@ -130,10 +127,8 @@ describe("when a booking is confirmed", () => {
     expect(email?.text).toContain("Service: Haircut");
     expect(email?.text).toContain("Barber: Luka Gelashvili");
     expect(email?.text).toMatch(/When: \w+ \d+ \w+ at 10:00 \(\w+ time\)/);
-    // The haircut is 25 with a 10 deposit.
     expect(email?.text).toContain("Deposit paid: 10 ₾");
     expect(email?.text).toContain("To pay at the shop: 15 ₾");
-    // The HTML version carries the same facts, in the brand's dress.
     expect(email?.html).toContain("დალაქი");
     expect(email?.html).toContain("Luka Gelashvili");
     expect(email?.html).toContain("10 ₾");
@@ -250,7 +245,6 @@ describe("when a booking is cancelled", () => {
 describe("when a payment arrives too late to keep the slot", () => {
   it("tells the customer the booking couldn't be confirmed and the deposit is back", async () => {
     const bookingId = await book();
-    // The hold runs out, and someone else takes the slot.
     await prisma.booking.update({
       where: { id: bookingId },
       data: { status: "EXPIRED", holdExpiresAt: null },
@@ -273,7 +267,6 @@ describe("when sending fails", () => {
   beforeEach(() => {
     mailer.failing = true;
     ownerAlerts.failing = true;
-    // The failures are logged; keep them out of the test output.
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -283,7 +276,6 @@ describe("when sending fails", () => {
     await expect(pay(bookingId)).resolves.toBeUndefined();
 
     expect(await reload(bookingId)).toMatchObject({ status: "CONFIRMED", paymentStatus: "PAID" });
-    // And the failure was logged rather than lost.
     expect(console.error).toHaveBeenCalled();
   });
 

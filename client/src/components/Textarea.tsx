@@ -2,7 +2,6 @@ import { type ComponentProps, useId } from "react";
 
 type TextareaProps = ComponentProps<"textarea"> & { label: string; error?: string };
 
-// Input's multi-line sibling, for descriptions and bios.
 export function Textarea({ label, error, id, className = "", ...textareaProps }: TextareaProps) {
   const generatedId = useId();
   const textareaId = id ?? generatedId;

@@ -13,8 +13,6 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { MyBookingsPage } from "./pages/MyBookingsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 
-// Every page renders inside Layout (header, footer). These are the
-// browser's addresses; the API lives separately under /api.
 export const router = createBrowserRouter([
   {
     element: <Layout />,

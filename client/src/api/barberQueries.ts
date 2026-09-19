@@ -2,9 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./http.ts";
 import type { DayOff, ScheduleBooking, ScheduleDay } from "./types.ts";
 
-// Everything the barber dashboard reads sits under the ["barber"] key, so
-// one invalidation refreshes all of it after a change.
-
 export function useSchedule(from: string, to: string) {
   return useQuery({
     queryKey: ["barber", "schedule", from, to],

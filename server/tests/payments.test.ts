@@ -37,7 +37,6 @@ function at(clockTime: string): Date {
 }
 
 let deps: Dependencies;
-// The fake payment provider inside deps, to inspect what it was asked to do.
 let payments: FakePaymentProvider;
 let app: Express;
 let barber: Barber;
@@ -70,7 +69,6 @@ function book(auth: string, clockTime: string, serviceId = haircut.id) {
     .send({ barberId: barber.id, serviceId, startsAt: at(clockTime).toISOString() });
 }
 
-// A booking written straight to the database, in whatever state a test needs.
 function insertBooking(
   startsAt: Date,
   state: {
@@ -98,8 +96,6 @@ function insertBooking(
   });
 }
 
-// A confirmed booking whose deposit has been paid, through the fake
-// provider unless a test says otherwise.
 const insertPaidBooking = (startsAt: Date, paymentProvider = "fake") =>
   insertBooking(startsAt, {
     status: "CONFIRMED",
@@ -128,7 +124,6 @@ describe("booking with a deposit", () => {
     expect(response.body.booking).toMatchObject({ status: "pending", paymentStatus: "unpaid" });
     expect(response.body.booking.heldUntilLocalTime).toMatch(/^\d{2}:\d{2}$/);
 
-    // The customer is sent to the checkout, which is for the deposit only.
     const [[sessionId, checkout] = []] = payments.checkouts;
     expect(response.body.checkoutUrl).toBe(`http://shop.test/pay/${sessionId}`);
     expect(response.body.booking.paymentUrl).toBe(response.body.checkoutUrl);
@@ -140,10 +135,8 @@ describe("booking with a deposit", () => {
     });
     expect(checkout?.description).toContain("Haircut with Giorgi Kapanadze");
 
-    // The slot is held for 30 minutes, and the checkout closes when the hold ends.
     const saved = await reload(response.body.booking.id);
     expect(saved.paymentSessionId).toBe(sessionId);
-    // Which provider it was, so a refund can go back the same way.
     expect(saved.paymentProvider).toBe("fake");
     const heldForMinutes = ((saved.holdExpiresAt?.getTime() ?? 0) - before) / MINUTE_MS;
     expect(heldForMinutes).toBeGreaterThanOrEqual(30);
@@ -171,7 +164,6 @@ describe("booking with a deposit", () => {
 
     expect(response.status).toBe(502);
     expect(response.body.error.code).toBe("PAYMENT_UNAVAILABLE");
-    // The slot isn't left blocked by a booking nobody can pay for.
     expect(await freeTimes()).toContain("10:00");
     expect((await request(app).get("/bookings/mine").set("Authorization", davitAuth)).body).toEqual({
       upcoming: [],
@@ -200,8 +192,6 @@ describe("booking with a deposit", () => {
 });
 
 describe("the Stripe webhook", () => {
-  // The real Stripe provider, so the real signature check runs. Nothing
-  // here contacts Stripe: verifying a signature is local arithmetic.
   const stripe = new StripePaymentProvider({
     secretKey: "sk_test_not_a_real_key",
     webhookSecret: "whsec_test_secret",
@@ -267,7 +257,6 @@ describe("the Stripe webhook", () => {
     const booking = await insertPending();
     const signature = stripe.signForTest(paidEvent);
 
-    // Same signature, but the payload now names a different payment.
     const response = await send(paidEvent.replace("pi_test_1", "pi_attacker"), signature);
 
     expect(response.status).toBe(400);
@@ -281,7 +270,6 @@ describe("the Stripe webhook", () => {
 
     const repeat = await send(paidEvent);
 
-    // Accepted, so Stripe stops retrying, but nothing was written.
     expect(repeat.status).toBe(200);
     expect(await reload(booking.id)).toEqual(afterFirst);
   });
@@ -316,7 +304,6 @@ describe("the Stripe webhook", () => {
 
     const unrelated = await send(event("customer.created", { id: "cus_1" }));
     const unknownSession = await send(paidEvent.replaceAll("cs_test_1", "cs_someone_else"));
-    // Completed, but the money hasn't arrived yet.
     const unpaid = await send(
       event("checkout.session.completed", { id: "cs_test_1", payment_status: "unpaid" }),
     );
@@ -347,7 +334,6 @@ describe("an unpaid booking's hold on its slot", () => {
     expect(await freeTimes()).toContain("10:00");
     expect((await reload(booking.id)).status).toBe("EXPIRED");
 
-    // Someone else can now take it, and the first customer no longer sees it.
     expect((await book(ninoAuth, "10:00")).status).toBe(201);
     const mine = await request(app).get("/bookings/mine").set("Authorization", davitAuth);
     expect(mine.body.upcoming).toEqual([]);
@@ -360,7 +346,6 @@ describe("an unpaid booking's hold on its slot", () => {
       sessionId: (await reload(booking.id)).paymentSessionId ?? "",
       paymentId: "pi_1",
     });
-    // Even with a stale hold time left behind by mistake.
     await letTheHoldLapse(booking.id);
 
     expect(await freeTimes()).not.toContain("10:00");
@@ -406,7 +391,6 @@ describe("an unpaid booking's hold on its slot", () => {
         { paymentId: "pi_late", idempotencyKey: `refund-${booking.id}` },
       ]);
 
-      // The same late event again refunds nothing more.
       await payLate(booking.paymentSessionId);
       expect(payments.refunds).toHaveLength(1);
     });
@@ -448,7 +432,6 @@ describe("cancelling and the deposit", () => {
   });
 
   it("draws the line at exactly 24 hours", async () => {
-    // One after the other: the two would overlap if both were live at once.
     const justInside = await insertPaidBooking(new Date(Date.now() + 24 * HOUR_MS + MINUTE_MS));
     await cancel(davitAuth, justInside.id);
     const justOutside = await insertPaidBooking(new Date(Date.now() + 24 * HOUR_MS - MINUTE_MS));
@@ -466,7 +449,6 @@ describe("cancelling and the deposit", () => {
 
     expect(response.body.booking).toMatchObject({ status: "cancelled", paymentStatus: "unpaid" });
     expect(payments.refunds).toEqual([]);
-    // So the customer can't pay for it afterwards.
     expect(payments.expiredSessionIds).toEqual([paymentSessionId]);
   });
 
@@ -485,9 +467,6 @@ describe("cancelling and the deposit", () => {
 });
 
 describe("which provider a refund goes through", () => {
-  // Stripe is the one taking new deposits here, with the fake alongside it,
-  // as when Stripe keys are set. Nothing in these tests contacts Stripe:
-  // a call to it would fail, and show up as "refund failed".
   const stripe = new StripePaymentProvider({
     secretKey: "sk_test_not_a_real_key",
     webhookSecret: "whsec_test_secret",
@@ -502,7 +481,6 @@ describe("which provider a refund goes through", () => {
     request(withStripeActive).post(`/bookings/${bookingId}/cancel`).set("Authorization", davitAuth);
 
   it("refunds a deposit the fake provider took through the fake, even with Stripe active", async () => {
-    // What a seeded demo booking looks like.
     const booking = await insertPaidBooking(new Date(Date.now() + 48 * HOUR_MS), "fake");
 
     const response = await cancel(booking.id);

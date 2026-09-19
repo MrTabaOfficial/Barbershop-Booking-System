@@ -1,8 +1,8 @@
-import { prisma } from "../db.ts";
+import { isUniqueViolation, prisma } from "../db.ts";
 import { env } from "../env.ts";
 import { RELEASED_STATUSES } from "../bookings/status.ts";
 import { AppError } from "../errors.ts";
-import { type Barber, Prisma } from "../generated/prisma/client.ts";
+import type { Barber, Prisma } from "../generated/prisma/client.ts";
 import {
   addDays,
   daysBetween,
@@ -16,7 +16,6 @@ import {
 } from "../shop/time.ts";
 import { type AddDayOffInput, MAX_SCHEDULE_DAYS } from "./schemas.ts";
 
-// How far ahead a day off may be added.
 const MAX_DAY_OFF_DAYS_AHEAD = 365;
 
 const scheduleBookingDetails = {
@@ -28,9 +27,6 @@ export type ScheduleBooking = Prisma.BookingGetPayload<{
   include: typeof scheduleBookingDetails;
 }>;
 
-// Every barber endpoint starts here: the barber profile of the logged-in
-// user. Everything after is filtered by its id, which is what keeps one
-// barber out of another's bookings and days off.
 export async function getBarberOf(userId: string): Promise<Barber> {
   const barber = await prisma.barber.findUnique({ where: { userId } });
   if (!barber) {
@@ -54,8 +50,6 @@ export async function getSchedule(barber: Barber, from: string, to: string) {
     prisma.dayOff.findMany({
       where: { barberId: barber.id, date: { gte: toDateColumn(from), lte: toDateColumn(to) } },
     }),
-    // Cancelled and expired bookings are left out: their time is free
-    // again, and may already belong to someone else.
     prisma.booking.findMany({
       where: {
         barberId: barber.id,
@@ -83,15 +77,11 @@ export async function getSchedule(barber: Barber, from: string, to: string) {
   return days;
 }
 
-// Records how an appointment went. It can be recorded once the appointment
-// has started, and changed afterwards: a mis-tap between two clients
-// should be fixable.
 export async function recordOutcome(
   barber: Barber,
   bookingId: string,
   outcome: "COMPLETED" | "NO_SHOW",
 ): Promise<ScheduleBooking> {
-  // Another barber's booking gets the same answer as one that doesn't exist.
   const booking = await prisma.booking.findFirst({
     where: { id: bookingId, barberId: barber.id },
   });
@@ -116,8 +106,6 @@ export async function recordOutcome(
     );
   }
 
-  // Conditional on the status that was checked, so a cancellation that
-  // slipped in between isn't overwritten.
   const result = await prisma.booking.updateMany({
     where: { id: booking.id, status: booking.status },
     data: { status: outcome },
@@ -154,8 +142,6 @@ export async function addDayOff(barber: Barber, input: AddDayOffInput) {
     throw invalidField("date", "Choose a date within the next year");
   }
 
-  // Customers already booked on that day would be left without a barber,
-  // so those bookings have to be moved or cancelled first.
   const bookings = await prisma.booking.findMany({
     where: {
       barberId: barber.id,
@@ -190,8 +176,7 @@ export async function addDayOff(barber: Barber, input: AddDayOffInput) {
       data: { barberId: barber.id, date: toDateColumn(input.date), reason: input.reason },
     });
   } catch (error) {
-    // P2002: the unique (barber, date) constraint.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isUniqueViolation(error)) {
       throw new AppError(409, "DAY_OFF_EXISTS", "You already have that day off");
     }
     throw error;
@@ -199,8 +184,6 @@ export async function addDayOff(barber: Barber, input: AddDayOffInput) {
 }
 
 export async function removeDayOff(barber: Barber, dayOffId: string): Promise<void> {
-  // The barber id in the condition means another barber's day off is
-  // simply not found.
   const result = await prisma.dayOff.deleteMany({
     where: { id: dayOffId, barberId: barber.id },
   });

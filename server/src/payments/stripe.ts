@@ -11,12 +11,9 @@ import {
 type StripeOptions = {
   secretKey: string;
   webhookSecret: string;
-  // Only for tests: point the client at a local stand-in for Stripe's API.
   api?: { host: string; port: number; protocol: "http" | "https" };
 };
 
-// Deposits through Stripe Checkout: the customer pays on a page Stripe
-// hosts, so no card details ever reach this server.
 export class StripePaymentProvider implements PaymentProvider {
   readonly name = "stripe";
   private readonly stripe: Stripe;
@@ -42,16 +39,12 @@ export class StripePaymentProvider implements PaymentProvider {
           },
         ],
         customer_email: request.customerEmail,
-        // Ties the session to the booking, for anyone reading the Stripe dashboard.
         client_reference_id: request.bookingId,
         metadata: { bookingId: request.bookingId },
-        // Stripe takes seconds, not milliseconds.
         expires_at: Math.floor(request.expiresAt.getTime() / 1000),
         success_url: request.successUrl,
         cancel_url: request.cancelUrl,
       },
-      // If this request is retried, Stripe returns the first session
-      // instead of creating a second one for the same booking.
       { idempotencyKey: `checkout-${request.bookingId}` },
     );
     if (!session.url) {
@@ -76,18 +69,15 @@ export class StripePaymentProvider implements PaymentProvider {
 
     let event: Stripe.Event;
     try {
-      // Recomputes the signature from the raw bytes and the shared secret,
-      // and also rejects events older than a few minutes (replays).
       event = this.stripe.webhooks.constructEvent(rawBody, signature, this.webhookSecret);
     } catch {
       throw new InvalidWebhookError("The webhook signature does not match");
     }
 
     switch (event.type) {
-      // A card pays at once, so "completed" already means paid. Some other
-      // payment methods complete first and pay later; for those "completed"
-      // arrives unpaid and is ignored, and the second event reports the
-      // money once it is there.
+      // A card pays at once, so "completed" already means paid; methods that
+      // pay later complete unpaid, which is ignored, and report the money in
+      // a second event.
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object;
@@ -107,8 +97,6 @@ export class StripePaymentProvider implements PaymentProvider {
     }
   }
 
-  // Signs a payload the way Stripe would. Used by tests to send webhooks
-  // that pass verification without contacting Stripe.
   signForTest(payload: string): string {
     return this.stripe.webhooks.generateTestHeaderString({ payload, secret: this.webhookSecret });
   }

@@ -23,7 +23,6 @@ const unauthenticated = () =>
 type Call = { url: string; method: string; authorization: string | undefined };
 let calls: Call[];
 
-// Replaces fetch with a fake API. `respond` decides the answer per request.
 function fakeApi(respond: (call: Call) => Response | Promise<Response>) {
   vi.stubGlobal("fetch", async (url: string, init: RequestInit = {}) => {
     const headers = (init.headers ?? {}) as Record<string, string>;
@@ -33,8 +32,6 @@ function fakeApi(respond: (call: Call) => Response | Promise<Response>) {
   });
 }
 
-// A fake API where only the token "fresh" is accepted and the refresh
-// endpoint hands it out.
 function apiThatAcceptsOnlyTheFreshToken() {
   fakeApi((call) => {
     if (call.url === "/api/auth/refresh") {
@@ -46,7 +43,6 @@ function apiThatAcceptsOnlyTheFreshToken() {
 
 const refreshCalls = () => calls.filter((call) => call.url === "/api/auth/refresh");
 
-// These tests run in Node, which has no browser storage.
 const storage = new Map<string, string>();
 vi.stubGlobal("localStorage", {
   getItem: (key: string) => storage.get(key) ?? null,
@@ -126,7 +122,6 @@ describe("apiRequest", () => {
     await expect(apiRequest("/bookings/mine")).rejects.toMatchObject({ status: 401 });
 
     expect(sessionChanges).toEqual([null]);
-    // The original request, the refresh, and one retry without a token.
     expect(calls.map((call) => `${call.url} ${call.authorization ?? "-"}`)).toEqual([
       "/api/bookings/mine Bearer expired",
       "/api/auth/refresh -",
@@ -135,7 +130,6 @@ describe("apiRequest", () => {
   });
 
   it("still gets an answer from a public endpoint after the session has ended", async () => {
-    // Like GET /availability: fine without a token, 401 for a dead one.
     fakeApi((call) => {
       if (call.url === "/api/auth/refresh") {
         return unauthenticated();

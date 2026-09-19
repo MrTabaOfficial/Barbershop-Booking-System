@@ -15,17 +15,13 @@ type CancelDialogProps = {
   onClose: () => void;
 };
 
-// Explains the cancellation rule, and which side of it this booking is on,
-// before the customer commits.
 export function CancelDialog({ booking, freeCancellationHours, onClose }: CancelDialogProps) {
   const cancelBooking = useCancelBooking();
   const deposit = formatPrice(booking.depositCents);
 
-  // Both are instants, so this is right whatever time zone the visitor is in.
   const hoursUntilStart = (Date.parse(booking.startsAt) - Date.now()) / HOUR_MS;
   const isFree = hoursUntilStart >= freeCancellationHours;
 
-  // What cancelling now will do to the customer's money.
   const consequence =
     booking.paymentStatus !== "paid"
       ? "You haven't paid anything for this booking, so cancelling costs nothing."

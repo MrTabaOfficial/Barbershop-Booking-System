@@ -19,30 +19,20 @@ const STEP_TITLES = [
   "Confirm your booking",
 ];
 
-// The booking flow. Its state lives in the URL:
-//   /book?service=…&barber=…&date=YYYY-MM-DD&time=<instant>
-// so the back button steps backwards, a reload loses nothing, and login can
-// send the customer back to exactly where they were.
 export function BookPage() {
   const [params, setParams] = useSearchParams();
   const shop = useShop();
   const services = useServices();
   const barbers = useBarbers();
 
-  // An id in the URL only counts if it matches something on offer.
   const service = services.data?.find((entry) => entry.id === params.get("service"));
   const barber = barbers.data?.find((entry) => entry.id === params.get("barber"));
   const dateParam = params.get("date");
   const date = isShopDate(dateParam) ? dateParam : null;
   const time = params.get("time");
 
-  // The current step is the first one without an answer.
   const requestedStep = !service ? 1 : !barber ? 2 : !(date && time) ? 3 : 4;
 
-  // On the last step, look the chosen time up in the current free times.
-  // That gives the clock time to display, and it notices if the slot has
-  // been taken since: after a refused booking these times are reloaded,
-  // the slot is no longer among them, and the flow drops back to step 3.
   const availability = useAvailability(
     requestedStep === 4 && service && barber && date
       ? { barberId: barber.id, serviceId: service.id, date }
@@ -52,7 +42,6 @@ export function BookPage() {
   const slotWasTaken = requestedStep === 4 && availability.isSuccess && !slot;
   const step = slotWasTaken ? 3 : requestedStep;
 
-  // Move keyboard and screen reader focus to the new step's heading.
   const headingRef = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   useEffect(() => {
@@ -105,7 +94,6 @@ export function BookPage() {
       selections.push({
         label: "Service",
         value: `${service.name} · ${formatDuration(service.durationMinutes)} · ${formatPrice(service.priceCents)}`,
-        // The free times depend on the service's length, so the time goes too.
         onChange: () => update({ service: null, time: null }),
       });
     }

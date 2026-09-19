@@ -7,8 +7,6 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set. See .env.example.");
 }
 
-// Tests wipe tables, so they get their own database on the same server:
-// the development database's name with _test appended.
 const testDatabaseUrl = new URL(process.env.DATABASE_URL);
 testDatabaseUrl.pathname += "_test";
 
@@ -17,17 +15,15 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     env: {
       DATABASE_URL: testDatabaseUrl.href,
-      // Tests never talk to Stripe, whatever keys are in .env: with these
-      // empty the app uses the fake payment provider.
+      // The blank values keep tests away from Stripe, a mail server and
+      // Telegram, whatever is in .env.
       STRIPE_SECRET_KEY: "",
       STRIPE_WEBHOOK_SECRET: "",
-      // Nor do they send email or Telegram messages.
       SMTP_HOST: "",
       TELEGRAM_BOT_TOKEN: "",
       TELEGRAM_OWNER_CHAT_ID: "",
     },
     globalSetup: "tests/global-setup.ts",
-    // Every test file uses the same database, so files run one at a time.
     fileParallelism: false,
   },
 });

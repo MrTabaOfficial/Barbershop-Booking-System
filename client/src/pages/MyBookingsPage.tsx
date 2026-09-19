@@ -13,20 +13,15 @@ import { firstName } from "../lib/format.ts";
 
 type OpenDialog = { kind: "cancel" | "reschedule"; booking: Booking } | null;
 
-// The rule is 24 hours; the fallback only matters if /shop failed to load.
 const DEFAULT_FREE_CANCELLATION_HOURS = 24;
 
 const describe = (booking: Booking) =>
   `${formatLongDate(booking.localDate)} at ${booking.localTime} with ${firstName(booking.barber.name)}`;
 
-// The message for a customer who has just come back from the payment page,
-// or has just booked something that needed no payment.
 function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
   const location = useLocation();
   const [params] = useSearchParams();
 
-  // The payment page returns here with ?paid=<id> or ?unpaid=<id>. A
-  // booking with no deposit arrives with its id in the navigation state.
   const paidId = params.get("paid");
   const unpaidId = params.get("unpaid");
   const bookedId: unknown = location.state?.bookedId;
@@ -42,8 +37,6 @@ function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
     return null;
   }
   if (booking.id === paidId) {
-    // Paid, but the payment provider hasn't told the server yet. The list
-    // is refetching in the background until it has.
     return (
       <Notice className="mb-8">
         Thank you. We are confirming your payment; this page will update by itself in a

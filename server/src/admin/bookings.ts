@@ -9,7 +9,6 @@ import { settleCancelledBooking } from "../payments/service.ts";
 import { shopTimeToUtc } from "../shop/time.ts";
 import type { BookingFilter, BookingListQuery } from "./schemas.ts";
 
-// The most rows one export will contain.
 export const MAX_EXPORT_ROWS = 10_000;
 
 const adminBookingDetails = {
@@ -20,16 +19,12 @@ const adminBookingDetails = {
 
 export type AdminBooking = Prisma.BookingGetPayload<{ include: typeof adminBookingDetails }>;
 
-// Turns the filters into a database condition. The table and the export
-// both use it, so a spreadsheet always matches what was on screen.
-// Prisma ignores conditions that are undefined.
 function toWhere(filter: BookingFilter): Prisma.BookingWhereInput {
   const timeZone = env.shopTimeZone;
   const contains = filter.search && { contains: filter.search, mode: "insensitive" as const };
   return {
     barberId: filter.barberId,
     status: filter.status?.toUpperCase() as BookingStatus | undefined,
-    // The dates are shop dates, so each end becomes a midnight in the shop.
     startsAt: {
       gte: filter.from ? shopTimeToUtc(filter.from, 0, timeZone) : undefined,
       lt: filter.to ? shopTimeToUtc(filter.to, 24 * 60, timeZone) : undefined,
@@ -40,8 +35,6 @@ function toWhere(filter: BookingFilter): Prisma.BookingWhereInput {
   };
 }
 
-// Sorting happens in the database: with paging, the server only ever
-// holds one page, so it is the only place that can order the whole set.
 function toOrderBy(filter: BookingFilter): Prisma.BookingOrderByWithRelationInput[] {
   const { order } = filter;
   const primary: Record<BookingFilter["sort"], Prisma.BookingOrderByWithRelationInput> = {
@@ -52,7 +45,7 @@ function toOrderBy(filter: BookingFilter): Prisma.BookingOrderByWithRelationInpu
     status: { status: order },
     price: { priceCents: order },
   };
-  // The extra keys settle ties the same way every time. Without them, rows
+  // The extra keys settle ties the same way every time; without them, rows
   // with equal values could swap places between two pages.
   return [primary[filter.sort], { startsAt: "desc" }, { id: "asc" }];
 }
@@ -81,10 +74,6 @@ export function findBookingsForExport(filter: BookingFilter): Promise<AdminBooki
   });
 }
 
-// The admin may cancel any booking that hasn't had an outcome yet,
-// whoever made it and however close it is, and decides whether the deposit
-// goes back: yes when the shop is the one cancelling, perhaps not when a
-// customer rings up an hour before to say they aren't coming.
 export async function cancelBookingAsAdmin(
   deps: Dependencies,
   bookingId: string,
@@ -109,8 +98,6 @@ export async function cancelBookingAsAdmin(
     data: {
       status: "CANCELLED",
       cancelledAt: now,
-      // A plain fact about the timing. Whether the deposit went back is
-      // recorded separately, in the payment status.
       cancelledInFreeWindow: hoursUntilStart >= FREE_CANCELLATION_HOURS,
       holdExpiresAt: null,
     },
@@ -125,8 +112,6 @@ export async function cancelBookingAsAdmin(
 
   await settleCancelledBooking(deps.payments, booking, refund);
 
-  // The customer hears about it by email, including what happened to the
-  // deposit. An unconfirmed booking was never announced, so neither is this.
   if (booking.status === "CONFIRMED") {
     await notifyBookingCancelled(deps, booking.id, "shop");
   }

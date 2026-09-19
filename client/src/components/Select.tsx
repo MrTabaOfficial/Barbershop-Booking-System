@@ -2,7 +2,6 @@ import { type ComponentProps, useId } from "react";
 
 type SelectProps = ComponentProps<"select"> & { label: string };
 
-// The browser's own <select>, labelled and dressed to match Input.
 export function Select({ label, id, className = "", children, ...selectProps }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;

@@ -16,10 +16,8 @@ export async function getActiveService(serviceId: string): Promise<Service> {
   return service;
 }
 
-// A customer who is moving a booking wants to see times that overlap its
-// current slot. Only the owner may have a booking left out: for anyone
-// else the id is ignored rather than refused, so it can neither free up
-// another customer's slot nor reveal which ids exist.
+// Someone else's booking id is ignored rather than refused, so it can neither
+// free up another customer's slot nor reveal which ids exist.
 export async function findOwnBookingId(
   bookingId: string | undefined,
   userId: string | undefined,
@@ -38,12 +36,9 @@ type SlotQuery = {
   barberId: string;
   shopDate: string;
   durationMinutes: number;
-  // When rescheduling, the booking being moved must not block its own slot.
   ignoreBookingId?: string;
 };
 
-// Loads everything the slot calculation needs for one barber and one day,
-// then hands it to the pure function.
 export async function findAvailableSlots(query: SlotQuery): Promise<Date[]> {
   const { barberId, shopDate } = query;
   const timeZone = env.shopTimeZone;
@@ -55,9 +50,6 @@ export async function findAvailableSlots(query: SlotQuery): Promise<Date[]> {
     throw new AppError(404, "BARBER_NOT_FOUND", "This barber is not available");
   }
 
-  // An unpaid booking holds its slot only for a limited time. Releasing
-  // the ones whose time is up here, just before looking, means a slot is
-  // free the moment its hold ends, whether or not a scheduled job has run.
   await expireUnpaidBookings();
 
   const dayStart = shopTimeToUtc(shopDate, 0, timeZone);
@@ -70,8 +62,6 @@ export async function findAvailableSlots(query: SlotQuery): Promise<Date[]> {
     prisma.dayOff.findUnique({
       where: { barberId_date: { barberId, date: toDateColumn(shopDate) } },
     }),
-    // Every booking that touches this day, including one that started the
-    // evening before.
     prisma.booking.findMany({
       where: {
         barberId,

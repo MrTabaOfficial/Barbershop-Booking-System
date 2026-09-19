@@ -8,10 +8,7 @@ import { findAvailableSlots, findOwnBookingId, getActiveService } from "./servic
 const availabilityQuerySchema = z.object({
   barberId: z.uuid(),
   serviceId: z.uuid(),
-  // YYYY-MM-DD, a calendar date in the shop's time zone.
   date: z.iso.date(),
-  // The caller's own booking, to be treated as if it weren't there. Used
-  // when rescheduling.
   excludeBookingId: z.uuid().optional(),
 });
 
@@ -31,8 +28,6 @@ export function createAvailabilityRouter(): Router {
     res.json({
       date: query.date,
       timeZone: env.shopTimeZone,
-      // startsAt is the exact instant to send back when booking; localTime
-      // is the same moment on the shop's clock, for display.
       slots: slots.map((slot) => ({
         startsAt: slot.toISOString(),
         localTime: shopClockTimeOf(slot, env.shopTimeZone),

@@ -9,7 +9,6 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
 
-    // Playwright runs the TypeScript directly, so tsc only type-checks.
     "noEmit": true,
     "allowImportingTsExtensions": true
   },

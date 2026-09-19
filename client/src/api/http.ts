@@ -4,12 +4,9 @@ const API_PREFIX = "/api";
 
 export type FieldIssue = { path: string; message: string };
 
-// Every failed request becomes one of these, built from the API's error
-// format: { error: { code, message, details } }.
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  // Whatever extra the API attached. Its shape depends on the code.
   readonly details: unknown;
 
   constructor(status: number, code: string, message: string, details?: unknown) {
@@ -19,7 +16,6 @@ export class ApiError extends Error {
     this.details = details;
   }
 
-  // Per-field validation messages, when that is what the details are.
   get fieldIssues(): FieldIssue[] {
     return Array.isArray(this.details) ? this.details.filter(isFieldIssue) : [];
   }
@@ -36,16 +32,13 @@ function isFieldIssue(value: unknown): value is FieldIssue {
   );
 }
 
-// The access token lives only in this variable. It is never written to
-// localStorage or a cookie, so a reload or a closed tab forgets it, and the
-// session is then restored from the httpOnly refresh cookie.
+// The access token is kept in memory only, because anything written to
+// localStorage can be read by any script on the page.
 let accessToken: string | null = null;
 
 type SessionListener = (user: User | null) => void;
 let sessionListener: SessionListener | null = null;
 
-// Lets the auth provider hear about every change, including the ones that
-// happen here when a refresh succeeds or fails in the middle of a request.
 export function onSessionChange(listener: SessionListener): () => void {
   sessionListener = listener;
   return () => {
@@ -55,17 +48,14 @@ export function onSessionChange(listener: SessionListener): () => void {
   };
 }
 
-// Not a credential: it only records that this browser has logged in at
-// some point. Without it, every page load by an anonymous visitor would
-// ask for a session refresh that is bound to fail.
 const SESSION_HINT_KEY = "dalaki.hasSession";
 
 export function mayHaveSession(): boolean {
   try {
     return localStorage.getItem(SESSION_HINT_KEY) !== null;
   } catch {
-    // Storage can be unavailable (private mode, tests). Asking the server
-    // is always safe.
+    // Storage can be unavailable (private mode, tests), and asking the server
+    // anyway is always safe.
     return true;
   }
 }
@@ -78,7 +68,8 @@ function rememberSessionHint(hasSession: boolean): void {
       localStorage.removeItem(SESSION_HINT_KEY);
     }
   } catch {
-    // The hint is only an optimisation.
+    // Losing the hint only costs one extra request, so a storage failure is
+    // ignored.
   }
 }
 
@@ -93,7 +84,6 @@ async function toApiError(response: Response): Promise<ApiError> {
     const { error } = await response.json();
     return new ApiError(response.status, error.code, error.message, error.details);
   } catch {
-    // Not the API's error format, e.g. the proxy answering because the API is down.
     return new ApiError(
       response.status,
       "UNEXPECTED_RESPONSE",
@@ -118,14 +108,9 @@ async function exchangeRefreshCookie(): Promise<Session | null> {
 
 let refreshInFlight: Promise<Session | null> | null = null;
 
-// Trades the refresh cookie for a new access token. Resolves to null when
-// there is no valid session.
-//
-// A refresh token works once, and the server treats a second use as theft
-// and ends every session. So refreshes must never overlap:
-// - within this tab, every caller shares one request while it is running;
-// - across tabs, a browser lock makes them take turns, so each tab sends
-//   the cookie the previous one just received.
+// A refresh token works once and a second use ends every session, so
+// refreshes must never overlap: one shared request within a tab, and a
+// browser lock between tabs.
 export function refreshSession(): Promise<Session | null> {
   refreshInFlight ??= (
     navigator.locks
@@ -157,22 +142,17 @@ function send(path: string, options: RequestOptions): Promise<Response> {
   });
 }
 
-// Sends a request and returns the successful response. Everything about
-// tokens, refreshing and errors happens here, whatever the caller then
-// does with the body.
 async function request(path: string, options: RequestOptions): Promise<Response> {
   let response: Response;
   try {
     response = await send(path, options);
 
-    // A 401 usually means the access token expired: refresh once and
-    // retry once. The /auth endpoints are left alone because their 401s
-    // mean something else (a wrong password) that a refresh can't fix.
+    // The /auth endpoints are left alone because their 401s mean a wrong
+    // password, which a refresh can't fix.
     if (response.status === 401 && !path.startsWith("/auth/")) {
       await refreshSession();
-      // Retry even if the session turned out to have ended. The request
-      // then goes without a token: public endpoints still answer, and
-      // protected ones return a 401 that is reported below.
+      // The retry goes ahead even if the session turned out to have ended, so
+      // that public endpoints still answer without a token.
       response = await send(path, options);
     }
   } catch (error) {
@@ -197,8 +177,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
 
-// Fetches a file and hands it to the browser to save. A plain link can't
-// be used for this, because a link can't send the access token.
 export async function apiDownload(path: string, fallbackName: string): Promise<void> {
   const response = await request(path, {});
   const fileName =
@@ -213,7 +191,6 @@ export async function apiDownload(path: string, fallbackName: string): Promise<v
   URL.revokeObjectURL(url);
 }
 
-// The message to show a person for any failure.
 export function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
 }

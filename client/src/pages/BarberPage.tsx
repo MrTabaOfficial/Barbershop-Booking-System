@@ -7,7 +7,6 @@ import { Button } from "../components/Button.tsx";
 import { ErrorState, LoadingBlock } from "../components/States.tsx";
 import { addDays, dayParts, formatLongDate, startOfWeek } from "../lib/dates.ts";
 
-// What a barber needs between two clients: who is next today.
 function Today({ today }: { today: string }) {
   const schedule = useSchedule(today, today);
   const day = schedule.data?.[0];
@@ -38,8 +37,6 @@ function Today({ today }: { today: string }) {
   );
 }
 
-// Monday to Sunday, one row per day. A row opens to show that day's
-// appointments, so the whole week fits on a phone screen while closed.
 function Week({ today }: { today: string }) {
   const thisWeek = startOfWeek(today);
   const [weekStart, setWeekStart] = useState(thisWeek);
@@ -108,7 +105,6 @@ function Week({ today }: { today: string }) {
               );
               const row = "flex min-h-14 items-center justify-between gap-3 py-3";
 
-              // A day with nothing booked has nothing to open.
               if (day.bookings.length === 0) {
                 return (
                   <div key={day.date} className={row}>
@@ -143,8 +139,6 @@ function Week({ today }: { today: string }) {
 }
 
 export function BarberPage() {
-  // "Today" is the shop's date, which the server knows; a phone's own
-  // clock and time zone are not to be trusted for it.
   const shop = useShop();
 
   function renderBody() {

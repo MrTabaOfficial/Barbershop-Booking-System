@@ -14,8 +14,6 @@ import {
   type ScheduleBooking,
 } from "./service.ts";
 
-// A booking as its barber sees it: who is coming, how to reach them, and
-// for what.
 function toScheduleBooking(booking: ScheduleBooking) {
   return {
     id: booking.id,
@@ -38,8 +36,6 @@ function toPublicDayOff(dayOff: DayOff) {
 export function createBarberRouter(): Router {
   const router = Router();
 
-  // Everything below is for barbers only, and only ever about the barber
-  // who is logged in.
   router.use(requireAuth, requireRole("barber"));
 
   router.get("/schedule", async (req, res) => {

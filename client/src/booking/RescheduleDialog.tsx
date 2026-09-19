@@ -15,14 +15,10 @@ type RescheduleDialogProps = {
 };
 
 export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogProps) {
-  // Open on the day the booking is on now: a small shift is the most
-  // likely change.
   const [date, setDate] = useState<string | null>(booking.localDate);
   const [slot, setSlot] = useState<Slot | null>(null);
   const rescheduleBooking = useRescheduleBooking();
 
-  // The booking only carries the barber's name. Their working days come
-  // from the barber list, and may be missing if they have since left.
   const barbers = useBarbers();
   const barber = barbers.data?.find((entry) => entry.id === booking.barber.id);
 
@@ -34,8 +30,6 @@ export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogPro
       { bookingId: booking.id, startsAt: slot.startsAt },
       {
         onSuccess: onClose,
-        // The free times are reloaded after a failure, so the choice that
-        // was refused must not stay selected.
         onError: () => setSlot(null),
       },
     );

@@ -4,12 +4,9 @@ type Choice = {
   id: string;
   title: string;
   description: string | null;
-  // Shown on the right: the price for a service, the days for a barber.
   aside: ReactNode;
 };
 
-// A list of large buttons, one per option. Steps 1 and 2 of the booking
-// flow are both "pick one of these", so they share it.
 export function ChoiceList({
   choices,
   onChoose,

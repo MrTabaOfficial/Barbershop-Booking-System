@@ -1,8 +1,7 @@
 import { getOverview } from "../admin/overview.ts";
-import { prisma } from "../db.ts";
+import { isUniqueViolation, prisma } from "../db.ts";
 import type { Dependencies } from "../dependencies.ts";
 import { env } from "../env.ts";
-import { Prisma } from "../generated/prisma/client.ts";
 import { formatLari, shopDetails } from "../shop/details.ts";
 import {
   addDays,
@@ -14,8 +13,6 @@ import {
   weekdayOf,
 } from "../shop/time.ts";
 
-// When the shop closes on a date: the latest finish among the barbers
-// working that weekday. Null on a day nobody works.
 async function closingMinuteOn(shopDate: string): Promise<number | null> {
   const latest = await prisma.workingHours.aggregate({
     where: { weekday: weekdayOf(shopDate), barber: { isActive: true } },
@@ -24,13 +21,6 @@ async function closingMinuteOn(shopDate: string): Promise<number | null> {
   return latest._max.endMinute;
 }
 
-// Sends the owner the day's figures once the shop has closed. Returns
-// whether it sent one.
-//
-// Safe to run every few minutes: the row inserted into daily_summaries is
-// the claim on "today's summary", and its primary key lets only one run
-// insert it. If the send then fails, the row is removed and a later run
-// tries again.
 export async function sendDailySummary(
   deps: Pick<Dependencies, "ownerAlerts">,
   now = new Date(),
@@ -47,8 +37,7 @@ export async function sendDailySummary(
   try {
     await prisma.dailySummary.create({ data: { date } });
   } catch (error) {
-    // P2002: the row is already there, so today's summary has gone out.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isUniqueViolation(error)) {
       return false;
     }
     throw error;
@@ -57,7 +46,6 @@ export async function sendDailySummary(
   try {
     const tomorrow = addDays(today, 1);
     const [overview, cancelledToday, bookedForTomorrow] = await Promise.all([
-      // The same numbers the admin's overview shows for today.
       getOverview(today, today),
       prisma.booking.count({
         where: {
@@ -83,7 +71,6 @@ export async function sendDailySummary(
       `${shopDetails.name}, ${formatShopDate(today)}`,
       `Completed: ${byStatus.completed} (${formatLari(totals.revenueCents)})`,
       `No-shows: ${byStatus.no_show}`,
-      // Appointments today that no barber has recorded an outcome for.
       `Not marked yet: ${byStatus.confirmed}`,
       `Cancellations made today: ${cancelledToday}`,
       `Booked for tomorrow: ${bookedForTomorrow}`,

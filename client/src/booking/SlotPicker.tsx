@@ -11,14 +11,9 @@ type SlotPickerProps = {
   shop: Shop;
   barberId: string;
   serviceId: string;
-  // The weekdays this barber works, or null if that isn't known.
   workingWeekdays: ReadonlySet<number> | null;
-  // The day being shown. With null, the picker starts on the barber's next
-  // working day.
   date: string | null;
   selectedStartsAt: string | null;
-  // When moving a booking: its id, so its own slot does not count as taken,
-  // and its current start, which is shown but can't be picked.
   excludeBookingId?: string;
   currentStartsAt?: string;
   onDateChange: (date: string) => void;
@@ -31,13 +26,10 @@ const PARTS_OF_DAY = [
   { label: "Evening", from: "17:00", to: "24:00" },
 ];
 
-// "Asia/Tbilisi" -> "Tbilisi"
 function cityOf(timeZone: string): string {
   return (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
 }
 
-// A week of day buttons and the free times for the chosen day. Used by the
-// booking flow and by the reschedule dialog.
 export function SlotPicker({
   shop,
   barberId,
@@ -62,7 +54,6 @@ export function SlotPicker({
     return shop.today;
   }
 
-  // YYYY-MM-DD dates compare correctly as text.
   const isBookable = date !== null && date >= shop.today && date <= shop.lastBookableDate;
   const activeDate = isBookable ? date : firstWorkingDate();
 
@@ -162,7 +153,6 @@ export function SlotPicker({
           ) : (
             <div className="space-y-5">
               {PARTS_OF_DAY.map((part) => {
-                // "HH:MM" strings compare correctly as text too.
                 const partSlots = slots.filter(
                   (slot) => slot.localTime >= part.from && slot.localTime < part.to,
                 );

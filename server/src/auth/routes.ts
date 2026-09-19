@@ -19,8 +19,8 @@ export const REFRESH_COOKIE = "refresh_token";
 export const LOGIN_MAX_FAILED_ATTEMPTS = 10;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
-// httpOnly keeps the token away from page scripts, sameSite stops other
-// sites from sending it, and the path limits it to the auth endpoints.
+// httpOnly keeps the token away from page scripts, sameSite stops other sites
+// from sending it, and the path limits it to the auth endpoints.
 const refreshCookieOptions = {
   httpOnly: true,
   sameSite: "strict",
@@ -28,7 +28,6 @@ const refreshCookieOptions = {
   path: "/auth",
 } as const;
 
-// The user as the API returns it: never the password hash.
 function toPublicUser(user: User) {
   return {
     id: user.id,
@@ -58,16 +57,12 @@ async function sendSession(res: Response, status: number, user: User, refreshTok
     .json({ accessToken, user: toPublicUser(user) });
 }
 
-// Express 5 passes errors thrown in async handlers to the error handler,
-// so the routes below need no try/catch.
 export function createAuthRouter(): Router {
   const router = Router();
 
-  // Built per router so each app instance (each test) counts separately.
   const loginRateLimit = rateLimit({
     windowMs: LOGIN_WINDOW_MS,
     limit: LOGIN_MAX_FAILED_ATTEMPTS,
-    // Only failed logins count, so normal use never hits the limit.
     skipSuccessfulRequests: true,
     standardHeaders: "draft-8",
     legacyHeaders: false,
@@ -114,7 +109,6 @@ export function createAuthRouter(): Router {
   router.get("/me", requireAuth, async (req, res) => {
     const user = await findUserById(getAuth(req).userId);
     if (!user) {
-      // The token is valid but the account has since been deleted.
       throw new AppError(401, "UNAUTHENTICATED", "A valid access token is required");
     }
     res.json({ user: toPublicUser(user) });

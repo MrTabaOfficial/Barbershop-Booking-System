@@ -12,11 +12,8 @@ import {
   rescheduledEmail,
 } from "./emails.ts";
 
-// Telling people what happened to a booking.
-//
-// Every function here is called after the change it reports has been saved,
-// and none of them can fail: whatever goes wrong while sending is logged
-// and swallowed. A mail server being down must never undo a booking, or
+// Every function here runs after its change has been saved and swallows its
+// own failures, because a mail server being down must never undo a booking or
 // turn a successful request into an error.
 
 type Notifiers = Pick<Dependencies, "mailer" | "ownerAlerts">;
@@ -29,7 +26,6 @@ async function attempt(what: string, send: () => Promise<void>): Promise<void> {
   }
 }
 
-// Runs one notification for one booking, with the booking's details loaded.
 async function notifyAbout(
   bookingId: string,
   what: string,
@@ -44,7 +40,6 @@ async function notifyAbout(
   });
 }
 
-// "Haircut with Luka Gelashvili, Monday 12 October at 11:00"
 const summarise = (booking: BookingForEmail) =>
   `${booking.service.name} with ${booking.barber.user.name}, ${describeTime(booking.startsAt)}`;
 

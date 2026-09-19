@@ -37,7 +37,6 @@ beforeEach(async () => {
   await prisma.dailySummary.deleteMany();
   mailer = new RecordingMailer();
   ownerAlerts = new RecordingOwnerAlerts();
-  // Works 09:00 to 18:00 every day of the week.
   barber = await createBarber("Luka Gelashvili");
   haircut = await createService("Haircut");
   davit = await prisma.user.update({
@@ -57,7 +56,6 @@ type BookingState = {
   holdExpiresAt?: Date;
 };
 
-// A booking made two days ago unless a test says otherwise.
 function insertBooking(startsAt: Date, state: BookingState = {}) {
   return prisma.booking.create({
     data: {
@@ -76,7 +74,6 @@ function insertBooking(startsAt: Date, state: BookingState = {}) {
 }
 
 describe("reminders", () => {
-  // Midday in the shop, today: after the hour reminders start going out.
   const MIDDAY = at(TODAY, "12:00");
 
   it("emails a customer whose confirmed appointment is tomorrow", async () => {
@@ -112,7 +109,6 @@ describe("reminders", () => {
       sendReminders({ mailer }, MIDDAY),
     ]);
 
-    // Two bookings, two emails, whichever run sent which.
     expect(counts.reduce((sum, count) => sum + count, 0)).toBe(2);
     expect(mailer.sent).toHaveLength(2);
   });
@@ -122,7 +118,6 @@ describe("reminders", () => {
     await insertBooking(at(TOMORROW, "10:00"), { status: "PENDING" });
     await insertBooking(at(TODAY, "16:00"));
     await insertBooking(at(addDays(TODAY, 2), "11:00"));
-    // Booked today for tomorrow: the confirmation email has only just gone.
     await insertBooking(at(TOMORROW, "14:00"), { createdAt: at(TODAY, "09:30") });
 
     expect(await sendReminders({ mailer }, MIDDAY)).toBe(0);
@@ -156,7 +151,6 @@ describe("reminders", () => {
 });
 
 describe("the daily summary", () => {
-  // The test barber finishes at 18:00.
   const AFTER_CLOSING = at(TODAY, "18:05");
 
   beforeEach(async () => {
@@ -179,7 +173,6 @@ describe("the daily summary", () => {
     const lines = ownerAlerts.sent[0]?.split("\n") ?? [];
     expect(lines[0]).toMatch(/^Dalaki, \w+ \d+ \w+$/);
     expect(lines.slice(1)).toEqual([
-      // Two haircuts at 25.
       "Completed: 2 (50 ₾)",
       "No-shows: 1",
       "Not marked yet: 1",
@@ -253,7 +246,6 @@ describe("expiring unpaid bookings", () => {
     expect(await statusOf(lapsed.id)).toBe("EXPIRED");
     expect(await statusOf(held.id)).toBe("PENDING");
     expect(await statusOf(confirmed.id)).toBe("CONFIRMED");
-    // A second run finds nothing left to do.
     expect(await expireUnpaidBookings(now)).toBe(0);
   });
 });
@@ -267,7 +259,6 @@ describe("deleting dead refresh tokens", () => {
 
     await token("in-use", daysFromNow(20));
     await token("expired", daysFromNow(-1));
-    // Still needed: presenting it must be recognised as a reused token.
     await token("revoked-yesterday", daysFromNow(20), daysFromNow(-1));
     await token("revoked-last-month", daysFromNow(20), daysFromNow(-8));
     await token("expired-and-revoked", daysFromNow(-2), daysFromNow(-3));

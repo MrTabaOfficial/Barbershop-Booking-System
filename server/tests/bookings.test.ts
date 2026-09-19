@@ -17,8 +17,6 @@ import {
 
 const HOUR_MS = 60 * 60 * 1000;
 
-// A week from today: outside the 24-hour cancellation window and well
-// inside the 60-day limit. The test barber works every day of the week.
 const DATE = addDays(shopDateOf(new Date(), env.shopTimeZone), 7);
 
 function at(clockTime: string): Date {
@@ -56,7 +54,6 @@ function book(auth: string, clockTime: string) {
     .send({ barberId: barber.id, serviceId: haircut.id, startsAt: at(clockTime).toISOString() });
 }
 
-// Books a slot and pays its deposit, which is what makes it "confirmed".
 async function bookAndPay(auth: string, clockTime: string) {
   const { booking } = (await book(auth, clockTime)).body;
   await markAsPaid(booking.id);
@@ -81,8 +78,6 @@ async function freeTimes(): Promise<string[]> {
   return response.body.slots.map((slot: { localTime: string }) => slot.localTime);
 }
 
-// Writes a booking straight to the database, for times the API would
-// refuse to book (in the past, or minutes from now).
 function insertBooking(customer: User, startsAt: Date, status: BookingStatus = "CONFIRMED") {
   return prisma.booking.create({
     data: {
@@ -221,7 +216,6 @@ describe("GET /availability", () => {
 });
 
 describe("GET /availability with excludeBookingId", () => {
-  // Alex has 10:00-10:30. Without the exclusion, 09:45 to 10:15 are blocked.
   const BLOCKED_BY_ALEX = ["09:45", "10:00", "10:15"];
 
   async function freeTimesExcluding(bookingId: string, auth?: string): Promise<string[]> {

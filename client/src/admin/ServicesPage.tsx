@@ -14,8 +14,6 @@ import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { formatDuration, formatPrice, parseLari, toLariInput } from "../lib/format.ts";
 
-// The form works in what a person types: minutes and lari as text. It is
-// turned into the API's numbers (minutes, tetri) when it is submitted.
 const amount = (message: string) =>
   z.string().refine((value) => parseLari(value) !== null, message);
 
@@ -80,7 +78,6 @@ function ServiceDialog({ service, onClose }: { service: AdminService | null; onC
           <Button variant="secondary" onClick={onClose}>
             Discard
           </Button>
-          {/* The button sits outside the form, so it names the form it submits. */}
           <Button type="submit" form={formId} loading={saveService.isPending} loadingLabel="Saving…">
             Save service
           </Button>
@@ -124,7 +121,6 @@ function ServiceDialog({ service, onClose }: { service: AdminService | null; onC
 export function ServicesPage() {
   const services = useAdminServices();
   const saveService = useSaveService();
-  // undefined: closed. null: adding a new service. Otherwise: editing.
   const [editing, setEditing] = useState<AdminService | null | undefined>(undefined);
 
   function renderList() {
@@ -176,8 +172,6 @@ export function ServicesPage() {
               >
                 Edit
               </Button>
-              {/* Never deleted: bookings point at it. Deactivating takes it
-                  off the website and keeps the history. */}
               <Button
                 variant="secondary"
                 disabled={saveService.isPending}

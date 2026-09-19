@@ -1,10 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 
-// Every error response has the same shape:
-//   { "error": { "code": "SOME_CODE", "message": "...", "details": ... } }
-// `code` is for the client to branch on, `message` is for people, and
-// `details` is only present when there is more to say (validation issues).
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
@@ -29,8 +25,8 @@ function isClientError(error: unknown): error is { status: number; type?: string
   return typeof error.status === "number" && error.status >= 400 && error.status < 500;
 }
 
-// Express recognises an error handler by its four parameters, so `_next`
-// has to stay even though it is unused.
+// Express recognises an error handler by its four parameters, so `_next` has
+// to stay even though it is unused.
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof AppError) {
     res.status(error.status).json({
@@ -53,7 +49,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  // express.json() rejects malformed or oversized bodies with its own 4xx error.
   if (isClientError(error)) {
     const message =
       error.type === "entity.parse.failed"

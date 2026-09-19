@@ -2,11 +2,10 @@ import path from "node:path";
 import { z } from "zod";
 import { isValidTimeZone } from "./shop/time.ts";
 
-// The .env file sits at the repo root so Docker Compose and the server
-// read the same values. Variables that are already set are not overwritten.
 process.loadEnvFile(path.resolve(import.meta.dirname, "../../.env"));
 
-// An optional setting left empty in .env counts as not set.
+// An optional setting left empty in .env counts as not set, so .env.example
+// can list every variable.
 const optional = z
   .string()
   .optional()
@@ -19,16 +18,12 @@ const envSchema = z.object({
     .string()
     .refine(isValidTimeZone, "must be an IANA time zone name such as Asia/Tbilisi"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  // Where the website is served. Payment pages send the customer back here.
   APP_URL: z.url().default("http://localhost:5173"),
-  // Both, or neither. Without them the fake payment provider is used.
   STRIPE_SECRET_KEY: optional,
   STRIPE_WEBHOOK_SECRET: optional,
-  // Where to send email. Without a host, emails are logged instead.
   SMTP_HOST: optional,
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
   MAIL_FROM: z.string().min(3).default("Dalaki <bookings@dalaki.example>"),
-  // Both, or neither. Without them, alerts to the owner are logged instead.
   TELEGRAM_BOT_TOKEN: optional,
   TELEGRAM_OWNER_CHAT_ID: optional,
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -60,17 +55,13 @@ export const env = {
   jwtAccessSecret: parsed.data.JWT_ACCESS_SECRET,
   shopTimeZone: parsed.data.SHOP_TIME_ZONE,
   port: parsed.data.PORT,
-  // No trailing slash, so paths can be appended.
   appUrl: parsed.data.APP_URL.replace(/\/$/, ""),
-  // Undefined when Stripe isn't configured.
   stripe:
     STRIPE_SECRET_KEY && STRIPE_WEBHOOK_SECRET
       ? { secretKey: STRIPE_SECRET_KEY, webhookSecret: STRIPE_WEBHOOK_SECRET }
       : undefined,
-  // Undefined when no mail server is configured.
   smtp: SMTP_HOST ? { host: SMTP_HOST, port: parsed.data.SMTP_PORT } : undefined,
   mailFrom: parsed.data.MAIL_FROM,
-  // Undefined when the Telegram bot isn't configured.
   telegram:
     TELEGRAM_BOT_TOKEN && TELEGRAM_OWNER_CHAT_ID
       ? { botToken: TELEGRAM_BOT_TOKEN, chatId: TELEGRAM_OWNER_CHAT_ID }

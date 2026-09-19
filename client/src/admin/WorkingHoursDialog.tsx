@@ -7,7 +7,6 @@ import { Dialog } from "../components/Dialog.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { formatClock, parseClock } from "../lib/format.ts";
 
-// Weekday numbers (0 = Sunday) in the order a week is usually listed.
 const WEEK = [
   { weekday: 1, name: "Monday" },
   { weekday: 2, name: "Tuesday" },
@@ -18,8 +17,6 @@ const WEEK = [
   { weekday: 0, name: "Sunday" },
 ];
 
-// One row of the form. The times are kept as the text the time inputs
-// produce ("10:00", or "" when empty).
 type Row = { works: boolean; start: string; end: string; breakStart: string; breakEnd: string };
 
 const TIME_INPUT =
@@ -46,8 +43,6 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
   const change = (index: number, changes: Partial<Row>) =>
     setRows(rows.map((row, position) => (position === index ? { ...row, ...changes } : row)));
 
-  // The days the barber works, in the API's form. The server checks the
-  // times against each other and its messages are shown below.
   const days: (WorkingDay & { name: string })[] = WEEK.flatMap(({ weekday, name }, index) => {
     const row = rows[index];
     if (!row?.works) {
@@ -72,8 +67,6 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
     );
   }
 
-  // The server names a problem by its place in the list it was sent
-  // ("days.2.endMinute"). Turn that back into the weekday it belongs to.
   const { error } = saveWorkingHours;
   const problems =
     error instanceof ApiError
@@ -137,7 +130,6 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
                 {!row.works && <span className="font-normal text-muted">Not working</span>}
               </label>
               {row.works && (
-                // Two columns, so a browser that shows AM and PM has room.
                 <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
                   {(
                     [

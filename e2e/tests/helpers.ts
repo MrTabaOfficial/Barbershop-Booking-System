@@ -4,8 +4,6 @@ import { SEED_PASSWORD } from "../environment.ts";
 const PASSWORD = "e2e-test-password";
 let customerCount = 0;
 
-// A customer nobody has registered yet. Each test uses its own, so one
-// test's bookings never show up in another's "My bookings".
 export function newCustomer() {
   customerCount += 1;
   return {
@@ -33,12 +31,6 @@ export function timeButton(scope: Page | Locator, time: string): Locator {
   return scope.getByRole("button", { name: time, exact: true });
 }
 
-// Walks the first three steps of the booking flow: a haircut, with Luka, on
-// his first working day of next week. Returns that day as the site writes
-// it ("Monday 12 October"), with the free times on screen.
-//
-// Next week keeps the tests clear of the seeded bookings, and of today,
-// where the hour the suite runs at would decide which times are left.
 export async function chooseHaircutWithLuka(page: Page): Promise<string> {
   await page.goto("/book");
   await page
@@ -59,14 +51,11 @@ export async function chooseHaircutWithLuka(page: Page): Promise<string> {
   return label;
 }
 
-// Pays on the fake payment page that stands in for Stripe in these tests.
 export async function payDeposit(page: Page) {
   await expect(page.getByRole("heading", { name: "Fake payment page" })).toBeVisible();
   await page.getByRole("button", { name: "Pay the deposit" }).click();
 }
 
-// Books that haircut at the given time as the logged-in customer, pays the
-// deposit, and ends on "My bookings". Returns the day, as above.
 export async function bookHaircutWithLuka(page: Page, time: string): Promise<string> {
   const day = await chooseHaircutWithLuka(page);
   await timeButton(page, time).click();
@@ -76,12 +65,10 @@ export async function bookHaircutWithLuka(page: Page, time: string): Promise<str
   return day;
 }
 
-// The card for one booking in "My bookings".
 export function bookingCard(page: Page, day: string, time: string): Locator {
   return page.getByRole("listitem").filter({ hasText: `${day}, ${time}` });
 }
 
-// Logs in as one of the seeded demo accounts.
 export async function logIn(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);

@@ -48,8 +48,6 @@ function Hero() {
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brass-light">
         Barbershop · {shop.district}, Tbilisi
       </p>
-      {/* The Georgian word for "barber". Decorative here; the logo carries
-          the name for screen readers. */}
       <p
         lang="ka"
         aria-hidden="true"

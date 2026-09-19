@@ -1,12 +1,6 @@
-// Conversions between the shop's clock and UTC instants.
-//
-// A "shop date" is a calendar date in the shop's time zone, written
-// YYYY-MM-DD. A plain `Date` is always an exact instant.
-//
-// Temporal does the time zone arithmetic. Its default handling of
-// daylight saving is what we want: a clock time that is skipped moves to
-// the first moment after the gap, and one that happens twice means the
-// first occurrence.
+// Temporal's default handling of daylight saving is what the shop wants: a
+// clock time that is skipped moves to the first moment after the gap, and one
+// that happens twice means the first occurrence.
 
 export function isValidTimeZone(timeZone: string): boolean {
   try {
@@ -17,8 +11,6 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
-// The instant at which the shop's clock shows the given time on the given
-// date. 1440 minutes is midnight at the end of that date.
 export function shopTimeToUtc(
   shopDate: string,
   minutesAfterMidnight: number,
@@ -41,20 +33,17 @@ export function shopDateOf(instant: Date, timeZone: string): string {
   return toShopClock(instant, timeZone).toPlainDate().toString();
 }
 
-// Minutes after midnight on the shop's clock: 600 at 10:00.
 export function shopMinutesOf(instant: Date, timeZone: string): number {
   const clock = toShopClock(instant, timeZone);
   return clock.hour * 60 + clock.minute;
 }
 
-// "HH:MM" on the shop's clock.
 export function shopClockTimeOf(instant: Date, timeZone: string): string {
   return toShopClock(instant, timeZone).toPlainTime().toString({ smallestUnit: "minute" });
 }
 
-// A Date whose UTC fields read as the shop's clock at that instant. It is
-// not a real instant: it is for formats that have no time zones, such as
-// spreadsheets, where "15:00" has to mean 15:00 in the shop.
+// The result is not a real instant: its UTC fields read as the shop's clock,
+// for formats that have no time zones, such as spreadsheets.
 export function shopClockAsUtc(instant: Date, timeZone: string): Date {
   const clock = toShopClock(instant, timeZone);
   return new Date(
@@ -62,9 +51,9 @@ export function shopClockAsUtc(instant: Date, timeZone: string): Date {
   );
 }
 
-// 0 = Sunday ... 6 = Saturday, the numbering working_hours.weekday uses.
 export function weekdayOf(shopDate: string): number {
-  // Temporal counts Monday as 1 and Sunday as 7.
+  // Temporal counts Monday as 1 and Sunday as 7, while working_hours.weekday
+  // counts Sunday as 0.
   return Temporal.PlainDate.from(shopDate).dayOfWeek % 7;
 }
 
@@ -81,7 +70,6 @@ export function fromDateColumn(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-// "Tuesday 6 October", for messages.
 export function formatShopDate(shopDate: string): string {
   return Temporal.PlainDate.from(shopDate).toLocaleString("en-GB", {
     weekday: "long",
@@ -90,7 +78,6 @@ export function formatShopDate(shopDate: string): string {
   });
 }
 
-// How many days `to` is after `from`.
 export function daysBetween(from: string, to: string): number {
   return Temporal.PlainDate.from(from).until(to).days;
 }

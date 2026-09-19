@@ -1,6 +1,6 @@
-import { prisma } from "../db.ts";
+import { isUniqueViolation, prisma } from "../db.ts";
 import { AppError } from "../errors.ts";
-import { Prisma, type User } from "../generated/prisma/client.ts";
+import type { User } from "../generated/prisma/client.ts";
 import { hashPassword, verifyPassword } from "./password.ts";
 import type { LoginInput, RegisterInput } from "./schemas.ts";
 import { generateRefreshToken, hashRefreshToken, REFRESH_TOKEN_TTL_MS } from "./tokens.ts";
@@ -21,9 +21,7 @@ export async function registerCustomer(input: RegisterInput): Promise<User> {
       },
     });
   } catch (error) {
-    // P2002 is Prisma's code for a unique constraint violation. Letting the
-    // database decide avoids a check-then-insert race between two requests.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isUniqueViolation(error)) {
       throw new AppError(409, "EMAIL_TAKEN", "An account with this email already exists");
     }
     throw error;
@@ -34,8 +32,8 @@ export async function verifyCredentials(input: LoginInput): Promise<User> {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
   const passwordMatches = await verifyPassword(input.password, user?.passwordHash);
   if (!user || !passwordMatches) {
-    // One message for both cases, so the response doesn't reveal which
-    // emails have accounts.
+    // One message for both cases, so the response doesn't reveal which emails
+    // have accounts.
     throw new AppError(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
   return user;
@@ -53,7 +51,6 @@ export async function issueRefreshToken(userId: string): Promise<string> {
   return refreshToken;
 }
 
-// Exchanges a refresh token for a new one. Each token works exactly once.
 export async function rotateRefreshToken(
   refreshToken: string,
 ): Promise<{ user: User; refreshToken: string }> {
@@ -66,9 +63,9 @@ export async function rotateRefreshToken(
   }
 
   if (stored.revokedAt) {
-    // This token was already used or logged out, yet someone still holds a
-    // copy. It may have been stolen, and there is no telling whether the
-    // thief or the owner used it first, so every session of this user ends.
+    // A revoked token being presented means a copy may have been stolen, and
+    // since there is no telling whether the thief or the owner used it first,
+    // every session of this user ends.
     await prisma.refreshToken.updateMany({
       where: { userId: stored.userId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -80,9 +77,8 @@ export async function rotateRefreshToken(
     throw invalidRefreshToken();
   }
 
-  // The `revokedAt: null` condition makes this safe when two requests
-  // arrive with the same token at once: the database lets only one of them
-  // update the row, and the other gets a count of 0.
+  // The `revokedAt: null` condition lets only one of two simultaneous
+  // requests with the same token update the row; the other gets a count of 0.
   const claimed = await prisma.refreshToken.updateMany({
     where: { id: stored.id, revokedAt: null },
     data: { revokedAt: new Date() },

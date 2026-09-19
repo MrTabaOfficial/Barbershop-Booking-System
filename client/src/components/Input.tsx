@@ -6,8 +6,6 @@ type InputProps = ComponentProps<"input"> & {
   hint?: string;
 };
 
-// A text input with its label, hint and error message wired together, so
-// screen readers announce all three and an invalid field is marked as such.
 export function Input({ label, error, hint, id, className = "", ...inputProps }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;

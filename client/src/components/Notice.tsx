@@ -2,8 +2,6 @@ import type { ReactNode } from "react";
 
 type Tone = "info" | "error";
 
-// A short message about something that just happened. Errors interrupt a
-// screen reader ("alert"); other notices wait their turn ("status").
 export function Notice({
   tone = "info",
   children,

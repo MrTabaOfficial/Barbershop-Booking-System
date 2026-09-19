@@ -1,12 +1,8 @@
 import { Prisma } from "../generated/prisma/client.ts";
 
-// True when PostgreSQL refused a write because another booking for that
-// barber covers the time. It reports this in one of two ways:
-// - a violation of the bookings_no_overlap exclusion constraint, when the
-//   other booking was already saved;
-// - a deadlock (Prisma code P2034), when both were being saved at the same
-//   instant. Each write waits to see if the other commits, and PostgreSQL
-//   breaks the tie by aborting one of them. The other one goes through.
+// PostgreSQL reports a clash either as a violation of bookings_no_overlap or,
+// when both writes arrive at the same instant, as a deadlock (P2034) in which
+// it aborts one of them, so both mean the slot is taken.
 export function isSlotTakenError(error: unknown): boolean {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
     return false;

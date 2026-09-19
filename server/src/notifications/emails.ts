@@ -4,10 +4,6 @@ import { formatLari, shopDetails } from "../shop/details.ts";
 import { formatShopDate, shopClockTimeOf, shopDateOf } from "../shop/time.ts";
 import type { Email } from "./mailer.ts";
 
-// The emails customers get. Each function takes a booking and returns the
-// whole message; nothing here sends anything, so the wording can be tested
-// without a mail server.
-
 export const bookingForEmail = {
   customer: true,
   service: true,
@@ -16,9 +12,8 @@ export const bookingForEmail = {
 
 export type BookingForEmail = Prisma.BookingGetPayload<{ include: typeof bookingForEmail }>;
 
-// The brand, as far as email allows. Mail programs don't load web fonts, so
-// the headings fall back to Georgia, and every style is written inline
-// because many of them ignore style sheets.
+// Mail programs don't load web fonts and many ignore style sheets, so the
+// headings fall back to Georgia and every style is written inline.
 const INK = "#141210";
 const SURFACE = "#1d1a17";
 const LINE = "#38322b";
@@ -37,10 +32,8 @@ function escapeHtml(text: string): string {
     .replaceAll('"', "&quot;");
 }
 
-// "Asia/Tbilisi" -> "Tbilisi"
 const shopCity = (env.shopTimeZone.split("/").at(-1) ?? env.shopTimeZone).replaceAll("_", " ");
 
-// "Tuesday 6 October at 11:00"
 export function describeTime(instant: Date): string {
   const date = formatShopDate(shopDateOf(instant, env.shopTimeZone));
   return `${date} at ${shopClockTimeOf(instant, env.shopTimeZone)}`;
@@ -52,18 +45,12 @@ type Content = {
   to: string;
   subject: string;
   heading: string;
-  // Paragraphs before the details.
   intro: string[];
-  // Label and value pairs, shown as a small table.
   details: [string, string][];
-  // Paragraphs after the details.
   notes: string[];
-  // A single button, when there is somewhere useful to go.
   action?: { label: string; url: string };
 };
 
-// Builds both forms of a message from the same content, so the plain text
-// and the HTML can never say different things.
 function compose(content: Content): Email {
   const text = [
     content.heading,
@@ -140,7 +127,6 @@ function compose(content: Content): Email {
   return { to: content.to, subject: content.subject, text, html };
 }
 
-// The lines every booking email shows.
 function appointmentDetails(booking: BookingForEmail): [string, string][] {
   return [
     ["Service", booking.service.name],
@@ -194,8 +180,6 @@ export function rescheduledEmail(booking: BookingForEmail, previousStartsAt: Dat
   });
 }
 
-// What became of the deposit, said plainly. This sentence is the reason the
-// email exists: nobody should have to guess whether they got their money back.
 function depositOutcome(booking: BookingForEmail, cancelledBy: "customer" | "shop"): string {
   const deposit = formatLari(booking.depositCents);
   switch (booking.paymentStatus) {
@@ -248,8 +232,6 @@ export function reminderEmail(booking: BookingForEmail): Email {
   });
 }
 
-// For the rare customer whose payment arrived after their hold on the slot
-// had run out and someone else had taken it.
 export function depositReturnedEmail(booking: BookingForEmail): Email {
   const deposit = formatLari(booking.depositCents);
   return compose({

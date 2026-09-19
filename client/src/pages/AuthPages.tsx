@@ -8,10 +8,6 @@ import { homeFor, safeNextPath, withNext } from "../lib/nextPath.ts";
 
 const TEXT_LINK = "font-medium text-brass-light underline underline-offset-4 hover:text-cream";
 
-// The frame shared by the login and register pages. It also does the
-// "send them back where they came from" part for both: as soon as there is
-// a logged-in user, it navigates to ?next=, or to that user's own page
-// (bookings for a customer, the schedule for a barber) if nothing asked.
 function AuthPage({
   title,
   children,
@@ -41,7 +37,6 @@ function AuthPage({
       <Card>{children}</Card>
       <p className="mt-6 text-sm text-muted">
         {switchTo.question}{" "}
-        {/* Keep ?next= when switching between the two forms. */}
         <Link to={next ? withNext(switchTo.path, next) : switchTo.path} className={TEXT_LINK}>
           {switchTo.label}
         </Link>

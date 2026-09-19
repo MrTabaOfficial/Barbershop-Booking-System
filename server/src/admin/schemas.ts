@@ -4,16 +4,10 @@ import { SLOT_STEP_MINUTES } from "../availability/slots.ts";
 
 export const idParamsSchema = z.object({ id: z.uuid() });
 
-// The admin decides whether a cancellation refunds the deposit. Refunding
-// is the default: a request with no body refunds.
 export const cancelBookingSchema = z.object({ refund: z.boolean().default(true) }).default({ refund: true });
-
-// --- services
 
 const serviceName = z.string().trim().min(1).max(100);
 const description = z.string().trim().max(500).nullable();
-// Durations follow the booking grid, so a service never leaves a gap that
-// no other booking can start in.
 const durationMinutes = z
   .number()
   .int()
@@ -22,7 +16,6 @@ const durationMinutes = z
   .refine((value) => value % SLOT_STEP_MINUTES === 0, {
     message: `Must be a multiple of ${SLOT_STEP_MINUTES} minutes`,
   });
-// In tetri. The ceiling only catches typing mistakes.
 const amountCents = z.number().int().min(0).max(1_000_000);
 
 export const createServiceSchema = z.object({
@@ -44,8 +37,6 @@ export const updateServiceSchema = z
   })
   .partial();
 
-// --- barbers
-
 const personName = z.string().trim().min(1).max(100);
 const bio = z.string().trim().max(1000).nullable();
 
@@ -64,7 +55,6 @@ const minuteOfDay = z.number().int().min(0).max(24 * 60);
 
 const workingDaySchema = z
   .object({
-    // 0 = Sunday ... 6 = Saturday
     weekday: z.number().int().min(0).max(6),
     startMinute: minuteOfDay,
     endMinute: minuteOfDay,
@@ -96,7 +86,6 @@ const workingDaySchema = z
     }
   });
 
-// The whole week at once: the days listed are the days the barber works.
 export const workingHoursSchema = z.object({
   days: z
     .array(workingDaySchema)
@@ -105,8 +94,6 @@ export const workingHoursSchema = z.object({
       message: "Each weekday may appear only once",
     }),
 });
-
-// --- bookings
 
 export const BOOKING_STATUS_NAMES = [
   "pending",
@@ -127,18 +114,15 @@ export const BOOKING_SORT_KEYS = [
 ] as const;
 
 const bookingFilterFields = {
-  // Shop dates, both included.
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   barberId: z.uuid().optional(),
   status: z.enum(BOOKING_STATUS_NAMES).optional(),
-  // Matched against the customer's name, email and phone.
   search: z.string().trim().min(1).max(100).optional(),
   sort: z.enum(BOOKING_SORT_KEYS).default("startsAt"),
   order: z.enum(["asc", "desc"]).default("desc"),
 };
 
-// The export takes the same filters and sorting as the table, without paging.
 export const bookingExportQuerySchema = z.object(bookingFilterFields);
 
 export const bookingListQuerySchema = z.object({
@@ -149,8 +133,6 @@ export const bookingListQuerySchema = z.object({
 
 export type BookingFilter = z.infer<typeof bookingExportQuerySchema>;
 export type BookingListQuery = z.infer<typeof bookingListQuerySchema>;
-
-// --- overview
 
 export const MAX_OVERVIEW_DAYS = 366;
 

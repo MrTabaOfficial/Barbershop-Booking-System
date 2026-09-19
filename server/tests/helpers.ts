@@ -18,7 +18,6 @@ export async function resetDatabase() {
   if (!new URL(env.databaseUrl).pathname.endsWith("_test")) {
     throw new Error("Refusing to wipe a database whose name doesn't end in _test");
   }
-  // CASCADE also empties every table that references these two.
   await prisma.$executeRaw`TRUNCATE TABLE users, services CASCADE`;
 }
 
@@ -33,8 +32,6 @@ export async function createUser(email: string, role: Role = "CUSTOMER") {
   });
 }
 
-// Returns the "refresh_token=..." pair from a response's Set-Cookie header,
-// ready to send back in a Cookie header.
 export function refreshCookieFrom(response: Response): string {
   const setCookie = response.get("Set-Cookie") ?? [];
   const cookie = setCookie.find((value) => value.startsWith(`${REFRESH_COOKIE}=`));
@@ -52,8 +49,6 @@ export async function authHeaderFor(user: User): Promise<string> {
   return `Bearer ${accessToken}`;
 }
 
-// A barber who works 09:00-18:00 every day of the week with a break at
-// 13:00-14:00, so tests can use any date.
 export async function createBarber(name = "Test Barber", isActive = true) {
   return prisma.barber.create({
     data: {
@@ -85,8 +80,6 @@ export async function createService(name = "Haircut", isActive = true) {
   });
 }
 
-// A mailer that keeps what it is given instead of sending it, and can be
-// told to fail like a mail server that is down.
 export class RecordingMailer implements Mailer {
   readonly name = "recording";
   readonly sent: Email[] = [];
@@ -100,7 +93,6 @@ export class RecordingMailer implements Mailer {
   }
 }
 
-// The same for alerts to the owner.
 export class RecordingOwnerAlerts implements OwnerAlerts {
   readonly name = "recording";
   readonly sent: string[] = [];
@@ -114,9 +106,6 @@ export class RecordingOwnerAlerts implements OwnerAlerts {
   }
 }
 
-// Stand-ins for everything outside the process, for createApp() and for
-// the functions that take dependencies directly. `fake` is the payment
-// provider inside `payments`, exposed so tests can inspect it.
 export function createTestDependencies() {
   const fake = new FakePaymentProvider((sessionId) => `http://shop.test/pay/${sessionId}`);
   const mailer = new RecordingMailer();
@@ -125,8 +114,6 @@ export function createTestDependencies() {
   return { deps, fake, mailer, ownerAlerts };
 }
 
-// What a successful deposit payment does to a booking, without going
-// through a checkout.
 export function markAsPaid(bookingId: string) {
   return prisma.booking.update({
     where: { id: bookingId },
@@ -140,7 +127,6 @@ export function markAsPaid(bookingId: string) {
   });
 }
 
-// The login of a barber made with createBarber().
 export async function authHeaderForBarber(barber: { userId: string }): Promise<string> {
   return authHeaderFor(await prisma.user.findUniqueOrThrow({ where: { id: barber.userId } }));
 }

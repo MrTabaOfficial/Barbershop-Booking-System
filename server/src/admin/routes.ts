@@ -89,10 +89,7 @@ function toAdminBooking(booking: AdminBooking) {
 export function createAdminRouter(deps: Dependencies): Router {
   const router = Router();
 
-  // Everything below is for the admin only.
   router.use(requireAuth, requireRole("admin"));
-
-  // --- services
 
   router.get("/services", async (_req, res) => {
     res.json({ services: (await listServices()).map(toAdminService) });
@@ -108,8 +105,6 @@ export function createAdminRouter(deps: Dependencies): Router {
     const service = await updateService(id, updateServiceSchema.parse(req.body));
     res.json({ service: toAdminService(service) });
   });
-
-  // --- barbers
 
   router.get("/barbers", async (_req, res) => {
     res.json({ barbers: (await listBarbers()).map(toAdminBarber) });
@@ -131,8 +126,6 @@ export function createAdminRouter(deps: Dependencies): Router {
     const barber = await replaceWorkingHours(id, workingHoursSchema.parse(req.body));
     res.json({ barber: toAdminBarber(barber) });
   });
-
-  // --- bookings
 
   router.get("/bookings", async (req, res) => {
     const query = bookingListQuerySchema.parse(req.query);
@@ -161,8 +154,6 @@ export function createAdminRouter(deps: Dependencies): Router {
     const booking = await cancelBookingAsAdmin(deps, id, refund);
     res.json({ booking: toAdminBooking(booking) });
   });
-
-  // --- overview
 
   router.get("/overview", async (req, res) => {
     const { from, to } = overviewQuerySchema.parse(req.query);

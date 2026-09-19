@@ -8,10 +8,6 @@ import { Notice } from "../components/Notice.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { useAuth } from "./AuthContext.ts";
 
-// These rules mirror the server's, so most mistakes are caught before a
-// request is sent. The server still validates everything again, and its
-// messages are shown on the same fields.
-
 const email = z.string().trim().pipe(z.email("Enter a valid email address"));
 
 const loginSchema = z.object({
@@ -92,8 +88,6 @@ export function RegisterForm() {
   const onSubmit = handleSubmit(async ({ phone, ...values }) => {
     setFormError(null);
     try {
-      // An empty phone field means "not given", which the API expects as
-      // the field being absent.
       await registerAccount(phone === "" ? values : { ...values, phone });
     } catch (error) {
       setFormError(

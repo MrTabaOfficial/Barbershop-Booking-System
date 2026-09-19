@@ -16,12 +16,12 @@ enum Role {
 }
 
 enum BookingStatus {
-  PENDING // created, deposit not paid yet; holds the slot for a limited time
-  CONFIRMED // deposit paid
+  PENDING
+  CONFIRMED
   COMPLETED
   CANCELLED
   NO_SHOW
-  EXPIRED // the deposit wasn't paid in time; the slot is free again
+  EXPIRED
 
   @@map("booking_status")
 }
@@ -30,7 +30,7 @@ enum PaymentStatus {
   UNPAID
   PAID
   REFUNDED
-  REFUND_FAILED // a refund was due but the payment provider refused it
+  REFUND_FAILED
 
   @@map("payment_status")
 }
@@ -52,9 +52,6 @@ model User {
   @@map("users")
 }
 
-// One row per refresh token ever issued. Only a hash of the token is
-// stored. A row with revokedAt set has been used, logged out, or killed
-// after a reuse was detected.
 model RefreshToken {
   id        String    @id @default(uuid())
   userId    String    @map("user_id")
@@ -69,7 +66,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-// The barber-specific side of a user whose role is BARBER.
 model Barber {
   id       String  @id @default(uuid())
   userId   String  @unique @map("user_id")
@@ -98,13 +94,10 @@ model Service {
   @@map("services")
 }
 
-// One row per barber per weekday they work; no row means they don't work
-// that day. Times are minutes after midnight in the shop's local time
-// (540 = 09:00).
 model WorkingHours {
   id               String @id @default(uuid())
   barberId         String @map("barber_id")
-  weekday          Int // 0 = Sunday ... 6 = Saturday, same as Date.getDay()
+  weekday          Int
   startMinute      Int    @map("start_minute")
   endMinute        Int    @map("end_minute")
   breakStartMinute Int?   @map("break_start_minute")
@@ -129,8 +122,8 @@ model DayOff {
 }
 
 // Overlapping bookings for the same barber are rejected by an exclusion
-// constraint that Prisma can't express here; see the booking_no_overlap
-// and booking_overlap_ignores_expired migrations.
+// constraint that Prisma can't express here, so it lives in the hand-written
+// booking_no_overlap and booking_overlap_ignores_expired migrations.
 model Booking {
   id                    String        @id @default(uuid())
   customerId            String        @map("customer_id")
@@ -143,24 +136,14 @@ model Booking {
   // rewrite what the customer agreed to.
   priceCents            Int           @map("price_cents")
   depositCents          Int           @map("deposit_cents")
-  // Both are set when the booking is cancelled. The second records whether
-  // that happened 24 hours or more before the start, which decides whether
-  // the deposit is refunded.
   cancelledAt           DateTime?     @map("cancelled_at") @db.Timestamptz(3)
   cancelledInFreeWindow Boolean?      @map("cancelled_in_free_window")
-  // The deposit. paymentSessionId is the checkout the customer was sent to
-  // and paymentUrl its address. paymentId is the payment itself: it is
-  // known once the payment succeeds and is what a refund refers to.
   paymentStatus         PaymentStatus @default(UNPAID) @map("payment_status")
   paymentSessionId      String?       @unique @map("payment_session_id")
   paymentUrl            String?       @map("payment_url")
   paymentId             String?       @map("payment_id")
-  // Which payment provider took the deposit: "stripe" or "fake". A refund
-  // has to go back through the same one.
   paymentProvider       String?       @map("payment_provider")
-  // While the booking is pending: when its unpaid hold on the slot lapses.
   holdExpiresAt         DateTime?     @map("hold_expires_at") @db.Timestamptz(3)
-  // Set when the day-before reminder is sent, so it is sent only once.
   reminderSentAt        DateTime?     @map("reminder_sent_at") @db.Timestamptz(3)
   createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -174,8 +157,6 @@ model Booking {
   @@map("bookings")
 }
 
-// One row per shop day whose closing-time summary has gone to the owner.
-// The date is the primary key, which is what stops a second one going out.
 model DailySummary {
   date   DateTime @id @db.Date
   sentAt DateTime @default(now()) @map("sent_at") @db.Timestamptz(3)

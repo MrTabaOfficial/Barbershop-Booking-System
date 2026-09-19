@@ -19,15 +19,10 @@ const PAYMENT_LABELS: Record<string, string> = {
   REFUND_FAILED: "Refund failed",
 };
 
-// Each column: its heading, its width in characters, and how to fill a
-// cell from a booking. Dates and amounts are written as real spreadsheet
-// dates and numbers with a display format, not as text, so they can be
-// sorted, filtered and summed in Excel.
 const COLUMNS = [
   {
     heading: "Start",
     width: 18,
-    // A spreadsheet has no time zones. The cell holds the shop's clock time.
     cell: (booking: AdminBooking) => ({
       value: shopClockAsUtc(booking.startsAt, env.shopTimeZone),
       type: Date,
@@ -66,7 +61,6 @@ const COLUMNS = [
   {
     heading: "Price (GEL)",
     width: 12,
-    // Stored in tetri; a spreadsheet wants lari with two decimals.
     cell: (booking: AdminBooking) => ({
       value: booking.priceCents / 100,
       type: Number,
@@ -91,7 +85,6 @@ export function bookingsToXlsx(bookings: AdminBooking[]): Promise<Buffer> {
   return writeExcelFile([headings, ...rows], {
     sheet: "Bookings",
     columns: COLUMNS.map((column) => ({ width: column.width })),
-    // Keeps the headings in view while scrolling.
     stickyRowsCount: 1,
   }).toBuffer();
 }

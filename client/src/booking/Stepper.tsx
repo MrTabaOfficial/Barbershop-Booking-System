@@ -1,6 +1,5 @@
 const STEP_LABELS = ["Service", "Barber", "Time", "Confirm"];
 
-// The four-part progress bar at the top of the booking flow.
 export function Stepper({ current }: { current: number }) {
   return (
     <nav aria-label="Booking steps">
@@ -35,7 +34,6 @@ export type Selection = {
   onChange: () => void;
 };
 
-// What the customer has chosen so far, each with a way to change it.
 export function Selections({ selections }: { selections: Selection[] }) {
   if (selections.length === 0) {
     return null;

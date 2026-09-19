@@ -185,7 +185,6 @@ describe("services", () => {
   });
 
   it("checks the deposit against the price already stored", async () => {
-    // The haircut costs 45.00; a 50.00 deposit alone must be refused.
     const response = await asAdmin.patch(`/admin/services/${haircut.id}`, { depositCents: 5000 });
 
     expect(response.status).toBe(400);
@@ -317,7 +316,6 @@ describe("staff", () => {
       "15:15",
       "15:30",
     ]);
-    // Every other weekday was removed.
     expect(await slotsOn(addDays(NEXT_WEEK, 1))).toEqual([]);
   });
 
@@ -361,8 +359,6 @@ describe("staff", () => {
 });
 
 describe("the bookings table", () => {
-  // Five bookings over three days, with enough variety to tell every
-  // filter and sort order apart.
   beforeEach(async () => {
     const day1 = NEXT_WEEK;
     const day2 = addDays(NEXT_WEEK, 1);
@@ -426,8 +422,6 @@ describe("the bookings table", () => {
 
     const result = await list({ from: middleDay, to: middleDay, order: "asc" });
 
-    // 00:15 and 23:30 are both on the shop's middle day, though one of
-    // them falls on a different date in UTC.
     expect(times(result.bookings)).toEqual([`${day(1)} 00:15`, `${day(1)} 23:30`]);
   });
 
@@ -472,7 +466,6 @@ describe("the bookings table", () => {
     expect(pages.every((page) => page.total === 5 && page.pageSize === 2)).toBe(true);
     const seen = pages.flatMap((page) => times(page.bookings));
     expect(new Set(seen).size).toBe(5);
-    // Sorting applies across pages, not within each one.
     expect(seen).toEqual(times((await list()).bookings));
   });
 
@@ -550,17 +543,13 @@ describe("GET /admin/bookings/export.xlsx", () => {
       "Price (GEL)",
       "Deposit (GEL)",
     ]);
-    // Only the confirmed booking: the cancelled one was filtered out.
     expect(rows).toHaveLength(2);
     const [start, minutes, customer, , phone, barber, service, status, payment, price, deposit] =
       rows[1] ?? [];
-    // A date cell, holding the shop's clock time. A spreadsheet stores a
-    // time as a fraction of a day, so it reads back within a millisecond.
     if (!(start instanceof Date)) {
       throw new Error(`The Start cell is not a date: ${String(start)}`);
     }
     expect(Math.abs(start.getTime() - Date.parse(`${NEXT_WEEK}T15:30:00Z`))).toBeLessThan(1000);
-    // Number cells, in lari.
     expect(minutes).toBe(30);
     expect(price).toBe(25);
     expect(deposit).toBe(10);
@@ -576,17 +565,6 @@ describe("GET /admin/bookings/export.xlsx", () => {
 });
 
 describe("GET /admin/overview", () => {
-  // A known data set over four shop days. What each query must return can
-  // be worked out by hand from this table:
-  //
-  //   10 Mar  10:00 haircut 45 completed   11:00 beard 25 completed
-  //           12:00 haircut no-show        13:00 haircut cancelled
-  //   11 Mar  nothing
-  //   12 Mar  00:30 haircut 45 completed   15:00 beard confirmed
-  //           16:00 kids pending
-  //   13 Mar  23:45 haircut 45 completed
-  //
-  // plus one completed haircut just outside each end of the range.
   beforeEach(async () => {
     const bookings: [string, string, Service, BookingStatus, Barber][] = [
       ["2026-03-10", "10:00", haircut, "COMPLETED", giorgi],
@@ -599,8 +577,6 @@ describe("GET /admin/overview", () => {
       ["2026-03-13", "23:45", haircut, "COMPLETED", giorgi],
       ["2026-03-09", "23:45", haircut, "COMPLETED", luka],
       ["2026-03-14", "00:15", haircut, "COMPLETED", luka],
-      // An unpaid booking that expired. It counts nowhere except under
-      // its own status.
       ["2026-03-13", "10:00", haircut, "EXPIRED", luka],
     ];
     for (const [date, time, service, status, barber] of bookings) {
@@ -615,10 +591,8 @@ describe("GET /admin/overview", () => {
     const { perDay, totals } = await overview();
 
     expect(perDay).toEqual([
-      // Three bookings (the cancelled one isn't counted); 45 + 25 earned.
       { date: "2026-03-10", bookings: 3, revenueCents: 7000 },
       { date: "2026-03-11", bookings: 0, revenueCents: 0 },
-      // 00:30 belongs to the 12th in the shop, whatever the date is in UTC.
       { date: "2026-03-12", bookings: 3, revenueCents: 4500 },
       { date: "2026-03-13", bookings: 1, revenueCents: 4500 },
     ]);
@@ -628,7 +602,6 @@ describe("GET /admin/overview", () => {
   it("counts revenue for completed bookings only", async () => {
     const { perDay } = await overview("2026-03-12", "2026-03-12");
 
-    // Confirmed and pending bookings are booked, but not yet earned.
     expect(perDay).toEqual([{ date: "2026-03-12", bookings: 3, revenueCents: 4500 }]);
   });
 
@@ -646,9 +619,7 @@ describe("GET /admin/overview", () => {
   });
 
   it("works out the no-show rate from appointments that reached their time", async () => {
-    // 1 no-show out of 4 completed + 1 no-show.
     expect((await overview()).noShowRate).toBeCloseTo(0.2);
-    // A day with no outcomes yet has no rate rather than a rate of zero.
     expect((await overview("2026-03-11", "2026-03-11")).noShowRate).toBeNull();
   });
 

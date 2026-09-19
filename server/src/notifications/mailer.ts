@@ -3,21 +3,15 @@ import nodemailer, { type Transporter } from "nodemailer";
 export type Email = {
   to: string;
   subject: string;
-  // The same message twice: plain text for mail programs that want it, and
-  // HTML for the rest.
   text: string;
   html: string;
 };
 
 export interface Mailer {
-  // "smtp" or "log", for the startup message.
   readonly name: string;
-  // Rejects if the message couldn't be handed over.
   send(email: Email): Promise<void>;
 }
 
-// Sends through an SMTP server. In development that is Mailpit, which
-// catches every message and shows it in a web inbox instead of delivering it.
 export class SmtpMailer implements Mailer {
   readonly name = "smtp";
   private readonly transport: Transporter;
@@ -33,7 +27,6 @@ export class SmtpMailer implements Mailer {
   }
 }
 
-// Used when no SMTP server is configured: says what would have been sent.
 export class LogMailer implements Mailer {
   readonly name = "log";
 

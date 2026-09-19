@@ -11,7 +11,6 @@ import type {
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
-// Rarely changes, so it isn't refetched on every visit to a page.
 export function useShop() {
   return useQuery({
     queryKey: ["shop"],
@@ -40,13 +39,9 @@ type AvailabilityParams = {
   barberId: string;
   serviceId: string;
   date: string;
-  // The customer's own booking, to be treated as if it weren't there.
-  // Used when rescheduling, so times overlapping the current one show up.
   excludeBookingId?: string;
 };
 
-// Free times go out of date quickly, so this is refetched whenever it is
-// shown again (the default) rather than cached like the lists above.
 export function useAvailability(params: AvailabilityParams | null) {
   return useQuery({
     queryKey: [
@@ -68,10 +63,6 @@ export function useAvailability(params: AvailabilityParams | null) {
   });
 }
 
-// `awaitingPaymentOf` is the id of a booking whose payment was just made.
-// The payment provider tells the server separately, a moment later, so the
-// list is fetched again every two seconds until that booking stops being
-// pending.
 export function useMyBookings(awaitingPaymentOf: string | null = null) {
   return useQuery({
     queryKey: ["bookings", "mine"],
@@ -85,9 +76,8 @@ export function useMyBookings(awaitingPaymentOf: string | null = null) {
   });
 }
 
-// After any change to a booking, both the user's list and the free times
-// are out of date. That is true after a failure too: a 409 means someone
-// else just took the slot, so the times on screen are wrong.
+// The lists are refreshed after a failure too, because a 409 means someone
+// else just took the slot and the times on screen are wrong.
 function useRefreshBookingData() {
   const queryClient = useQueryClient();
   return () => {
@@ -99,8 +89,6 @@ function useRefreshBookingData() {
 export function useCreateBooking() {
   const refreshBookingData = useRefreshBookingData();
   return useMutation({
-    // checkoutUrl is where to send the customer to pay the deposit. It is
-    // null when the service has none and the booking is confirmed already.
     mutationFn: (input: { barberId: string; serviceId: string; startsAt: string }) =>
       apiRequest<{ booking: Booking; checkoutUrl: string | null }>("/bookings", {
         method: "POST",

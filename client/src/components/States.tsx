@@ -2,8 +2,6 @@ import type { ReactNode } from "react";
 import { errorMessage } from "../api/http.ts";
 import { Button } from "./Button.tsx";
 
-// The three states every data view has besides "here is the data".
-
 export function LoadingBlock({ label, rows = 3 }: { label: string; rows?: number }) {
   return (
     <div role="status" className="space-y-3">

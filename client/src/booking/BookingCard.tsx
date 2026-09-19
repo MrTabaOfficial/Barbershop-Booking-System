@@ -12,14 +12,11 @@ const PAY_LINK =
 
 type BookingCardProps = {
   booking: Booking;
-  // How long before the start a booking can still be moved for free.
   freeCancellationHours: number;
-  // Left out for past bookings, which can't be changed.
   onCancel?: () => void;
   onReschedule?: () => void;
 };
 
-// What happened to the deposit of a cancelled booking, in the customer's terms.
 function describeCancellation(booking: Booking): string | null {
   switch (booking.paymentStatus) {
     case "refunded":
@@ -42,7 +39,6 @@ export function BookingCard({
   const awaitingPayment = booking.status === "pending";
   const confirmed = booking.status === "confirmed";
 
-  // The server applies the same rule; this only decides what to offer.
   const hoursUntilStart = (Date.parse(booking.startsAt) - Date.now()) / HOUR_MS;
   const canStillMove = hoursUntilStart >= freeCancellationHours;
   const cancellationNote = booking.status === "cancelled" ? describeCancellation(booking) : null;
@@ -83,7 +79,6 @@ export function BookingCard({
 
       {(awaitingPayment || confirmed) && (onCancel || onReschedule) && (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          {/* A plain link: the payment page is on another site. */}
           {awaitingPayment && booking.paymentUrl && (
             <a href={booking.paymentUrl} className={PAY_LINK}>
               Pay the deposit

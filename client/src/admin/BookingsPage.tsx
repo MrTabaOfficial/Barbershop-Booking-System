@@ -29,7 +29,6 @@ const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   refund_failed: "Refund failed",
 };
 
-// The parameters that narrow the list, as opposed to ordering or paging it.
 const FILTERS = ["from", "to", "barberId", "status", "search"];
 
 type SortKey = "startsAt" | "customer" | "barber" | "service" | "status" | "price";
@@ -45,7 +44,6 @@ const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
 
 function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: () => void }) {
   const cancelBooking = useCancelBookingAsAdmin();
-  // There is only something to decide when a deposit was actually paid.
   const depositPaid = booking.paymentStatus === "paid";
   const [refund, setRefund] = useState(true);
   return (
@@ -98,9 +96,6 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
   );
 }
 
-// Every filter, the sort order and the page number live in the URL. That
-// makes the address the single source of truth: reload, the back button
-// and a copied link all show exactly the same table.
 export function BookingsPage() {
   const [params, setParams] = useSearchParams();
   const bookings = useAdminBookings(params.toString());
@@ -114,7 +109,6 @@ export function BookingsPage() {
   const page = Number(params.get("page") ?? "1");
   const hasFilters = FILTERS.some((name) => params.has(name));
 
-  // Changing what is listed sends the reader back to the first page.
   function update(changes: Record<string, string>) {
     const next = new URLSearchParams(params);
     for (const [name, value] of Object.entries(changes)) {
@@ -131,7 +125,6 @@ export function BookingsPage() {
   }
 
   function sortBy(key: SortKey) {
-    // A second click on the same column reverses it.
     const nextOrder = key === sort && order === "asc" ? "desc" : "asc";
     update({ sort: key, order: nextOrder });
   }
@@ -146,7 +139,6 @@ export function BookingsPage() {
     setExportError(null);
     setExporting(true);
     try {
-      // The same filters and order as the table, without the paging.
       const query = new URLSearchParams(params);
       query.delete("page");
       await apiDownload(`/admin/bookings/export.xlsx?${query}`, "dalaki-bookings.xlsx");
@@ -189,12 +181,10 @@ export function BookingsPage() {
     const first = (page - 1) * pageSize + 1;
     const last = Math.min(page * pageSize, total);
     return (
-      // While another page loads, the current rows stay in place, dimmed.
       <div className={bookings.isPlaceholderData ? "opacity-50 transition-opacity" : ""}>
-        {/* On a narrow screen the table scrolls sideways inside this box.
-            "relative" matters: the visually hidden heading below is
-            absolutely positioned, and without a positioned parent it would
-            escape the box and make the whole page scroll instead. */}
+        {/* `relative` keeps the absolutely positioned, visually hidden
+            heading inside this scrolling box; without it the whole page
+            would scroll sideways. */}
         <div className="relative overflow-x-auto">
           <table className="w-full min-w-[46rem] text-left text-sm">
             <thead className="border-b border-line-strong">
@@ -338,7 +328,6 @@ export function BookingsPage() {
       </div>
 
       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-        {/* The key resets the box when the search is cleared from elsewhere. */}
         <form onSubmit={search} className="flex items-end gap-2" key={params.get("search") ?? ""}>
           <Input
             label="Customer"

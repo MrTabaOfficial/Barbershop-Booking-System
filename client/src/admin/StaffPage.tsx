@@ -208,8 +208,6 @@ export function StaffPage() {
                 >
                   Working hours
                 </Button>
-                {/* Never deleted: bookings point at them. A deactivated
-                    barber leaves the website and keeps their history. */}
                 <Button
                   variant="secondary"
                   disabled={updateBarber.isPending}

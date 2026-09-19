@@ -30,14 +30,9 @@ function minutes(hour: number, minute = 0): number {
   return hour * 60 + minute;
 }
 
-// Demo bookings are placed relative to today so the data never looks stale.
-// "Today" and every clock time below are in the shop's time zone, whatever
-// time zone this machine is in.
 const timeZone = env.shopTimeZone;
 const today = shopDateOf(new Date(), timeZone);
 
-// The first date, counting from today, that falls on one of the weekdays.
-// A negative number searches backwards.
 function findWorkday(weekdays: number[], daysFromToday: number): string {
   const step = daysFromToday < 0 ? -1 : 1;
   let shopDate = addDays(today, daysFromToday);
@@ -51,7 +46,6 @@ function at(shopDate: string, hour: number, minute = 0): Date {
   return shopTimeToUtc(shopDate, minutes(hour, minute), timeZone);
 }
 
-// The hours a barber keeps on each of the weekdays they work.
 type Shift = {
   weekdays: number[];
   startMinute: number;
@@ -66,10 +60,6 @@ function workingHoursRows({ weekdays, ...hours }: Shift) {
 
 let seededPayments = 0;
 
-// Every demo booking has had its deposit paid, as it would have been to
-// get past "pending". The payments are made up, and recorded as taken by
-// the fake provider, so that is where a refund of a seeded booking goes,
-// even when Stripe is the one taking new deposits.
 function bookingData(
   customer: User,
   barber: Barber,
@@ -93,9 +83,6 @@ function bookingData(
   };
 }
 
-// A small random number generator with a fixed starting point (the
-// "mulberry32" algorithm), so the generated history follows the same
-// pattern every time the seed runs. Math.random() can't be given a seed.
 function createRandom(seed: number) {
   let state = seed;
   return () => {
@@ -109,10 +96,6 @@ function createRandom(seed: number) {
 const HISTORY_DAYS = 28;
 const GAPS_BETWEEN_BOOKINGS = [0, 0, 15, 30, 45, 60, 90];
 
-// Fills the last four weeks, and today, with bookings: enough for the
-// barber's schedule to look lived-in and for the admin's charts to have a
-// shape. Each working day is filled from opening to closing, one booking
-// after another with a random gap, so nothing overlaps.
 function generateHistory(
   chairs: { barber: Barber; shift: Shift }[],
   services: Service[],
@@ -135,7 +118,6 @@ function generateHistory(
         continue;
       }
 
-      // Each customer comes at most once a day, until everyone has been.
       const visitors = [...customers].sort(() => random() - 0.5);
       let visits = 0;
 
@@ -148,7 +130,6 @@ function generateHistory(
           cursor < shift.breakEndMinute &&
           cursor + service.durationMinutes > shift.breakStartMinute
         ) {
-          // It would run into the break, so it starts after it instead.
           cursor = shift.breakEndMinute;
         }
         if (cursor + service.durationMinutes > shift.endMinute) {
@@ -164,7 +145,6 @@ function generateHistory(
         const booking = bookingData(customer, barber, service, startsAt, "CONFIRMED");
 
         if (offset === 0) {
-          // Today's bookings stay confirmed, so the barber has outcomes to record.
           bookings.push(booking);
           cursor += service.durationMinutes;
         } else {
@@ -176,11 +156,8 @@ function generateHistory(
               status: "CANCELLED" as const,
               cancelledAt: new Date(startsAt.getTime() - (cancelledLate ? 6 : 48) * HOUR_MS),
               cancelledInFreeWindow: !cancelledLate,
-              // Cancelled in time: refunded. Cancelled late: the deposit was kept.
               paymentStatus: cancelledLate ? ("PAID" as const) : ("REFUNDED" as const),
             });
-            // A cancelled booking frees its time, so the cursor stays put
-            // and the next booking may take the same slot.
           } else {
             bookings.push({
               ...booking,
@@ -203,8 +180,6 @@ async function seed() {
   }
   const passwordHash = await hashPassword(seedPassword);
 
-  // Bookings go first because they block deleting the rows they point at.
-  // Deleting users cascades to barbers, working hours, and days off.
   await prisma.booking.deleteMany();
   await prisma.service.deleteMany();
   await prisma.user.deleteMany();
@@ -262,7 +237,6 @@ async function seed() {
     },
   });
 
-  // Part-time, short days, no break.
   const nikaShift: Shift = {
     weekdays: [THURSDAY, FRIDAY, SATURDAY, SUNDAY],
     startMinute: minutes(12),
@@ -283,7 +257,6 @@ async function seed() {
     },
   });
 
-  // Prices are in tetri (1 GEL = 100 tetri), so 4500 is 45 GEL.
   const haircut = await prisma.service.create({
     data: {
       name: "Haircut",
@@ -330,7 +303,6 @@ async function seed() {
     },
   });
 
-  // The phone numbers are deliberately fictional.
   const customers = await prisma.user.createManyAndReturn({
     data: [
       { name: "Davit Maisuradze", email: "davit@dalaki.example", phone: "+995 555 01 01 01" },
@@ -355,14 +327,11 @@ async function seed() {
     },
   });
 
-  // Two days out, so the cancellation below is inside the free window.
   const giorgiNextWorkday = findWorkday(giorgiShift.weekdays, 2);
   const lukaNextWorkday = findWorkday(lukaShift.weekdays, 2);
   const nikaNextWorkday = findWorkday(nikaShift.weekdays, 3);
 
   const upcoming = [
-    // Irakli cancelled, then Davit took the same slot. Both rows can exist
-    // because cancelled bookings are outside the overlap constraint.
     {
       ...bookingData(irakli, giorgi, haircut, at(giorgiNextWorkday, 11), "CANCELLED"),
       cancelledAt: new Date(),
@@ -370,7 +339,6 @@ async function seed() {
       paymentStatus: "REFUNDED" as const,
     },
     bookingData(davit, giorgi, haircut, at(giorgiNextWorkday, 11), "CONFIRMED"),
-    // Back to back with the booking above: one ends at 11:45, this starts at 11:45.
     bookingData(irakli, giorgi, beardTrim, at(giorgiNextWorkday, 11, 45), "CONFIRMED"),
 
     bookingData(irakli, luka, hotTowelShave, at(lukaNextWorkday, 12), "CONFIRMED"),
