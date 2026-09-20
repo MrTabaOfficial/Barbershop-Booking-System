@@ -11,7 +11,7 @@
   --color-brass-light: #cfa55c;
   --color-danger: #e39483;
 
-  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-display: "Fraunces Variable", "Noto Serif Georgian Variable", Georgia, serif;
   --font-sans: "Manrope Variable", system-ui, sans-serif;
   --font-georgian: "Noto Serif Georgian Variable", "Fraunces Variable", serif;
 }

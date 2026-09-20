@@ -17,7 +17,7 @@ type BookingCardProps = {
   onReschedule?: () => void;
 };
 
-function describeCancellation(booking: Booking): string | null {
+export function describeCancellation(booking: Booking): string | null {
   switch (booking.paymentStatus) {
     case "refunded":
       return `Your ${formatPrice(booking.depositCents)} deposit was refunded.`;

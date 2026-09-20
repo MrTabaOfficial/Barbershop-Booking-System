@@ -4,10 +4,11 @@ import { useBarbers, useServices, useShop } from "../api/queries.ts";
 import { describeWorkingDays, shopOpeningHours } from "../booking/workingDays.ts";
 import { ButtonLink } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
+import { DisplayPrice } from "../components/DisplayPrice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { weekdayOf } from "../lib/dates.ts";
 import { brand } from "../brand.ts";
-import { firstName, formatClock, formatDuration, formatPrice, phoneLink } from "../lib/format.ts";
+import { firstName, formatClock, formatDuration, phoneLink } from "../lib/format.ts";
 
 const TEXT_LINK = "font-medium text-brass-light underline underline-offset-4 hover:text-cream";
 
@@ -113,9 +114,7 @@ function Services() {
             )}
           </div>
           <p className="text-right">
-            <span className="block font-display text-2xl text-brass-light">
-              {formatPrice(service.priceCents)}
-            </span>
+            <DisplayPrice cents={service.priceCents} className="block text-2xl text-brass-light" />
             <span className="block text-sm text-muted">
               {formatDuration(service.durationMinutes)}
             </span>

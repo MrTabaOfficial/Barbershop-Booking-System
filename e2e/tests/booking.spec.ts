@@ -5,6 +5,7 @@ import {
   bookingCard,
   chooseHaircutWithLuka,
   fillRegistrationForm,
+  logIn,
   newCustomer,
   payDeposit,
   signUp,
@@ -43,6 +44,31 @@ test("a visitor books a haircut and registers on the way", async ({ page }) => {
   const card = bookingCard(page, day, "11:00");
   await expect(card).toContainText("Haircut with Luka Gelashvili");
   await expect(card).toContainText("Confirmed");
+});
+
+test("a choice can be changed from a later step", async ({ page }) => {
+  await chooseHaircutWithLuka(page);
+  await timeButton(page, "19:00").click();
+  await expect(page.getByRole("heading", { name: "Confirm your booking" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Change barber, now Luka" }).click();
+
+  await expect(page.getByRole("heading", { name: "Choose your barber" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change service, now Haircut" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Change barber/ })).toHaveCount(0);
+});
+
+test("a regular sees the latest visits first and can show the earlier ones", async ({ page }) => {
+  await logIn(page, "davit@dalaki.example");
+  await expect(page.getByRole("heading", { name: "My bookings" })).toBeVisible();
+
+  const past = page.getByRole("region", { name: "Past" }).getByRole("listitem");
+  await expect(past).toHaveCount(5);
+
+  await page.getByRole("button", { name: /^Show earlier visits/ }).click();
+
+  await expect(past).not.toHaveCount(5);
+  await expect(page.getByRole("button", { name: /^Show earlier visits/ })).toHaveCount(0);
 });
 
 test("a slot taken before confirming is reported and the times are reloaded", async ({

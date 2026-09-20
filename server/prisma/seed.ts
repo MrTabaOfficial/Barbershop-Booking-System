@@ -93,13 +93,49 @@ function createRandom(seed: number) {
   };
 }
 
-const HISTORY_DAYS = 28;
+const HISTORY_DAYS = 84;
 const GAPS_BETWEEN_BOOKINGS = [0, 0, 15, 30, 45, 60, 90];
+const REGULAR_VISIT_EVERY_DAYS = 12;
+const GENERATED_CUSTOMERS = 240;
+
+const FIRST_NAMES = [
+  "Aleksandre", "Andria", "Archil", "Bachana", "Beka", "Demetre", "Gela", "Giga", "Goga",
+  "Guram", "Ilia", "Ioane", "Jaba", "Kakha", "Koba", "Lasha", "Mamuka", "Mikheil", "Nodar",
+  "Otar", "Rati", "Revaz", "Shota", "Soso", "Tamaz", "Temur", "Vakhtang", "Vano", "Zaza",
+  "Zurab", "Mariam", "Ketevan", "Salome", "Natia", "Eka", "Maia",
+];
+const LAST_NAMES = [
+  "Abashidze", "Chkheidze", "Dolidze", "Japaridze", "Kvaratskhelia", "Mamaladze", "Nozadze",
+  "Okruashvili", "Pirtskhalava", "Rukhadze", "Shengelia", "Tabatadze", "Tsereteli",
+  "Vashakidze", "Zhvania", "Kiknadze", "Kobakhidze", "Meskhi", "Natsvlishvili",
+  "Sikharulidze", "Chanturia", "Gabunia", "Jorjoliani", "Kalandadze", "Lortkipanidze",
+  "Makharadze", "Gvasalia", "Bakradze", "Tevzadze", "Khvichia",
+];
+
+function generateCustomers(count: number) {
+  const random = createRandom(1905);
+  const taken = new Set<string>();
+  const customers: { name: string; email: string; phone?: string }[] = [];
+  while (customers.length < count) {
+    const first = FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)];
+    const last = LAST_NAMES[Math.floor(random() * LAST_NAMES.length)];
+    const email = `${first}.${last}@dalaki.example`.toLowerCase();
+    if (!first || !last || taken.has(email)) {
+      continue;
+    }
+    taken.add(email);
+    const digits = String(100_000 + customers.length);
+    const phone = `+995 555 ${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4)}`;
+    customers.push({ name: `${first} ${last}`, email, phone: random() < 0.7 ? phone : undefined });
+  }
+  return customers;
+}
 
 function generateHistory(
   chairs: { barber: Barber; shift: Shift }[],
   services: Service[],
   customers: User[],
+  regular: User,
 ) {
   const random = createRandom(2016);
   const pick = <Item>(items: Item[]): Item => {
@@ -110,43 +146,54 @@ function generateHistory(
     return item;
   };
 
+  const visitors = customers.map((customer) => {
+    const everyDays =
+      customer.id === regular.id ? REGULAR_VISIT_EVERY_DAYS : 14 + Math.floor(random() * 15);
+    return { customer, everyDays, nextVisit: -HISTORY_DAYS + Math.floor(random() * everyDays) };
+  });
+
   const bookings = [];
-  for (const { barber, shift } of chairs) {
-    for (let offset = -HISTORY_DAYS; offset <= 0; offset++) {
-      const shopDate = addDays(today, offset);
-      if (!shift.weekdays.includes(weekdayOf(shopDate))) {
-        continue;
-      }
+  for (let offset = -HISTORY_DAYS; offset <= 0; offset++) {
+    const shopDate = addDays(today, offset);
+    const weekday = weekdayOf(shopDate);
 
-      const visitors = [...customers].sort(() => random() - 0.5);
-      let visits = 0;
+    const waiting = visitors
+      .filter((visitor) => visitor.nextVisit <= offset)
+      .sort(() => random() - 0.5)
+      .sort((a, b) => Number(b.customer.id === regular.id) - Number(a.customer.id === regular.id));
+    let open = chairs
+      .filter(({ shift }) => shift.weekdays.includes(weekday))
+      .map(({ barber, shift }) => ({ barber, shift, cursor: shift.startMinute + pick([0, 15, 30]) }));
 
-      let cursor = shift.startMinute + pick([0, 15, 30]);
-      for (;;) {
+    while (open.length > 0 && waiting.length > 0) {
+      for (const chair of open) {
+        const visitor = waiting[0];
+        if (!visitor) {
+          break;
+        }
+        const { shift } = chair;
         const service = pick(services);
         if (
           shift.breakStartMinute !== undefined &&
           shift.breakEndMinute !== undefined &&
-          cursor < shift.breakEndMinute &&
-          cursor + service.durationMinutes > shift.breakStartMinute
+          chair.cursor < shift.breakEndMinute &&
+          chair.cursor + service.durationMinutes > shift.breakStartMinute
         ) {
-          cursor = shift.breakEndMinute;
+          chair.cursor = shift.breakEndMinute;
         }
-        if (cursor + service.durationMinutes > shift.endMinute) {
-          break;
+        if (chair.cursor + service.durationMinutes > shift.endMinute) {
+          open = open.filter((other) => other !== chair);
+          continue;
         }
 
-        const startsAt = shopTimeToUtc(shopDate, cursor, timeZone);
-        const customer = visitors[visits % visitors.length];
-        if (!customer) {
-          throw new Error("The history needs at least one customer");
-        }
-        visits += 1;
-        const booking = bookingData(customer, barber, service, startsAt, "CONFIRMED");
+        waiting.shift();
+        visitor.nextVisit = offset + visitor.everyDays;
+        const startsAt = shopTimeToUtc(shopDate, chair.cursor, timeZone);
+        const booking = bookingData(visitor.customer, chair.barber, service, startsAt, "CONFIRMED");
 
         if (offset === 0) {
           bookings.push(booking);
-          cursor += service.durationMinutes;
+          chair.cursor += service.durationMinutes;
         } else {
           const roll = random();
           if (roll < 0.1) {
@@ -163,10 +210,10 @@ function generateHistory(
               ...booking,
               status: roll < 0.18 ? ("NO_SHOW" as const) : ("COMPLETED" as const),
             });
-            cursor += service.durationMinutes;
+            chair.cursor += service.durationMinutes;
           }
         }
-        cursor += pick(GAPS_BETWEEN_BOOKINGS);
+        chair.cursor += pick(GAPS_BETWEEN_BOOKINGS);
       }
     }
   }
@@ -312,10 +359,11 @@ async function seed() {
       { name: "Tornike Khutsishvili", email: "tornike@dalaki.example", phone: "+995 555 01 01 05" },
       { name: "Ana Gogoladze", email: "ana@dalaki.example", phone: "+995 555 01 01 06" },
       { name: "Saba Bolkvadze", email: "saba@dalaki.example" },
+      ...generateCustomers(GENERATED_CUSTOMERS),
     ].map((customer) => ({ ...customer, passwordHash })),
   });
-  const [davit, nino, irakli] = customers;
-  if (!davit || !nino || !irakli) {
+  const [davit, nino, irakli, levan] = customers;
+  if (!davit || !nino || !irakli || !levan) {
     throw new Error("The demo customers were not created");
   }
 
@@ -341,7 +389,7 @@ async function seed() {
     bookingData(davit, giorgi, haircut, at(giorgiNextWorkday, 11), "CONFIRMED"),
     bookingData(irakli, giorgi, beardTrim, at(giorgiNextWorkday, 11, 45), "CONFIRMED"),
 
-    bookingData(irakli, luka, hotTowelShave, at(lukaNextWorkday, 12), "CONFIRMED"),
+    bookingData(levan, luka, hotTowelShave, at(lukaNextWorkday, 12), "CONFIRMED"),
     bookingData(nino, nika, kidsHaircut, at(nikaNextWorkday, 13), "CONFIRMED"),
   ];
 
@@ -353,6 +401,7 @@ async function seed() {
     ],
     [haircut, beardTrim, haircutAndBeard, hotTowelShave, kidsHaircut],
     customers,
+    davit,
   );
 
   await prisma.booking.createMany({ data: [...upcoming, ...history] });

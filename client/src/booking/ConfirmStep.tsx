@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext.ts";
 import { Button, ButtonLink } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { formatLongDate } from "../lib/dates.ts";
 import { formatDuration, formatPrice } from "../lib/format.ts";
 import { withNext } from "../lib/nextPath.ts";
 
@@ -13,10 +14,11 @@ type ConfirmStepProps = {
   shop: Shop;
   service: Service;
   barber: Barber;
+  date: string;
   slot: Slot;
 };
 
-export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
+export function ConfirmStep({ shop, service, barber, date, slot }: ConfirmStepProps) {
   const { status } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,7 +46,13 @@ export function ConfirmStep({ shop, service, barber, slot }: ConfirmStepProps) {
   return (
     <div className="space-y-6">
       <Card>
-        <dl className="space-y-3">
+        <p className="font-display text-xl">
+          {formatLongDate(date)} at {slot.localTime}
+        </p>
+        <p className="mt-1 text-muted">
+          {service.name} with {barber.name}
+        </p>
+        <dl className="mt-5 space-y-3 border-t border-line pt-4">
           <div className="flex justify-between gap-4">
             <dt className="text-muted">Length</dt>
             <dd>{formatDuration(service.durationMinutes)}</dd>

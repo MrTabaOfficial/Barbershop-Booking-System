@@ -1,8 +1,13 @@
 const NO_BREAK_SPACE = " ";
 
+export const LARI_SIGN = "₾";
+
+export function formatLari(cents: number): string {
+  return (cents / 100).toLocaleString("en-GB", { maximumFractionDigits: 2 });
+}
+
 export function formatPrice(cents: number): string {
-  const lari = (cents / 100).toLocaleString("en-GB", { maximumFractionDigits: 2 });
-  return `${lari}${NO_BREAK_SPACE}₾`;
+  return `${formatLari(cents)}${NO_BREAK_SPACE}${LARI_SIGN}`;
 }
 
 export function formatDuration(minutes: number): string {

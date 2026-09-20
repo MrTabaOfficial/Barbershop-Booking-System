@@ -4,6 +4,7 @@ import { useMyBookings, useShop } from "../api/queries.ts";
 import type { Booking } from "../api/types.ts";
 import { BookingCard } from "../booking/BookingCard.tsx";
 import { CancelDialog } from "../booking/CancelDialog.tsx";
+import { PastVisits } from "../booking/PastVisits.tsx";
 import { RescheduleDialog } from "../booking/RescheduleDialog.tsx";
 import { ButtonLink } from "../components/Button.tsx";
 import { Notice } from "../components/Notice.tsx";
@@ -113,13 +114,7 @@ export function MyBookingsPage() {
           {past.length === 0 ? (
             <EmptyState title="No past visits yet" />
           ) : (
-            <ul className="space-y-4">
-              {past.map((booking) => (
-                <li key={booking.id}>
-                  <BookingCard booking={booking} freeCancellationHours={freeCancellationHours} />
-                </li>
-              ))}
-            </ul>
+            <PastVisits bookings={past} />
           )}
         </section>
       </div>

@@ -88,3 +88,31 @@ test("the admin reads the overview, manages a service, the bookings and a barber
     "Mon, Thu to Sun",
   );
 });
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the admin reads the bookings as a list and filters them", async ({ page }) => {
+    await logIn(page, "tamar@dalaki.example");
+    await page.getByRole("link", { name: "Bookings" }).click();
+
+    await expect(page.getByText(/^Showing 1 to \d+ of \d+$/)).toBeVisible();
+    await expect(page.locator("table")).toHaveCount(0);
+    await expect(page.getByLabel("Status")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByLabel("Status").selectOption({ label: "Completed" });
+    await page.getByLabel("Sort by").selectOption({ label: "Customer" });
+    await expect(page).toHaveURL(/status=completed/);
+    await expect(page).toHaveURL(/sort=customer/);
+
+    await page.getByRole("button", { name: "Hide filters" }).click();
+    await expect(page.getByRole("button", { name: "Filters (1)" })).toBeVisible();
+    const rows = page.getByRole("list", { name: "Bookings" }).getByRole("listitem");
+    await expect(rows.first()).toContainText("Completed");
+    const pageScrollsSideways = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(pageScrollsSideways).toBe(false);
+  });
+});

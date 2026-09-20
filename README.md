@@ -429,9 +429,11 @@ All demo accounts use the password from `SEED_PASSWORD` in `.env`.
 | Customer | Nino Lomidze         | nino@dalaki.example   |
 | Customer | Irakli Mchedlishvili | irakli@dalaki.example |
 
-Four more customers (Levan, Tornike, Ana and Saba, same email pattern)
-fill out the history. The seed generates about four weeks of past
-bookings in mixed statuses, plus appointments for today.
+Four more named customers (Levan, Tornike, Ana and Saba, same email
+pattern) and 240 generated ones fill out the history. The seed generates
+twelve weeks of past bookings in mixed statuses, plus appointments for
+today. A customer comes back every two to four weeks and never sits in
+two chairs on one day; Davit is the regular, in every twelve days.
 
 - Log in as Davit to see a customer's upcoming and past bookings.
 - Log in as a barber to land on the schedule at `/barber`: today's

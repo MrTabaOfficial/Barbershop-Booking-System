@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { StatusBadge, statusLabel } from "../components/StatusBadge.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
+import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
 const STATUSES: BookingStatus[] = [
   "pending",
@@ -41,6 +42,14 @@ const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
   { key: "status", label: "Status" },
   { key: "price", label: "Price", alignRight: true },
 ];
+
+const TABLE_FITS = "(min-width: 40rem)";
+
+const isCancellable = (booking: AdminBooking) =>
+  booking.status === "pending" || booking.status === "confirmed";
+
+const cancelLabel = (booking: AdminBooking) =>
+  `Cancel ${booking.customer.name}'s booking on ${formatLongDate(booking.localDate)} at ${booking.localTime}`;
 
 function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: () => void }) {
   const cancelBooking = useCancelBookingAsAdmin();
@@ -103,11 +112,14 @@ export function BookingsPage() {
   const [cancelling, setCancelling] = useState<AdminBooking | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const tableFits = useMediaQuery(TABLE_FITS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const sort = (params.get("sort") ?? "startsAt") as SortKey;
   const order = params.get("order") ?? "desc";
   const page = Number(params.get("page") ?? "1");
-  const hasFilters = FILTERS.some((name) => params.has(name));
+  const activeFilters = FILTERS.filter((name) => params.has(name)).length;
+  const hasFilters = activeFilters > 0;
 
   function update(changes: Record<string, string>) {
     const next = new URLSearchParams(params);
@@ -182,6 +194,85 @@ export function BookingsPage() {
     const last = Math.min(page * pageSize, total);
     return (
       <div className={bookings.isPlaceholderData ? "opacity-50 transition-opacity" : ""}>
+        {tableFits
+          ? renderRowsAsTable(bookings.data.bookings)
+          : renderRowsAsList(bookings.data.bookings)}
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted" role="status">
+            Showing {first} to {last} of {total}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              disabled={page <= 1}
+              onClick={() => update({ page: String(page - 1) })}
+            >
+              Previous page
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={last >= total}
+              onClick={() => update({ page: String(page + 1) })}
+            >
+              Next page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderRowsAsList(rows: AdminBooking[]) {
+    return (
+      <ul aria-label="Bookings" className="divide-y divide-line border-y border-line">
+        {rows.map((booking) => (
+          <li key={booking.id} className="py-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold tabular-nums">
+                {formatLongDate(booking.localDate)}, {booking.localTime}
+              </p>
+              <StatusBadge status={booking.status} />
+            </div>
+            <p className="mt-1">{booking.customer.name}</p>
+            <p className="text-sm text-muted">
+              {booking.customer.phone ?? booking.customer.email}
+            </p>
+            <p className="mt-1 text-sm">
+              {booking.service.name} with {booking.barber.name}
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-sm tabular-nums">
+                {formatPrice(booking.priceCents)}
+                <span
+                  className={
+                    booking.paymentStatus === "refund_failed" ? "text-danger" : "text-muted"
+                  }
+                >
+                  {" "}
+                  · {PAYMENT_LABELS[booking.paymentStatus]}
+                </span>
+              </p>
+              {isCancellable(booking) && (
+                <Button
+                  variant="danger"
+                  className="px-3"
+                  aria-label={cancelLabel(booking)}
+                  onClick={() => setCancelling(booking)}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  function renderRowsAsTable(rows: AdminBooking[]) {
+    return (
+      <>
         {/* `relative` keeps the absolutely positioned, visually hidden
             heading inside this scrolling box; without it the whole page
             would scroll sideways. */}
@@ -216,7 +307,7 @@ export function BookingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {bookings.data.bookings.map((booking) => (
+              {rows.map((booking) => (
                 <tr key={booking.id}>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums">
                     {formatLongDate(booking.localDate)}, {booking.localTime}
@@ -241,11 +332,11 @@ export function BookingsPage() {
                     </span>
                   </td>
                   <td className="py-2 text-right">
-                    {(booking.status === "pending" || booking.status === "confirmed") && (
+                    {isCancellable(booking) && (
                       <Button
                         variant="danger"
                         className="px-3"
-                        aria-label={`Cancel ${booking.customer.name}'s booking on ${formatLongDate(booking.localDate)} at ${booking.localTime}`}
+                        aria-label={cancelLabel(booking)}
                         onClick={() => setCancelling(booking)}
                       >
                         Cancel
@@ -257,98 +348,140 @@ export function BookingsPage() {
             </tbody>
           </table>
         </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted" role="status">
-            Showing {first} to {last} of {total}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              disabled={page <= 1}
-              onClick={() => update({ page: String(page - 1) })}
-            >
-              Previous page
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={last >= total}
-              onClick={() => update({ page: String(page + 1) })}
-            >
-              Next page
-            </Button>
-          </div>
-        </div>
-      </div>
+      </>
     );
   }
+
+  const filterFields = (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Input
+        label="From"
+        type="date"
+        value={params.get("from") ?? ""}
+        onChange={(event) => update({ from: event.target.value })}
+      />
+      <Input
+        label="To"
+        type="date"
+        value={params.get("to") ?? ""}
+        onChange={(event) => update({ to: event.target.value })}
+      />
+      <Select
+        label="Barber"
+        value={params.get("barberId") ?? ""}
+        onChange={(event) => update({ barberId: event.target.value })}
+      >
+        <option value="">All barbers</option>
+        {barbers.data?.map((barber) => (
+          <option key={barber.id} value={barber.id}>
+            {barber.name}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="Status"
+        value={params.get("status") ?? ""}
+        onChange={(event) => update({ status: event.target.value })}
+      >
+        <option value="">Any status</option>
+        {STATUSES.map((status) => (
+          <option key={status} value={status}>
+            {statusLabel(status)}
+          </option>
+        ))}
+      </Select>
+    </div>
+  );
+
+  const searchForm = (
+    <form onSubmit={search} className="flex items-end gap-2" key={params.get("search") ?? ""}>
+      <Input
+        className="flex-1 sm:flex-none"
+        label="Customer"
+        name="search"
+        type="search"
+        placeholder="Name, email or phone"
+        defaultValue={params.get("search") ?? ""}
+      />
+      <Button type="submit" variant="secondary">
+        Search
+      </Button>
+    </form>
+  );
+
+  const exportButton = (
+    <Button
+      variant="secondary"
+      loading={exporting}
+      loadingLabel="Preparing the file…"
+      onClick={exportToExcel}
+    >
+      Export to Excel
+    </Button>
+  );
+
+  const sortControls = (
+    <div className="flex items-end gap-2">
+      <Select
+        label="Sort by"
+        className="flex-1"
+        value={sort}
+        onChange={(event) => update({ sort: event.target.value, order })}
+      >
+        {COLUMNS.map((column) => (
+          <option key={column.key} value={column.key}>
+            {column.label}
+          </option>
+        ))}
+      </Select>
+      <Button
+        variant="secondary"
+        onClick={() => update({ sort, order: order === "asc" ? "desc" : "asc" })}
+      >
+        {order === "asc" ? "Ascending" : "Descending"}
+      </Button>
+    </div>
+  );
 
   return (
     <>
       <title>Bookings · Admin · Dalaki</title>
       <h2 className="sr-only">Bookings</h2>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Input
-          label="From"
-          type="date"
-          value={params.get("from") ?? ""}
-          onChange={(event) => update({ from: event.target.value })}
-        />
-        <Input
-          label="To"
-          type="date"
-          value={params.get("to") ?? ""}
-          onChange={(event) => update({ to: event.target.value })}
-        />
-        <Select
-          label="Barber"
-          value={params.get("barberId") ?? ""}
-          onChange={(event) => update({ barberId: event.target.value })}
-        >
-          <option value="">All barbers</option>
-          {barbers.data?.map((barber) => (
-            <option key={barber.id} value={barber.id}>
-              {barber.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          label="Status"
-          value={params.get("status") ?? ""}
-          onChange={(event) => update({ status: event.target.value })}
-        >
-          <option value="">Any status</option>
-          {STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {statusLabel(status)}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-        <form onSubmit={search} className="flex items-end gap-2" key={params.get("search") ?? ""}>
-          <Input
-            label="Customer"
-            name="search"
-            type="search"
-            placeholder="Name, email or phone"
-            defaultValue={params.get("search") ?? ""}
-          />
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-        </form>
-        <Button
-          variant="secondary"
-          loading={exporting}
-          loadingLabel="Preparing the file…"
-          onClick={exportToExcel}
-        >
-          Export to Excel
-        </Button>
-      </div>
+      {tableFits ? (
+        <>
+          {filterFields}
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+            {searchForm}
+            {exportButton}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="secondary"
+              aria-expanded={filtersOpen}
+              aria-controls="booking-filters"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            >
+              {filtersOpen
+                ? "Hide filters"
+                : activeFilters > 0
+                  ? `Filters (${activeFilters})`
+                  : "Filters"}
+            </Button>
+            {exportButton}
+          </div>
+          {filtersOpen && (
+            <div id="booking-filters" className="mt-4 space-y-3">
+              {filterFields}
+              {searchForm}
+              {sortControls}
+            </div>
+          )}
+        </>
+      )}
 
       {exportError && (
         <Notice tone="error" className="mt-4">

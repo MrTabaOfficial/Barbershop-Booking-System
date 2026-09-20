@@ -4,12 +4,13 @@ import { useAvailability, useBarbers, useServices, useShop } from "../api/querie
 import { ChoiceList } from "../booking/ChoiceList.tsx";
 import { ConfirmStep } from "../booking/ConfirmStep.tsx";
 import { SlotPicker } from "../booking/SlotPicker.tsx";
-import { type Selection, Selections, Stepper } from "../booking/Stepper.tsx";
+import { type Step, Stepper } from "../booking/Stepper.tsx";
 import { describeWorkingDays } from "../booking/workingDays.ts";
+import { DisplayPrice } from "../components/DisplayPrice.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
-import { formatLongDate, isShopDate } from "../lib/dates.ts";
-import { formatDuration, formatPrice } from "../lib/format.ts";
+import { dayParts, isShopDate } from "../lib/dates.ts";
+import { firstName, formatDuration } from "../lib/format.ts";
 
 const STEP_TITLES = [
   "Choose a service",
@@ -88,33 +89,32 @@ export function BookPage() {
       );
     }
 
-    const selections: Selection[] = [];
-    if (service && step > 1) {
-      selections.push({
+    const chosenDay = date && slot && step === 4 ? dayParts(date) : null;
+    const steps: Step[] = [
+      {
         label: "Service",
-        value: `${service.name} · ${formatDuration(service.durationMinutes)} · ${formatPrice(service.priceCents)}`,
+        choice: service && step > 1 ? service.name : undefined,
         onChange: () => update({ service: null, time: null }),
-      });
-    }
-    if (barber && step > 2) {
-      selections.push({
+      },
+      {
         label: "Barber",
-        value: barber.name,
+        choice: barber && step > 2 ? firstName(barber.name) : undefined,
         onChange: () => update({ barber: null, date: null, time: null }),
-      });
-    }
-    if (date && slot && step === 4) {
-      selections.push({
+      },
+      {
         label: "Time",
-        value: `${formatLongDate(date)} at ${slot.localTime}`,
+        choice:
+          chosenDay && slot
+            ? `${chosenDay.weekday} ${chosenDay.day} ${chosenDay.month}, ${slot.localTime}`
+            : undefined,
         onChange: () => update({ time: null }),
-      });
-    }
+      },
+      { label: "Confirm" },
+    ];
 
     return (
       <div className="space-y-8">
-        <Stepper current={step} />
-        <Selections selections={selections} />
+        <Stepper current={step} steps={steps} />
 
         <section aria-labelledby="step-title" className="space-y-5">
           <h2 id="step-title" ref={headingRef} tabIndex={-1} className="text-2xl outline-none">
@@ -130,9 +130,7 @@ export function BookPage() {
                 description: entry.description,
                 aside: (
                   <>
-                    <span className="block font-display text-xl text-brass-light">
-                      {formatPrice(entry.priceCents)}
-                    </span>
+                    <DisplayPrice cents={entry.priceCents} className="block text-xl text-brass-light" />
                     <span className="block text-muted">
                       {formatDuration(entry.durationMinutes)}
                     </span>
@@ -179,6 +177,7 @@ export function BookPage() {
           {step === 4 &&
             service &&
             barber &&
+            date &&
             (availability.isError ? (
               <ErrorState
                 title="We couldn't check that time"
@@ -186,7 +185,13 @@ export function BookPage() {
                 onRetry={() => void availability.refetch()}
               />
             ) : slot ? (
-              <ConfirmStep shop={shop.data} service={service} barber={barber} slot={slot} />
+              <ConfirmStep
+                shop={shop.data}
+                service={service}
+                barber={barber}
+                date={date}
+                slot={slot}
+              />
             ) : (
               <LoadingBlock label="Checking that the time is still free" rows={2} />
             ))}
@@ -198,7 +203,15 @@ export function BookPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
       <title>Book an appointment · Dalaki</title>
-      <h1 className="mb-8 text-4xl">Book an appointment</h1>
+      <h1
+        className={
+          step === 1
+            ? "mb-8 text-4xl"
+            : "mb-5 font-sans text-sm font-semibold uppercase tracking-widest text-muted sm:mb-8 sm:font-display sm:text-4xl sm:font-normal sm:normal-case sm:tracking-normal sm:text-cream"
+        }
+      >
+        Book an appointment
+      </h1>
       {renderBody()}
     </div>
   );
