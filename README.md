@@ -121,7 +121,7 @@ Public:
 | ------ | --------------- | -------------------------------------------------------- |
 | GET    | `/shop`         | Time zone, today's date, booking limits, address, phone  |
 | GET    | `/services`     | Active services with duration, price and deposit         |
-| GET    | `/barbers`      | Active barbers with their working hours                  |
+| GET    | `/barbers`      | Active barbers with their working hours and breaks       |
 | GET    | `/availability` | Free start times for `barberId`, `serviceId` and `date`  |
 
 `/availability` also accepts `excludeBookingId`. When the caller is logged
@@ -589,6 +589,10 @@ e2e/
 - **A reminder that keeps failing is retried, not escalated.** If the mail
   server is down all day the reminder is attempted on every run and then
   quietly becomes moot once the appointment's day arrives.
+- **The typeface is about 770 KB.** FiraGO draws Latin, Georgian and the
+  lari sign in one design, but its package can't be split by alphabet, so
+  each of the three weights is a 250 KB file that carries every script
+  the font supports.
 - **Notifications are sent in the request.** The email and the owner's
   alert go out before the response does, so a slow mail server slows the
   booking down and a message that fails is logged, not retried. A

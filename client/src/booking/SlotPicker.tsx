@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useAvailability } from "../api/queries.ts";
-import type { Shop, Slot } from "../api/types.ts";
+import type { Shop, Slot, WorkingHours } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { addDays, dayParts, daysBetween, formatLongDate, weekdayOf } from "../lib/dates.ts";
+import { formatClock } from "../lib/format.ts";
 
 const DAYS_PER_PAGE = 7;
 
@@ -11,7 +12,7 @@ type SlotPickerProps = {
   shop: Shop;
   barberId: string;
   serviceId: string;
-  workingWeekdays: ReadonlySet<number> | null;
+  workingHours: WorkingHours[] | null;
   date: string | null;
   selectedStartsAt: string | null;
   excludeBookingId?: string;
@@ -26,6 +27,11 @@ const PARTS_OF_DAY = [
   { label: "Evening", from: "17:00", to: "24:00" },
 ];
 
+function shortDate(shopDate: string): string {
+  const { weekday, day, month } = dayParts(shopDate);
+  return `${weekday} ${day} ${month}`;
+}
+
 function cityOf(timeZone: string): string {
   return (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
 }
@@ -34,7 +40,7 @@ export function SlotPicker({
   shop,
   barberId,
   serviceId,
-  workingWeekdays,
+  workingHours,
   date,
   selectedStartsAt,
   excludeBookingId,
@@ -42,8 +48,9 @@ export function SlotPicker({
   onDateChange,
   onSlotSelect,
 }: SlotPickerProps) {
-  const isWorkingDay = (shopDate: string) =>
-    workingWeekdays === null || workingWeekdays.has(weekdayOf(shopDate));
+  const hoursOn = (shopDate: string) =>
+    workingHours?.find((hours) => hours.weekday === weekdayOf(shopDate));
+  const isWorkingDay = (shopDate: string) => workingHours === null || hoursOn(shopDate) !== undefined;
 
   function firstWorkingDate(): string {
     for (let day = shop.today; day <= shop.lastBookableDate; day = addDays(day, 1)) {
@@ -73,17 +80,27 @@ export function SlotPicker({
   });
   const slots = availability.data?.slots ?? [];
 
+  const hours = hoursOn(activeDate);
+  const shopBreak =
+    hours && hours.breakStartMinute !== null && hours.breakEndMinute !== null
+      ? { start: formatClock(hours.breakStartMinute), end: formatClock(hours.breakEndMinute) }
+      : null;
+  const firstAfterBreak =
+    shopBreak && slots.some((slot) => slot.localTime < shopBreak.start)
+      ? slots.find((slot) => slot.localTime >= shopBreak.end)?.startsAt
+      : undefined;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-muted">
-            {formatLongDate(days[0] ?? activeDate)} to {formatLongDate(days.at(-1) ?? activeDate)}
+            {shortDate(days[0] ?? activeDate)} to {shortDate(days.at(-1) ?? activeDate)}
           </p>
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="px-3"
+              className="px-3.5"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
             >
@@ -91,7 +108,7 @@ export function SlotPicker({
             </Button>
             <Button
               variant="secondary"
-              className="px-3"
+              className="px-3.5"
               disabled={page >= lastPage}
               onClick={() => setPage(page + 1)}
             >
@@ -113,17 +130,21 @@ export function SlotPicker({
                   aria-pressed={selected}
                   aria-label={`${formatLongDate(day)}${working ? "" : ", not a working day"}`}
                   onClick={() => onDateChange(day)}
-                  className={`flex min-h-16 w-full flex-col items-center justify-center rounded-sm border text-center transition-colors disabled:cursor-not-allowed disabled:border-line disabled:text-line-strong ${
+                  className={`flex min-h-[4.5rem] w-full flex-col items-center justify-center rounded-md border text-center text-xs leading-tight transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-dashed disabled:border-faint disabled:bg-transparent disabled:text-faint lg:min-h-20 ${
                     selected
-                      ? "border-brass bg-brass text-ink"
-                      : "border-line-strong hover:border-brass-light"
+                      ? "border-action bg-action text-on-action"
+                      : "border-edge bg-surface text-muted enabled:hover:border-action enabled:hover:ring-1 enabled:hover:ring-inset enabled:hover:ring-action"
                   }`}
                 >
-                  <span className="text-[0.6875rem] font-medium uppercase tracking-wide">
-                    {weekday}
+                  <span>{weekday}</span>
+                  <span
+                    className={`text-xl font-extrabold tabular-nums ${
+                      working && !selected ? "text-ink" : ""
+                    }`}
+                  >
+                    {dayNumber}
                   </span>
-                  <span className="font-display text-lg leading-tight">{dayNumber}</span>
-                  <span className="text-[0.6875rem]">{month}</span>
+                  <span>{month}</span>
                 </button>
               </li>
             );
@@ -161,34 +182,39 @@ export function SlotPicker({
                 }
                 return (
                   <section key={part.label} aria-label={part.label}>
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                      {part.label}
-                    </h4>
+                    <h4 className="mb-2 text-sm font-semibold">{part.label}</h4>
                     <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                       {partSlots.map((slot) => {
                         const selected = slot.startsAt === selectedStartsAt;
                         const current = slot.startsAt === currentStartsAt;
                         return (
-                          <li key={slot.startsAt}>
-                            <button
-                              type="button"
-                              disabled={current}
-                              aria-pressed={selected}
-                              onClick={() => onSlotSelect(activeDate, slot)}
-                              className={`min-h-11 w-full rounded-sm border text-sm font-medium tabular-nums transition-colors disabled:cursor-not-allowed disabled:border-dashed disabled:text-muted ${
-                                selected
-                                  ? "border-brass bg-brass text-ink"
-                                  : "border-line-strong enabled:hover:border-brass-light enabled:hover:text-brass-light"
-                              }`}
-                            >
-                              {slot.localTime}
-                              {current && (
-                                <span className="block text-[0.625rem] font-semibold uppercase tracking-wider">
-                                  Current
-                                </span>
-                              )}
-                            </button>
-                          </li>
+                          <Fragment key={slot.startsAt}>
+                            {shopBreak && slot.startsAt === firstAfterBreak && (
+                              <li className="col-span-full flex items-center gap-3 text-sm text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+                                Break {shopBreak.start} to {shopBreak.end}
+                              </li>
+                            )}
+                            <li>
+                              <button
+                                type="button"
+                                disabled={current}
+                                aria-pressed={selected}
+                                onClick={() => onSlotSelect(activeDate, slot)}
+                                className={`min-h-12 w-full rounded-md border leading-tight tabular-nums transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-dashed disabled:border-faint disabled:bg-transparent disabled:text-muted ${
+                                  selected
+                                    ? "border-action bg-action font-semibold text-on-action"
+                                    : "border-edge bg-surface enabled:hover:border-action enabled:hover:text-action-hover enabled:hover:ring-1 enabled:hover:ring-inset enabled:hover:ring-action enabled:active:bg-action-tint"
+                                }`}
+                              >
+                                {slot.localTime}
+                                {current && (
+                                  <span className="block text-[0.6875rem] font-semibold">
+                                    Current
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          </Fragment>
                         );
                       })}
                     </ul>

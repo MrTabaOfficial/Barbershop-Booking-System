@@ -1,14 +1,11 @@
 import type { Booking } from "../api/types.ts";
-import { Button } from "../components/Button.tsx";
+import { Button, buttonClasses } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 
 const HOUR_MS = 60 * 60 * 1000;
-
-const PAY_LINK =
-  "inline-flex min-h-11 items-center justify-center rounded-sm bg-brass px-5 py-2 text-center text-sm font-semibold text-ink transition-colors hover:bg-brass-light";
 
 type BookingCardProps = {
   booking: Booking;
@@ -45,19 +42,15 @@ export function BookingCard({
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-display text-xl">
-            {formatLongDate(booking.localDate)}, {booking.localTime}
-          </p>
-          <p className="mt-1 text-muted">
-            {booking.service.name} with {booking.barber.name}
-          </p>
-        </div>
-        <StatusBadge status={booking.status} audience="customer" />
-      </div>
+      <StatusBadge status={booking.status} audience="customer" />
+      <p className="mt-2 text-lg font-extrabold">
+        {formatLongDate(booking.localDate)}, {booking.localTime}
+      </p>
+      <p className="text-muted">
+        {booking.service.name} with {booking.barber.name}
+      </p>
 
-      <p className="mt-4 text-sm text-muted">
+      <p className="mt-3 text-sm text-muted">
         {formatPrice(booking.priceCents)}, including a {formatPrice(booking.depositCents)}{" "}
         deposit
       </p>
@@ -78,20 +71,20 @@ export function BookingCard({
       )}
 
       {(awaitingPayment || confirmed) && (onCancel || onReschedule) && (
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
           {awaitingPayment && booking.paymentUrl && (
-            <a href={booking.paymentUrl} className={PAY_LINK}>
+            <a href={booking.paymentUrl} className={buttonClasses({})}>
               Pay the deposit
             </a>
           )}
           {confirmed && onReschedule && canStillMove && (
             <Button variant="secondary" onClick={onReschedule}>
-              Reschedule
+              Move booking
             </Button>
           )}
           {onCancel && (
-            <Button variant="danger" onClick={onCancel}>
-              Cancel
+            <Button variant="quiet-danger" onClick={onCancel}>
+              Cancel booking
             </Button>
           )}
         </div>

@@ -19,6 +19,8 @@ export function createBarbersRouter(): Router {
           weekday: hours.weekday,
           startMinute: hours.startMinute,
           endMinute: hours.endMinute,
+          breakStartMinute: hours.breakStartMinute,
+          breakEndMinute: hours.breakEndMinute,
         })),
       })),
     });

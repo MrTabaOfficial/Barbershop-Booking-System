@@ -4,6 +4,7 @@ import {
   dayParts,
   formatLongDate,
   isShopDate,
+  shopClockOf,
   startOfWeek,
   weekdayOf,
 } from "./dates.ts";
@@ -46,6 +47,29 @@ describe("shop dates", () => {
     expect(isShopDate("2026-13-40")).toBe(false);
     expect(isShopDate("tomorrow")).toBe(false);
     expect(isShopDate(null)).toBe(false);
+  });
+});
+
+describe("shopClockOf", () => {
+  it("reads an instant on the shop's clock, whatever zone the visitor is in", () => {
+    expect(shopClockOf(new Date("2026-10-12T07:00:00Z"), "Asia/Tbilisi")).toEqual({
+      date: "2026-10-12",
+      time: "11:00",
+    });
+  });
+
+  it("moves to the shop's next day when the shop is past midnight", () => {
+    expect(shopClockOf(new Date("2026-10-11T21:30:00Z"), "Asia/Tbilisi")).toEqual({
+      date: "2026-10-12",
+      time: "01:30",
+    });
+  });
+
+  it("follows daylight saving in zones that have it", () => {
+    expect(shopClockOf(new Date("2026-03-29T01:30:00Z"), "Europe/Rome")).toEqual({
+      date: "2026-03-29",
+      time: "03:30",
+    });
   });
 });
 

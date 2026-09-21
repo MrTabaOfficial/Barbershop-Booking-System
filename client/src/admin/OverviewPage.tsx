@@ -26,7 +26,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   return (
     <Card className="p-4 sm:p-5">
       <p className="text-sm text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold">{value}</p>
+      <p className="mt-1 text-2xl font-semibold">{value}</p>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </Card>
   );
@@ -100,7 +100,7 @@ function Figures({ overview }: { overview: Overview }) {
       </div>
 
       <details>
-        <summary className="cursor-pointer text-sm font-medium text-brass-light underline underline-offset-4">
+        <summary className="cursor-pointer text-sm font-medium text-action underline underline-offset-4">
           Show the daily numbers as a table
         </summary>
         <div className="mt-4 overflow-x-auto">

@@ -85,7 +85,7 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
         <label className="flex min-h-11 items-center gap-3 font-semibold">
           <input
             type="checkbox"
-            className="size-5 accent-brass"
+            className="size-5 accent-action"
             checked={refund}
             onChange={(event) => setRefund(event.target.checked)}
           />
@@ -255,8 +255,7 @@ export function BookingsPage() {
               </p>
               {isCancellable(booking) && (
                 <Button
-                  variant="danger"
-                  className="px-3"
+                  variant="quiet-danger"
                   aria-label={cancelLabel(booking)}
                   onClick={() => setCancelling(booking)}
                 >
@@ -278,7 +277,7 @@ export function BookingsPage() {
             would scroll sideways. */}
         <div className="relative overflow-x-auto">
           <table className="w-full min-w-[46rem] text-left text-sm">
-            <thead className="border-b border-line-strong">
+            <thead className="border-b border-edge">
               <tr>
                 {COLUMNS.map((column) => (
                   <th
@@ -292,10 +291,10 @@ export function BookingsPage() {
                     <button
                       type="button"
                       onClick={() => sortBy(column.key)}
-                      className="py-1 text-muted hover:text-cream"
+                      className="py-1 text-muted hover:text-action-pressed"
                     >
                       {column.label}
-                      <span aria-hidden="true" className="ml-1 text-brass-light">
+                      <span aria-hidden="true" className="ml-1 text-action">
                         {sort !== column.key ? "" : order === "asc" ? "↑" : "↓"}
                       </span>
                     </button>
@@ -334,8 +333,7 @@ export function BookingsPage() {
                   <td className="py-2 text-right">
                     {isCancellable(booking) && (
                       <Button
-                        variant="danger"
-                        className="px-3"
+                        variant="quiet-danger"
                         aria-label={cancelLabel(booking)}
                         onClick={() => setCancelling(booking)}
                       >

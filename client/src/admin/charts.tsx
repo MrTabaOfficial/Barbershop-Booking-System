@@ -128,7 +128,7 @@ export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
                 {height > 0 && (
                   <path
                     d={`M${barLeft},${bottom} V${bottom - height + radius} Q${barLeft},${bottom - height} ${barLeft + radius},${bottom - height} H${barLeft + barWidth - radius} Q${barLeft + barWidth},${bottom - height} ${barLeft + barWidth},${bottom - height + radius} V${bottom} Z`}
-                    className={index === active ? "fill-brass-light" : "fill-brass"}
+                    className={index === active ? "fill-action-pressed" : "fill-action"}
                   />
                 )}
                 {index % labelEvery === 0 && (
@@ -149,7 +149,7 @@ export function ColumnChart({ title, columns, formatValue }: ColumnChartProps) {
         <div aria-live="polite">
           {activeColumn && active !== null && (
             <div
-              className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-sm border border-line-strong bg-ink px-3 py-2 text-sm shadow-lg"
+              className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-edge bg-surface px-3 py-2 text-sm shadow-pop"
               style={{
                 left: Math.min(Math.max(x(active) + barWidth / 2, 70), Math.max(width - 70, 70)),
                 top: 0,
@@ -187,7 +187,7 @@ export function BarList({ title, rows }: BarListProps) {
             <div className="mt-1.5 h-2">
               {row.value > 0 && (
                 <div
-                  className="h-full min-w-1 rounded-r bg-brass"
+                  className="h-full min-w-1 rounded-r bg-action"
                   style={{ width: `${(row.value / longest) * 100}%` }}
                 />
               )}

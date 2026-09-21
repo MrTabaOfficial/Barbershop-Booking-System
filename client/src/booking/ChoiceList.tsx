@@ -21,14 +21,12 @@ export function ChoiceList({
           <button
             type="button"
             onClick={() => onChoose(choice.id)}
-            className="flex w-full items-start justify-between gap-4 rounded-sm border border-line-strong bg-surface p-4 text-left transition-colors hover:border-brass-light sm:p-5"
+            className="flex w-full items-start justify-between gap-4 rounded-lg border border-edge bg-surface px-4 py-4 text-left transition-colors duration-120 ease-standard hover:border-action hover:ring-1 hover:ring-inset hover:ring-action active:bg-action-tint sm:px-5"
           >
             <span>
-              <span className="block font-display text-xl">{choice.title}</span>
+              <span className="block text-lg font-extrabold">{choice.title}</span>
               {choice.description && (
-                <span className="mt-1 block text-sm leading-relaxed text-muted">
-                  {choice.description}
-                </span>
+                <span className="mt-0.5 block text-sm text-muted">{choice.description}</span>
               )}
             </span>
             <span className="shrink-0 text-right text-sm">{choice.aside}</span>

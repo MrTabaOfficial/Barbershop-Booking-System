@@ -24,7 +24,7 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
     <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-xl tabular-nums">
+          <p className="font-extrabold text-lg tabular-nums">
             {booking.localTime} to {booking.localEndTime}
           </p>
           <p className="mt-1 font-semibold">{booking.customer.name}</p>
@@ -36,7 +36,7 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
       {booking.customer.phone ? (
         <a
           href={`tel:${booking.customer.phone.replaceAll(" ", "")}`}
-          className="mt-2 inline-flex min-h-11 items-center font-medium text-brass-light underline underline-offset-4 hover:text-cream"
+          className="mt-2 inline-flex min-h-11 items-center font-medium text-action underline underline-offset-4 hover:text-action-pressed"
         >
           Call {booking.customer.phone}
         </a>

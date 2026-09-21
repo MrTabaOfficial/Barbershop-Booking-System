@@ -20,7 +20,7 @@ const WEEK = [
 type Row = { works: boolean; start: string; end: string; breakStart: string; breakEnd: string };
 
 const TIME_INPUT =
-  "min-h-11 w-full rounded-sm border border-line-strong bg-ink px-2 text-cream disabled:border-line disabled:text-line-strong";
+  "min-h-11 w-full rounded-md border border-edge bg-surface px-2 text-ink disabled:border-line disabled:text-faint";
 
 function toRow(day: WorkingDay | undefined): Row {
   const clock = (minute: number | null | undefined) =>
@@ -122,7 +122,7 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
               <label className="flex min-h-11 items-center gap-3 font-semibold">
                 <input
                   type="checkbox"
-                  className="size-5 accent-brass"
+                  className="size-5 accent-action"
                   checked={row.works}
                   onChange={(event) => change(index, { works: event.target.checked })}
                 />

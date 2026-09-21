@@ -7,21 +7,22 @@ export type Step = {
 export function Stepper({ current, steps }: { current: number; steps: Step[] }) {
   return (
     <nav aria-label="Booking steps">
-      <ol className="grid grid-cols-4 gap-2">
+      <ol className="grid grid-cols-4 gap-1.5 lg:gap-2.5">
         {steps.map((step, index) => {
           const number = index + 1;
-          const reached = number <= current;
+          const isCurrent = number === current;
+          const isDone = number < current;
           const content = (
             <>
-              <span className="block text-xs tabular-nums text-muted">0{number}</span>
               <span
-                className={`block text-sm font-semibold ${reached ? "text-cream" : "text-muted"}`}
+                className={`block ${isCurrent ? "font-extrabold text-ink" : "text-muted"}`}
               >
+                <span className="mr-1 tabular-nums">{number}</span>
                 {step.label}
-                {number < current && <span className="sr-only"> (done)</span>}
+                {isDone && <span className="sr-only"> (done)</span>}
               </span>
               {step.choice && (
-                <span className="mt-0.5 block break-words text-xs text-brass-light underline underline-offset-2 group-hover:text-cream">
+                <span className="block break-words font-semibold text-action underline underline-offset-2 transition-colors duration-120 ease-standard group-hover:text-action-pressed">
                   {step.choice}
                 </span>
               )}
@@ -30,8 +31,10 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
           return (
             <li
               key={step.label}
-              aria-current={number === current ? "step" : undefined}
-              className={`border-t-2 ${reached ? "border-brass" : "border-line-strong"}`}
+              aria-current={isCurrent ? "step" : undefined}
+              className={`border-t-4 text-sm lg:text-base ${
+                isCurrent ? "border-action" : isDone ? "border-ink" : "border-line"
+              }`}
             >
               {step.choice && step.onChange ? (
                 <button

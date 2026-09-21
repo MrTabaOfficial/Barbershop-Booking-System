@@ -14,7 +14,7 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
 
   if (status === "loading") {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-8">
         <LoadingBlock label="Checking your session" />
       </div>
     );
@@ -24,9 +24,9 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
   }
   if (role && user.role !== role) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-8">
         <title>Not available · Dalaki</title>
-        <h1 className="text-4xl">This page isn't for your account</h1>
+        <h1 className="text-3xl">This page isn't for your account</h1>
         <p className="mt-4 text-muted">
           You are logged in as {user.name}, and this part of the site is for {role}s.
         </p>

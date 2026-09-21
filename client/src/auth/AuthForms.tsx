@@ -8,7 +8,7 @@ import { Notice } from "../components/Notice.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { useAuth } from "./AuthContext.ts";
 
-const email = z.string().trim().pipe(z.email("Enter a valid email address"));
+const email = z.string().trim().pipe(z.email("Enter an email address like name@example.com"));
 
 const loginSchema = z.object({
   email,

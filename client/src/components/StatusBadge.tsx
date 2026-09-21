@@ -15,6 +15,15 @@ const CUSTOMER_LABELS: Record<BookingStatus, string> = {
   no_show: "Missed",
 };
 
+const TONES: Record<BookingStatus, string> = {
+  pending: "bg-warning-tint text-warning",
+  confirmed: "bg-action-tint text-action-hover",
+  completed: "bg-success-tint text-success",
+  no_show: "bg-danger-tint text-danger",
+  cancelled: "bg-sunken text-muted",
+  expired: "bg-sunken text-muted",
+};
+
 export function statusLabel(status: BookingStatus, audience: "staff" | "customer" = "staff") {
   return (audience === "customer" ? CUSTOMER_LABELS : STAFF_LABELS)[status];
 }
@@ -26,12 +35,9 @@ export function StatusBadge({
   status: BookingStatus;
   audience?: "staff" | "customer";
 }) {
-  const isLive = status === "pending" || status === "confirmed";
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${
-        isLive ? "border-brass text-brass-light" : "border-line-strong text-muted"
-      }`}
+      className={`inline-block whitespace-nowrap rounded-sm px-2 py-0.5 text-xs font-semibold ${TONES[status]}`}
     >
       {statusLabel(status, audience)}
     </span>

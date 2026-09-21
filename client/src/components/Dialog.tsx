@@ -39,14 +39,14 @@ export function Dialog({ title, onClose, children, actions }: DialogProps) {
           onClose();
         }
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-sm border border-line-strong bg-surface p-0 text-cream backdrop:bg-black/75"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-lg bg-surface p-0 text-ink shadow-overlay backdrop:bg-ink/55 motion-safe:animate-dialog-in"
     >
       <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
         <div className="overflow-y-auto p-5 sm:p-7">
-          <h2 id={titleId} className="text-2xl">
+          <h2 id={titleId} className="text-xl">
             {title}
           </h2>
-          <div className="mt-4 space-y-4 text-sm leading-relaxed">{children}</div>
+          <div className="mt-3 space-y-3 text-sm">{children}</div>
         </div>
         <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-line p-5 sm:flex-row sm:justify-end sm:px-7">
           {actions}

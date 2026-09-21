@@ -10,7 +10,7 @@ export function LoadingBlock({ label, rows = 3 }: { label: string; rows?: number
         <div
           key={index}
           aria-hidden="true"
-          className="h-16 animate-pulse rounded-sm bg-surface motion-reduce:animate-none"
+          className="h-16 rounded-md bg-sunken motion-safe:animate-pulse"
         />
       ))}
     </div>
@@ -27,8 +27,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-sm border border-dashed border-line-strong px-5 py-8 text-center">
-      <p className="font-display text-xl">{title}</p>
+    <div className="rounded-lg border border-dashed border-edge px-5 py-8 text-center">
+      <p className="text-lg font-extrabold">{title}</p>
       {children && <p className="mx-auto mt-2 max-w-md text-sm text-muted">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -45,9 +45,9 @@ export function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <div role="alert" className="rounded-sm border border-danger px-5 py-6">
-      <p className="font-display text-xl">{title}</p>
-      <p className="mt-2 text-sm text-muted">{errorMessage(error)}</p>
+    <div role="alert" className="rounded-lg border border-danger bg-danger-tint px-5 py-6">
+      <p className="text-lg font-extrabold">{title}</p>
+      <p className="mt-2 text-sm">{errorMessage(error)}</p>
       <Button variant="secondary" className="mt-5" onClick={onRetry}>
         Try again
       </Button>

@@ -1,52 +1,98 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #141210;
-  --color-surface: #1d1a17;
-  --color-line: #38322b;
-  --color-line-strong: #6e6557;
-  --color-cream: #f2ebdd;
-  --color-muted: #b4aa99;
-  --color-brass: #b8893b;
-  --color-brass-light: #cfa55c;
-  --color-danger: #e39483;
+  --color-page: #f2f3ee;
+  --color-surface: #ffffff;
+  --color-sunken: #e7e9e2;
+  --color-ink: #101b3b;
+  --color-muted: #566080;
+  --color-faint: #8d95ad;
+  --color-line: #d3d7e2;
+  --color-edge: #737d9d;
+  --color-action: #1d3fbb;
+  --color-action-hover: #17339a;
+  --color-action-pressed: #122778;
+  --color-action-tint: #e9edfb;
+  --color-on-action: #ffffff;
+  --color-danger: #b4261b;
+  --color-danger-strong: #8f1d14;
+  --color-danger-tint: #fbe7e4;
+  --color-success: #17663f;
+  --color-success-tint: #e1f2e8;
+  --color-warning: #7a4b00;
+  --color-warning-tint: #fbebc8;
 
-  --font-display: "Fraunces Variable", "Noto Serif Georgian Variable", Georgia, serif;
-  --font-sans: "Manrope Variable", system-ui, sans-serif;
-  --font-georgian: "Noto Serif Georgian Variable", "Fraunces Variable", serif;
+  --font-sans: "FiraGO", system-ui, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 1.15;
+  --text-3xl: 2.375rem;
+  --text-3xl--line-height: 1.08;
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 1.04;
+  --text-5xl: 3.625rem;
+  --text-5xl--line-height: 1.02;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --shadow-pop: 0 6px 16px rgb(16 27 59 / 0.16);
+  --shadow-overlay: 0 18px 48px rgb(16 27 59 / 0.24);
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --animate-dialog-in: dialog-in 200ms var(--ease-standard);
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
 }
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-ink font-sans text-cream antialiased;
+    @apply bg-page font-sans text-base text-ink antialiased;
   }
 
   h1,
   h2,
   h3 {
-    @apply font-display;
+    @apply font-extrabold tracking-tight;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brass-light);
-    outline-offset: 3px;
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
   }
 
   /* The colour is set even while no outline is drawn, because elements that
      animate their colours would otherwise fade the ring in from the text
-     colour, leaving it invisible for a moment on a brass button. */
+     colour, leaving it invisible for a moment on a filled button. */
   * {
-    outline-color: var(--color-brass-light);
+    outline-color: var(--color-ink);
   }
 
   ::selection {
-    background-color: var(--color-brass);
-    color: var(--color-ink);
+    background-color: var(--color-action);
+    color: var(--color-on-action);
   }
 
   @media (prefers-reduced-motion: reduce) {

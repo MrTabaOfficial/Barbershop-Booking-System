@@ -114,11 +114,11 @@ test("a customer who leaves the payment page can pay later from My bookings", as
 
   await page.getByRole("link", { name: "Go back without paying" }).click();
 
-  await expect(page.getByText("isn't confirmed yet, because the deposit hasn't been paid")).toBeVisible();
+  await expect(page.getByText("Pay the deposit to confirm your booking.")).toBeVisible();
   const card = bookingCard(page, day, "14:00");
   await expect(card).toContainText("Awaiting payment");
   await expect(card).toContainText("We are holding the time until");
-  await expect(card.getByRole("button", { name: "Reschedule" })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Move booking" })).toHaveCount(0);
 
   await card.getByRole("link", { name: "Pay the deposit" }).click();
   await payDeposit(page);
@@ -131,7 +131,7 @@ test("a customer moves a booking to a time that overlaps the current one", async
   await signUp(page);
   const day = await bookHaircutWithLuka(page, "16:00");
 
-  await bookingCard(page, day, "16:00").getByRole("button", { name: "Reschedule" }).click();
+  await bookingCard(page, day, "16:00").getByRole("button", { name: "Move booking" }).click();
   const dialog = page.getByRole("dialog");
 
   await expect(dialog.getByRole("heading", { name: day })).toBeVisible();

@@ -13,7 +13,7 @@ function Today({ today }: { today: string }) {
 
   return (
     <section aria-labelledby="today-title">
-      <h2 id="today-title" className="text-2xl">
+      <h2 id="today-title" className="text-xl">
         Today
       </h2>
       <p className="mt-1 text-muted">
@@ -47,7 +47,7 @@ function Week({ today }: { today: string }) {
     <section aria-labelledby="week-title">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="week-title" className="text-2xl">
+          <h2 id="week-title" className="text-xl">
             {weekStart === thisWeek ? "This week" : "Week"}
           </h2>
           <p className="mt-1 text-muted">
@@ -95,7 +95,7 @@ function Week({ today }: { today: string }) {
               const label = (
                 <span>
                   <span
-                    className={`block font-semibold ${day.date === today ? "text-brass-light" : ""}`}
+                    className={`block font-semibold ${day.date === today ? "text-action" : ""}`}
                   >
                     {weekday} {dayNumber} {month}
                     {day.date === today && " · today"}
@@ -119,7 +119,7 @@ function Week({ today }: { today: string }) {
                     {label}
                     <span className="shrink-0 text-right text-sm">
                       <span className="block">{countAppointments(day)}</span>
-                      <span className="text-brass-light underline underline-offset-4">
+                      <span className="text-action underline underline-offset-4">
                         <span className="group-open:hidden">Show</span>
                         <span className="hidden group-open:inline">Hide</span>
                       </span>
@@ -160,7 +160,7 @@ export function BarberPage() {
         <Today today={today} />
         <Week today={today} />
         <section aria-labelledby="days-off-title">
-          <h2 id="days-off-title" className="mb-4 text-2xl">
+          <h2 id="days-off-title" className="mb-4 text-xl">
             Days off
           </h2>
           <DaysOff today={today} />
@@ -170,9 +170,9 @@ export function BarberPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-8 sm:py-14">
       <title>Schedule · Dalaki</title>
-      <h1 className="mb-8 text-4xl">Schedule</h1>
+      <h1 className="mb-8 text-3xl">Schedule</h1>
       {renderBody()}
     </div>
   );

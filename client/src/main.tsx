@@ -6,9 +6,9 @@ import { ApiError } from "./api/http.ts";
 import { AuthProvider } from "./auth/AuthProvider.tsx";
 import { router } from "./routes.tsx";
 
-import "@fontsource-variable/fraunces";
-import "@fontsource-variable/manrope";
-import "@fontsource-variable/noto-serif-georgian";
+import "@fontsource/firago/400.css";
+import "@fontsource/firago/600.css";
+import "@fontsource/firago/800.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

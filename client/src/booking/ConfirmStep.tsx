@@ -4,11 +4,13 @@ import { useCreateBooking } from "../api/queries.ts";
 import type { Barber, Service, Shop, Slot } from "../api/types.ts";
 import { useAuth } from "../auth/AuthContext.ts";
 import { Button, ButtonLink } from "../components/Button.tsx";
-import { Card } from "../components/Card.tsx";
 import { Notice } from "../components/Notice.tsx";
-import { formatLongDate } from "../lib/dates.ts";
-import { formatDuration, formatPrice } from "../lib/format.ts";
+import { formatLongDate, shopClockOf } from "../lib/dates.ts";
+import { formatPrice } from "../lib/format.ts";
 import { withNext } from "../lib/nextPath.ts";
+import { BookingSummary } from "./BookingSummary.tsx";
+
+const HOUR_MS = 60 * 60 * 1000;
 
 type ConfirmStepProps = {
   shop: Shop;
@@ -16,9 +18,28 @@ type ConfirmStepProps = {
   barber: Barber;
   date: string;
   slot: Slot;
+  showSummary: boolean;
 };
 
-export function ConfirmStep({ shop, service, barber, date, slot }: ConfirmStepProps) {
+function describeRules(shop: Shop, service: Service, slot: Slot): string[] {
+  const hasDeposit = service.depositCents > 0;
+  const deadline = new Date(Date.parse(slot.startsAt) - shop.freeCancellationHours * HOUR_MS);
+  const lastFreeMoment = shopClockOf(deadline, shop.timeZone);
+
+  const payment = hasDeposit
+    ? `Pay ${formatPrice(service.depositCents)} now by card and ${formatPrice(service.priceCents - service.depositCents)} at the shop.`
+    : `Pay ${formatPrice(service.priceCents)} at the shop.`;
+  const changes =
+    deadline.getTime() > Date.now()
+      ? `Cancel or move it free until ${formatLongDate(lastFreeMoment.date)} at ${lastFreeMoment.time}.${hasDeposit ? " After that the deposit is kept." : ""}`
+      : `This appointment is less than ${shop.freeCancellationHours} hours away, so it can't be moved${hasDeposit ? " and the deposit is kept if you cancel" : ""}.`;
+
+  return hasDeposit
+    ? [payment, changes, "We hold this time for 30 minutes while you pay."]
+    : [payment, changes];
+}
+
+export function ConfirmStep({ shop, service, barber, date, slot, showSummary }: ConfirmStepProps) {
   const { status } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,36 +65,16 @@ export function ConfirmStep({ shop, service, barber, date, slot }: ConfirmStepPr
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <p className="font-display text-xl">
-          {formatLongDate(date)} at {slot.localTime}
-        </p>
-        <p className="mt-1 text-muted">
-          {service.name} with {barber.name}
-        </p>
-        <dl className="mt-5 space-y-3 border-t border-line pt-4">
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted">Length</dt>
-            <dd>{formatDuration(service.durationMinutes)}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted">Price</dt>
-            <dd>{formatPrice(service.priceCents)}</dd>
-          </div>
-          <div className="flex justify-between gap-4 border-t border-line pt-3">
-            <dt className="text-muted">Deposit, part of the price</dt>
-            <dd className="font-semibold text-brass-light">{formatPrice(service.depositCents)}</dd>
-          </div>
-        </dl>
-        <p className="mt-5 text-sm leading-relaxed text-muted">
-          {hasDeposit
-            ? "You pay the deposit now, by card, and the rest at the shop. We hold the time for 30 minutes while you pay. "
-            : ""}
-          You can cancel or move the booking until {shop.freeCancellationHours} hours before
-          the appointment{hasDeposit ? " and get the deposit back. After that it is kept." : "."}
-        </p>
-      </Card>
+    <div className="space-y-5">
+      {showSummary && (
+        <BookingSummary compact service={service} barber={barber} date={date} slot={slot} />
+      )}
+
+      <ul className="space-y-1.5 text-sm lg:text-base">
+        {describeRules(shop, service, slot).map((rule) => (
+          <li key={rule}>{rule}</li>
+        ))}
+      </ul>
 
       {createBooking.isError && <Notice tone="error">{errorMessage(createBooking.error)}</Notice>}
 
@@ -97,7 +98,7 @@ export function ConfirmStep({ shop, service, barber, date, slot }: ConfirmStepPr
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted">
-            Log in to continue. Your choices are kept and you will come straight back here.
+            Your choices are kept. You'll come straight back here after logging in.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <ButtonLink size="lg" className="flex-1" to={withNext("/login", thisStep)}>

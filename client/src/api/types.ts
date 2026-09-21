@@ -36,6 +36,8 @@ export type WorkingHours = {
   weekday: number;
   startMinute: number;
   endMinute: number;
+  breakStartMinute: number | null;
+  breakEndMinute: number | null;
 };
 
 export type Barber = {

@@ -133,12 +133,18 @@ describe("GET /services and GET /barbers", () => {
     ]);
   });
 
-  it("includes each barber's working hours, ordered by weekday", async () => {
+  it("includes each barber's working hours and break, ordered by weekday", async () => {
     const response = await request(app).get("/barbers");
 
     const { workingHours } = response.body.barbers[0];
     expect(workingHours).toHaveLength(7);
-    expect(workingHours[0]).toEqual({ weekday: 0, startMinute: 540, endMinute: 1080 });
+    expect(workingHours[0]).toEqual({
+      weekday: 0,
+      startMinute: 540,
+      endMinute: 1080,
+      breakStartMinute: 780,
+      breakEndMinute: 840,
+    });
   });
 });
 

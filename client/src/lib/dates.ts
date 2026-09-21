@@ -55,3 +55,20 @@ export function dayParts(shopDate: string): { weekday: string; day: string; mont
   const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
   return { weekday: part("weekday"), day: part("day"), month: part("month") };
 }
+
+export function shopClockOf(instant: Date, timeZone: string): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
+  return {
+    date: `${part("year")}-${part("month")}-${part("day")}`,
+    time: `${part("hour")}:${part("minute")}`,
+  };
+}

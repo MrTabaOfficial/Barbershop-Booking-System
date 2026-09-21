@@ -27,7 +27,7 @@ export function countAppointments(day: ScheduleDay): string {
 export function DayAgenda({ day }: { day: ScheduleDay }) {
   if (day.bookings.length === 0) {
     return (
-      <p className="rounded-sm border border-dashed border-line-strong px-4 py-6 text-center text-muted">
+      <p className="rounded-md border border-dashed border-edge px-4 py-6 text-center text-muted">
         {day.dayOff || !day.workingHours ? "Nothing booked. Enjoy the day." : "Nothing booked yet."}
       </p>
     );

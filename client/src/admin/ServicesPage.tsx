@@ -151,10 +151,10 @@ export function ServicesPage() {
             className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className={service.isActive ? "" : "text-muted"}>
-              <p className="font-display text-xl">
+              <p className="font-extrabold text-lg">
                 {service.name}
                 {!service.isActive && (
-                  <span className="ml-3 rounded-sm border border-line-strong px-2 py-0.5 font-sans text-xs font-semibold uppercase tracking-wider">
+                  <span className="ml-3 rounded-md border border-edge px-2 py-0.5 text-xs font-semibold uppercase tracking-wider">
                     Inactive
                   </span>
                 )}
@@ -191,7 +191,7 @@ export function ServicesPage() {
     <>
       <title>Services · Admin · Dalaki</title>
       <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-2xl">Services</h2>
+        <h2 className="text-xl">Services</h2>
         <Button onClick={() => setEditing(null)}>Add a service</Button>
       </div>
       {saveService.isError && (

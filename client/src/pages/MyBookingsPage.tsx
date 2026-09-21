@@ -46,12 +46,7 @@ function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
     );
   }
   return (
-    <Notice className="mb-8">
-      Your booking for {describe(booking)} isn't confirmed yet, because the deposit hasn't been
-      paid.
-      {booking.heldUntilLocalTime &&
-        ` We are holding the time until ${booking.heldUntilLocalTime}.`}
-    </Notice>
+    <Notice className="mb-8">Pay the deposit to confirm your booking.</Notice>
   );
 }
 
@@ -79,9 +74,9 @@ export function MyBookingsPage() {
 
     const { upcoming, past } = bookings.data;
     return (
-      <div className="space-y-12">
+      <div className="space-y-10">
         <section aria-labelledby="upcoming-title">
-          <h2 id="upcoming-title" className="mb-4 text-2xl">
+          <h2 id="upcoming-title" className="mb-3 text-xl">
             Upcoming
           </h2>
           {upcoming.length === 0 ? (
@@ -108,7 +103,7 @@ export function MyBookingsPage() {
         </section>
 
         <section aria-labelledby="past-title">
-          <h2 id="past-title" className="mb-4 text-2xl">
+          <h2 id="past-title" className="mb-3 text-xl">
             Past
           </h2>
           {past.length === 0 ? (
@@ -122,9 +117,9 @@ export function MyBookingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-8 lg:pt-12">
       <title>My bookings · Dalaki</title>
-      <h1 className="mb-8 text-4xl">My bookings</h1>
+      <h1 className="mb-6 text-3xl">My bookings</h1>
 
       {bookings.data && <ArrivalNotice bookings={bookings.data.upcoming} />}
 

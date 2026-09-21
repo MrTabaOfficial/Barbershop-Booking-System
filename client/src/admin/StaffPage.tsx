@@ -177,10 +177,10 @@ export function StaffPage() {
           <li key={barber.id}>
             <Card>
               <div className={barber.isActive ? "" : "text-muted"}>
-                <p className="font-display text-2xl">
+                <p className="font-extrabold text-xl">
                   {barber.name}
                   {!barber.isActive && (
-                    <span className="ml-3 rounded-sm border border-line-strong px-2 py-0.5 font-sans text-xs font-semibold uppercase tracking-wider">
+                    <span className="ml-3 rounded-md border border-edge px-2 py-0.5 text-xs font-semibold uppercase tracking-wider">
                       Inactive
                     </span>
                   )}
@@ -228,7 +228,7 @@ export function StaffPage() {
     <>
       <title>Staff · Admin · Dalaki</title>
       <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-2xl">Staff</h2>
+        <h2 className="text-xl">Staff</h2>
         <Button onClick={() => setDialog({ kind: "add" })}>Add a barber</Button>
       </div>
       {updateBarber.isError && (

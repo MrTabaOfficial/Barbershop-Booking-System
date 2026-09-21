@@ -70,9 +70,7 @@ export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogPro
         shop={shop}
         barberId={booking.barber.id}
         serviceId={booking.service.id}
-        workingWeekdays={
-          barber ? new Set(barber.workingHours.map((hours) => hours.weekday)) : null
-        }
+        workingHours={barber?.workingHours ?? null}
         date={date}
         selectedStartsAt={slot?.startsAt ?? null}
         excludeBookingId={booking.id}

@@ -6,7 +6,8 @@ import { Card } from "../components/Card.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { homeFor, safeNextPath, withNext } from "../lib/nextPath.ts";
 
-const TEXT_LINK = "font-medium text-brass-light underline underline-offset-4 hover:text-cream";
+const TEXT_LINK =
+  "font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed";
 
 function AuthPage({
   title,
@@ -26,16 +27,16 @@ function AuthPage({
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-md px-4 pb-16 pt-6 sm:px-8 lg:pt-12">
       <title>{`${title} · Dalaki`}</title>
-      <h1 className="mb-6 text-4xl">{title}</h1>
+      <h1 className="mb-6 text-3xl">{title}</h1>
       {next?.startsWith("/book") && (
         <Notice className="mb-6">
           Your booking is waiting. You will go straight back to it to confirm.
         </Notice>
       )}
       <Card>{children}</Card>
-      <p className="mt-6 text-sm text-muted">
+      <p className="mt-6 text-muted">
         {switchTo.question}{" "}
         <Link to={next ? withNext(switchTo.path, next) : switchTo.path} className={TEXT_LINK}>
           {switchTo.label}
