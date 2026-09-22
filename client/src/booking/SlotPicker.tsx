@@ -130,7 +130,7 @@ export function SlotPicker({
                   aria-pressed={selected}
                   aria-label={`${formatLongDate(day)}${working ? "" : ", not a working day"}`}
                   onClick={() => onDateChange(day)}
-                  className={`flex min-h-[4.5rem] w-full flex-col items-center justify-center rounded-md border text-center text-xs leading-tight transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-dashed disabled:border-faint disabled:bg-transparent disabled:text-faint lg:min-h-20 ${
+                  className={`flex min-h-[4.5rem] w-full flex-col items-center justify-center rounded-md border text-center text-xs leading-tight transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sunken disabled:text-faint lg:min-h-20 ${
                     selected
                       ? "border-action bg-action text-on-action"
                       : "border-edge bg-surface text-muted enabled:hover:border-action enabled:hover:ring-1 enabled:hover:ring-inset enabled:hover:ring-action"
@@ -200,7 +200,7 @@ export function SlotPicker({
                                 disabled={current}
                                 aria-pressed={selected}
                                 onClick={() => onSlotSelect(activeDate, slot)}
-                                className={`min-h-12 w-full rounded-md border leading-tight tabular-nums transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-dashed disabled:border-faint disabled:bg-transparent disabled:text-muted ${
+                                className={`min-h-12 w-full rounded-md border leading-tight tabular-nums transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sunken disabled:text-muted ${
                                   selected
                                     ? "border-action bg-action font-semibold text-on-action"
                                     : "border-edge bg-surface enabled:hover:border-action enabled:hover:text-action-hover enabled:hover:ring-1 enabled:hover:ring-inset enabled:hover:ring-action enabled:active:bg-action-tint"

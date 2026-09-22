@@ -17,8 +17,7 @@ import {
 const TEXT_LINK =
   "font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed";
 
-const HANGER =
-  "relative mr-7 mt-[18px] flex items-baseline gap-2.5 rounded-md border-2 border-ink bg-surface px-4 pb-2 pt-1.5 text-sm before:absolute before:bottom-full before:left-5 before:h-5 before:w-0.5 before:bg-ink after:absolute after:bottom-full after:right-5 after:h-5 after:w-0.5 after:bg-ink lg:mr-12 lg:px-5 lg:text-base";
+const OPEN_TODAY = "mt-3 text-center text-sm lg:text-base";
 
 function OpenToday() {
   const barbers = useBarbers();
@@ -29,9 +28,8 @@ function OpenToday() {
   }
   if (!barbers.data || !shop.data) {
     return (
-      <p aria-hidden="true" className={HANGER}>
-        <span className="text-muted">Open today</span>
-        <span className="invisible font-semibold tabular-nums">00:00 to 00:00</span>
+      <p aria-hidden="true" className={`${OPEN_TODAY} invisible`}>
+        Open today 00:00 to 00:00
       </p>
     );
   }
@@ -39,38 +37,27 @@ function OpenToday() {
   const today = weekdayOf(shop.data.today);
   const hours = shopOpeningHours(barbers.data).find((day) => day.weekday === today)?.hours;
   return hours ? (
-    <p className={HANGER}>
-      <span className="text-muted">Open today</span>
+    <p className={OPEN_TODAY}>
+      <span className="text-muted">Open today</span>{" "}
       <span className="font-semibold tabular-nums">
         {formatClock(hours.opens)} to {formatClock(hours.closes)}
       </span>
     </p>
   ) : (
-    <p className={HANGER}>
-      <span className="text-muted">Today</span>
-      <span className="font-semibold text-danger">Closed</span>
-    </p>
+    <p className={`${OPEN_TODAY} font-semibold`}>Closed today</p>
   );
 }
 
 function ShopSign() {
-  const shop = useShop();
   return (
-    <div className="flex w-full flex-col items-end sm:max-w-md lg:order-2 lg:max-w-none">
-      <div
+    <div className="w-full sm:max-w-md lg:order-2 lg:max-w-none">
+      <p
+        lang="ka"
         aria-hidden="true"
-        className="relative w-full rounded-[22px] bg-action px-5 pb-6 pt-7 text-center text-on-action before:absolute before:inset-[9px] before:rounded-[14px] before:border-2 before:border-on-action lg:rounded-[28px] lg:pb-10 lg:pt-12 lg:before:inset-3 lg:before:rounded-[18px]"
+        className="whitespace-nowrap rounded-lg bg-action px-5 py-8 text-center text-[17.5vw] font-extrabold leading-none text-on-action sm:text-[5rem] lg:py-14 lg:text-[4.625rem]"
       >
-        <p
-          lang="ka"
-          className="whitespace-nowrap text-[17.5vw] font-extrabold leading-none sm:text-[5rem] lg:text-[4.625rem]"
-        >
-          {brand.wordmark}
-        </p>
-        <p className="mt-2.5 text-sm font-semibold lg:mt-4">
-          Barbershop{shop.data && `, ${shop.data.address.street}`}
-        </p>
-      </div>
+        {brand.wordmark}
+      </p>
       <OpenToday />
     </div>
   );

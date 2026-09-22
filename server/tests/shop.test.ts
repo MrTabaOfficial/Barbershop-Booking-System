@@ -49,7 +49,7 @@ describe("GET /shop", () => {
     const haircut = await createService("Haircut");
     const alex = await createUser("alex@example.test");
     const startsAt = shopTimeToUtc(addDays(shopDateOf(new Date(), env.shopTimeZone), 7), 10 * 60, env.shopTimeZone);
-    const booking = await prisma.booking.create({
+    const { id } = await prisma.booking.create({
       data: {
         customerId: alex.id,
         barberId: barber.id,
@@ -60,6 +60,9 @@ describe("GET /shop", () => {
         priceCents: haircut.priceCents,
         depositCents: haircut.depositCents,
       },
+    });
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id },
       include: bookingForEmail,
     });
 

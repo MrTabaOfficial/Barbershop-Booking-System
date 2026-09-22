@@ -25,7 +25,7 @@ export function BookingSummary({ service, barber, date, slot, compact }: Booking
   );
 
   return (
-    <Card plate className={compact ? "py-2 sm:py-3" : ""}>
+    <Card className={compact ? "py-2 sm:py-3" : ""}>
       {!compact && <h3 className="mb-1 text-lg">Your booking</h3>}
       <dl>
         {row(
