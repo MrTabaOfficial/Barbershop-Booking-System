@@ -69,7 +69,7 @@ function AddDayOffForm({ today }: { today: string }) {
           )}
         </Notice>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
         <Input
           label="Date"
           type="date"
@@ -79,7 +79,7 @@ function AddDayOffForm({ today }: { today: string }) {
         />
         <Input
           label="Reason (optional)"
-          placeholder="Only you and the admin see this"
+          hint="Only you and the admin see this."
           error={errors.reason?.message}
           {...register("reason")}
         />
@@ -124,7 +124,7 @@ export function DaysOff({ today }: { today: string }) {
               {dayOff.reason && <p className="text-sm text-muted">{dayOff.reason}</p>}
             </div>
             <Button
-              variant="secondary"
+              variant="quiet"
               disabled={removeDayOff.isPending}
               aria-label={`Remove day off on ${formatLongDate(dayOff.date)}`}
               onClick={() => removeDayOff.mutate(dayOff.id)}

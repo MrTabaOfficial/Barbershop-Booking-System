@@ -1,75 +1,96 @@
 import { errorMessage } from "../api/http.ts";
 import { type Outcome, useRecordOutcome } from "../api/barberQueries.ts";
-import type { ScheduleBooking } from "../api/types.ts";
-import { Button } from "../components/Button.tsx";
-import { Card } from "../components/Card.tsx";
+import type { BookingStatus, ScheduleBooking } from "../api/types.ts";
 import { Notice } from "../components/Notice.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
+import { phoneLink } from "../lib/format.ts";
+
+const OUTCOMES: { outcome: Outcome; status: BookingStatus; label: string }[] = [
+  { outcome: "complete", status: "completed", label: "Completed" },
+  { outcome: "no-show", status: "no_show", label: "No-show" },
+];
 
 export function Appointment({ booking }: { booking: ScheduleBooking }) {
   const recordOutcome = useRecordOutcome();
 
   const hasStarted = Date.parse(booking.startsAt) <= Date.now() && booking.status !== "pending";
 
-  function record(outcome: Outcome, alreadyRecorded: boolean) {
-    if (!alreadyRecorded) {
-      recordOutcome.mutate({ bookingId: booking.id, outcome });
-    }
-  }
-
-  const completed = booking.status === "completed";
-  const noShow = booking.status === "no_show";
+  const beingRecorded = recordOutcome.isPending
+    ? OUTCOMES.find((entry) => entry.outcome === recordOutcome.variables.outcome)
+    : undefined;
+  const status = beingRecorded?.status ?? booking.status;
+  const { name, phone } = booking.customer;
 
   return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-extrabold text-lg tabular-nums">
-            {booking.localTime} to {booking.localEndTime}
-          </p>
-          <p className="mt-1 font-semibold">{booking.customer.name}</p>
+    <>
+      <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-x-3">
+        <p className="tabular-nums">
+          <span className="block font-extrabold">{booking.localTime}</span>
+          <span className="block text-sm text-muted">to {booking.localEndTime}</span>
+        </p>
+        <div className="min-w-0">
+          <p className="font-semibold">{name}</p>
           <p className="text-sm text-muted">{booking.service.name}</p>
         </div>
-        <StatusBadge status={booking.status} />
+        <div className="flex flex-col items-end">
+          <StatusBadge status={status} />
+          {phone ? (
+            <a
+              href={phoneLink(phone)}
+              aria-label={`Call ${name} on ${phone}`}
+              className="-mb-2.5 inline-flex min-h-11 items-center text-sm font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed"
+            >
+              <span className="sm:hidden">Call</span>
+              <span className="hidden tabular-nums sm:inline">{phone}</span>
+            </a>
+          ) : (
+            <p className="mt-1.5 text-sm text-muted">No phone</p>
+          )}
+        </div>
       </div>
 
-      {booking.customer.phone ? (
-        <a
-          href={`tel:${booking.customer.phone.replaceAll(" ", "")}`}
-          className="mt-2 inline-flex min-h-11 items-center font-medium text-action underline underline-offset-4 hover:text-action-pressed"
-        >
-          Call {booking.customer.phone}
-        </a>
-      ) : (
-        <p className="mt-3 text-sm text-muted">No phone number on file</p>
-      )}
-
       {hasStarted && (
-        <div role="group" aria-label="How did it go?" className="mt-3 grid grid-cols-2 gap-3">
-          <Button
-            variant={completed ? "primary" : "secondary"}
-            aria-pressed={completed}
-            disabled={recordOutcome.isPending}
-            onClick={() => record("complete", completed)}
+        <div className="mt-2.5 sm:ml-[4.75rem] sm:max-w-xs">
+          {status === "confirmed" && <p className="mb-1.5 text-sm text-muted">How did it go?</p>}
+          <div
+            role="group"
+            aria-label="How did it go?"
+            className={`grid grid-cols-2 rounded-md border border-edge bg-surface p-0.5 ${
+              status === "confirmed" ? "divide-x divide-line" : ""
+            }`}
           >
-            Completed
-          </Button>
-          <Button
-            variant={noShow ? "primary" : "secondary"}
-            aria-pressed={noShow}
-            disabled={recordOutcome.isPending}
-            onClick={() => record("no-show", noShow)}
-          >
-            No-show
-          </Button>
+            {OUTCOMES.map((entry) => {
+              const chosen = status === entry.status;
+              return (
+                <button
+                  key={entry.outcome}
+                  type="button"
+                  aria-pressed={chosen}
+                  disabled={recordOutcome.isPending}
+                  onClick={() => {
+                    if (!chosen) {
+                      recordOutcome.mutate({ bookingId: booking.id, outcome: entry.outcome });
+                    }
+                  }}
+                  className={`min-h-11 rounded-[10px] text-sm transition-colors duration-120 ease-standard disabled:cursor-progress ${
+                    chosen
+                      ? "bg-action-tint font-semibold text-action-hover ring-1 ring-inset ring-action"
+                      : "enabled:hover:bg-action-tint enabled:active:bg-action-tint"
+                  }`}
+                >
+                  {entry.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {recordOutcome.isError && (
-        <Notice tone="error" className="mt-3">
+        <Notice tone="error" className="mt-2.5">
           {errorMessage(recordOutcome.error)}
         </Notice>
       )}
-    </Card>
+    </>
   );
 }

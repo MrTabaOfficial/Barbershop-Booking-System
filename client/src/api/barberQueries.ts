@@ -25,7 +25,7 @@ function useRefreshBarberData() {
 export type Outcome = "complete" | "no-show";
 
 export function useRecordOutcome() {
-  const refresh = useRefreshBarberData();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { bookingId: string; outcome: Outcome }) =>
       (
@@ -34,7 +34,9 @@ export function useRecordOutcome() {
           { method: "POST" },
         )
       ).booking,
-    onSettled: refresh,
+    // Returning the refetch keeps the mutation pending until the schedule is
+    // fresh, so a row never shows its old status in between.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["barber"] }),
   });
 }
 

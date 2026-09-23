@@ -7,19 +7,25 @@ import { Button } from "../components/Button.tsx";
 import { ErrorState, LoadingBlock } from "../components/States.tsx";
 import { addDays, dayParts, formatLongDate, startOfWeek } from "../lib/dates.ts";
 
+function shortDate(shopDate: string): string {
+  const { weekday, day, month } = dayParts(shopDate);
+  return `${weekday} ${day} ${month}`;
+}
+
 function Today({ today }: { today: string }) {
   const schedule = useSchedule(today, today);
   const day = schedule.data?.[0];
 
   return (
     <section aria-labelledby="today-title">
-      <h2 id="today-title" className="text-xl">
-        Today
-      </h2>
-      <p className="mt-1 text-muted">
-        {formatLongDate(today)}
-        {day && ` · ${describeHours(day)}`}
-      </p>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="today-title" className="text-xl">
+          Today
+        </h2>
+        {day && <p className="text-sm text-muted">{countAppointments(day)}</p>}
+      </div>
+      <p className="mt-1">{formatLongDate(today)}</p>
+      {day && <p className="text-sm text-muted">{describeHours(day)}</p>}
       <div className="mt-4">
         {schedule.isError ? (
           <ErrorState
@@ -45,32 +51,30 @@ function Week({ today }: { today: string }) {
 
   return (
     <section aria-labelledby="week-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="week-title" className="text-xl">
-            {weekStart === thisWeek ? "This week" : "Week"}
-          </h2>
-          <p className="mt-1 text-muted">
-            {formatLongDate(weekStart)} to {formatLongDate(weekEnd)}
-          </p>
-        </div>
+      <h2 id="week-title" className="text-xl">
+        {weekStart === thisWeek ? "This week" : "Week"}
+      </h2>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <p>
+          {shortDate(weekStart)} to {shortDate(weekEnd)}
+        </p>
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="px-3"
+            className="px-3.5"
             aria-label="Previous week"
             onClick={() => setWeekStart(addDays(weekStart, -7))}
           >
             Previous
           </Button>
           {weekStart !== thisWeek && (
-            <Button variant="secondary" className="px-3" onClick={() => setWeekStart(thisWeek)}>
+            <Button variant="secondary" className="px-3.5" onClick={() => setWeekStart(thisWeek)}>
               This week
             </Button>
           )}
           <Button
             variant="secondary"
-            className="px-3"
+            className="px-3.5"
             aria-label="Next week"
             onClick={() => setWeekStart(addDays(weekStart, 7))}
           >
@@ -91,14 +95,15 @@ function Week({ today }: { today: string }) {
         ) : (
           <div className="divide-y divide-line border-y border-line">
             {schedule.data.map((day) => {
-              const { weekday, day: dayNumber, month } = dayParts(day.date);
               const label = (
                 <span>
-                  <span
-                    className={`block font-semibold ${day.date === today ? "text-action" : ""}`}
-                  >
-                    {weekday} {dayNumber} {month}
-                    {day.date === today && " · today"}
+                  <span className="block font-semibold">
+                    {shortDate(day.date)}
+                    {day.date === today && (
+                      <span className="ml-2 rounded-sm bg-action-tint px-1.5 py-0.5 text-xs text-action-hover">
+                        Today
+                      </span>
+                    )}
                   </span>
                   <span className="block text-sm text-muted">{describeHours(day)}</span>
                 </span>
@@ -115,17 +120,17 @@ function Week({ today }: { today: string }) {
               }
               return (
                 <details key={day.date} className="group">
-                  <summary className={`${row} cursor-pointer list-none`}>
+                  <summary className={`${row} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                     {label}
                     <span className="shrink-0 text-right text-sm">
                       <span className="block">{countAppointments(day)}</span>
-                      <span className="text-action underline underline-offset-4">
+                      <span className="font-semibold text-action underline decoration-2 underline-offset-4">
                         <span className="group-open:hidden">Show</span>
                         <span className="hidden group-open:inline">Hide</span>
                       </span>
                     </span>
                   </summary>
-                  <div className="pb-5">
+                  <div className="pb-4">
                     <DayAgenda day={day} />
                   </div>
                 </details>
@@ -156,11 +161,11 @@ export function BarberPage() {
     }
     const { today } = shop.data;
     return (
-      <div className="space-y-14">
+      <div className="space-y-12">
         <Today today={today} />
         <Week today={today} />
         <section aria-labelledby="days-off-title">
-          <h2 id="days-off-title" className="mb-4 text-xl">
+          <h2 id="days-off-title" className="mb-3 text-xl">
             Days off
           </h2>
           <DaysOff today={today} />
@@ -170,9 +175,9 @@ export function BarberPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-8 sm:py-14">
+    <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-8 lg:pt-12">
       <title>Schedule · Dalaki</title>
-      <h1 className="mb-8 text-3xl">Schedule</h1>
+      <h1 className="mb-6 text-3xl">Schedule</h1>
       {renderBody()}
     </div>
   );

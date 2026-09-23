@@ -33,9 +33,9 @@ export function DayAgenda({ day }: { day: ScheduleDay }) {
     );
   }
   return (
-    <ul className="space-y-3">
+    <ul className="divide-y divide-line rounded-lg border border-line bg-surface px-4">
       {day.bookings.map((booking) => (
-        <li key={booking.id}>
+        <li key={booking.id} className="py-3">
           <Appointment booking={booking} />
         </li>
       ))}
