@@ -10,7 +10,7 @@ import { Notice } from "../components/Notice.tsx";
 import { Select } from "../components/Select.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { StatusBadge, statusLabel } from "../components/StatusBadge.tsx";
-import { formatLongDate } from "../lib/dates.ts";
+import { dayParts, formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
@@ -43,7 +43,12 @@ const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
   { key: "price", label: "Price", alignRight: true },
 ];
 
-const TABLE_FITS = "(min-width: 40rem)";
+const TABLE_FITS = "(min-width: 60rem)";
+
+function shortDate(shopDate: string): string {
+  const { weekday, day, month } = dayParts(shopDate);
+  return `${weekday} ${day} ${month}`;
+}
 
 const isCancellable = (booking: AdminBooking) =>
   booking.status === "pending" || booking.status === "confirmed";
@@ -242,15 +247,14 @@ export function BookingsPage() {
               {booking.service.name} with {booking.barber.name}
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="text-sm tabular-nums">
-                {formatPrice(booking.priceCents)}
+              <p className="text-sm">
+                <span className="font-semibold tabular-nums">{formatPrice(booking.priceCents)}</span>
                 <span
-                  className={
+                  className={`ml-2 ${
                     booking.paymentStatus === "refund_failed" ? "text-danger" : "text-muted"
-                  }
+                  }`}
                 >
-                  {" "}
-                  · {PAYMENT_LABELS[booking.paymentStatus]}
+                  {PAYMENT_LABELS[booking.paymentStatus]}
                 </span>
               </p>
               {isCancellable(booking) && (
@@ -277,7 +281,7 @@ export function BookingsPage() {
             would scroll sideways. */}
         <div className="relative overflow-x-auto">
           <table className="w-full min-w-[46rem] text-left text-sm">
-            <thead className="border-b border-edge">
+            <thead className="border-b-2 border-ink text-xs">
               <tr>
                 {COLUMNS.map((column) => (
                   <th
@@ -286,12 +290,14 @@ export function BookingsPage() {
                     aria-sort={
                       sort !== column.key ? undefined : order === "asc" ? "ascending" : "descending"
                     }
-                    className={`py-2 pr-4 font-medium ${column.alignRight ? "text-right" : ""}`}
+                    className={`py-2 pr-4 font-semibold ${column.alignRight ? "text-right" : ""}`}
                   >
                     <button
                       type="button"
                       onClick={() => sortBy(column.key)}
-                      className="py-1 text-muted hover:text-action-pressed"
+                      className={`py-1 transition-colors duration-120 ease-standard hover:text-ink ${
+                        sort === column.key ? "text-ink" : "text-muted"
+                      }`}
                     >
                       {column.label}
                       <span aria-hidden="true" className="ml-1 text-action">
@@ -309,16 +315,19 @@ export function BookingsPage() {
               {rows.map((booking) => (
                 <tr key={booking.id}>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums">
-                    {formatLongDate(booking.localDate)}, {booking.localTime}
+                    {shortDate(booking.localDate)}, {booking.localTime}
                   </td>
-                  <td className="py-3 pr-4">
-                    {booking.customer.name}
-                    <span className="block text-xs text-muted">
+                  <td className="max-w-[13rem] py-3 pr-4">
+                    <span className="block truncate">{booking.customer.name}</span>
+                    <span
+                      className="block truncate text-xs text-muted"
+                      title={booking.customer.phone ?? booking.customer.email}
+                    >
                       {booking.customer.phone ?? booking.customer.email}
                     </span>
                   </td>
-                  <td className="py-3 pr-4">{booking.barber.name}</td>
-                  <td className="py-3 pr-4">{booking.service.name}</td>
+                  <td className="whitespace-nowrap py-3 pr-4">{booking.barber.name}</td>
+                  <td className="whitespace-nowrap py-3 pr-4">{booking.service.name}</td>
                   <td className="py-3 pr-4">
                     <StatusBadge status={booking.status} />
                   </td>
@@ -444,7 +453,7 @@ export function BookingsPage() {
   return (
     <>
       <title>Bookings · Admin · Dalaki</title>
-      <h2 className="sr-only">Bookings</h2>
+      <h1 className="sr-only">Bookings</h1>
 
       {tableFits ? (
         <>

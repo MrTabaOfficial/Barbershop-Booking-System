@@ -7,13 +7,13 @@ import { errorMessage } from "../api/http.ts";
 import type { AdminBarber } from "../api/types.ts";
 import { describeWorkingDays } from "../booking/workingDays.ts";
 import { Button } from "../components/Button.tsx";
-import { Card } from "../components/Card.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
+import { countActive, INACTIVE_TAG } from "./activeEntries.ts";
 import { WorkingHoursDialog } from "./WorkingHoursDialog.tsx";
 
 const name = z.string().trim().min(1, "Enter a name").max(100);
@@ -172,52 +172,50 @@ export function StaffPage() {
       return <EmptyState title="No barbers yet">Add the first one to start taking bookings.</EmptyState>;
     }
     return (
-      <ul className="space-y-4">
+      <ul className="divide-y divide-line border-y border-line">
         {barbers.data.map((barber) => (
-          <li key={barber.id}>
-            <Card>
-              <div className={barber.isActive ? "" : "text-muted"}>
-                <p className="font-extrabold text-xl">
-                  {barber.name}
-                  {!barber.isActive && (
-                    <span className="ml-3 rounded-md border border-edge px-2 py-0.5 text-xs font-semibold uppercase tracking-wider">
-                      Inactive
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 text-sm text-muted">{barber.email}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted">
-                  {barber.workingHours.length > 0
-                    ? describeWorkingDays(barber.workingHours)
-                    : "No working hours yet"}
-                </p>
-                {barber.bio && <p className="mt-3 text-sm leading-relaxed">{barber.bio}</p>}
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  aria-label={`Edit ${barber.name}`}
-                  onClick={() => setDialog({ kind: "edit", barber })}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="secondary"
-                  aria-label={`Working hours of ${barber.name}`}
-                  onClick={() => setDialog({ kind: "hours", barber })}
-                >
-                  Working hours
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={updateBarber.isPending}
-                  aria-label={`${barber.isActive ? "Deactivate" : "Activate"} ${barber.name}`}
-                  onClick={() => updateBarber.mutate({ id: barber.id, isActive: !barber.isActive })}
-                >
-                  {barber.isActive ? "Deactivate" : "Activate"}
-                </Button>
-              </div>
-            </Card>
+          <li
+            key={barber.id}
+            className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+          >
+            <div className={barber.isActive ? "" : "text-muted"}>
+              <p className="text-lg font-extrabold">
+                {barber.name}
+                {!barber.isActive && <span className={INACTIVE_TAG}>Inactive</span>}
+              </p>
+              <p className="text-sm text-muted">{barber.email}</p>
+              <p className="text-sm font-semibold text-muted">
+                {barber.workingHours.length > 0
+                  ? describeWorkingDays(barber.workingHours)
+                  : "No working hours yet"}
+              </p>
+              {barber.bio && <p className="mt-2 max-w-xl text-sm">{barber.bio}</p>}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="secondary"
+                aria-label={`Edit ${barber.name}`}
+                onClick={() => setDialog({ kind: "edit", barber })}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                aria-label={`Working hours of ${barber.name}`}
+                onClick={() => setDialog({ kind: "hours", barber })}
+              >
+                Working hours
+              </Button>
+              <Button
+                variant="quiet"
+                className="ml-2"
+                disabled={updateBarber.isPending}
+                aria-label={`${barber.isActive ? "Deactivate" : "Activate"} ${barber.name}`}
+                onClick={() => updateBarber.mutate({ id: barber.id, isActive: !barber.isActive })}
+              >
+                {barber.isActive ? "Deactivate" : "Activate"}
+              </Button>
+            </div>
           </li>
         ))}
       </ul>
@@ -227,8 +225,9 @@ export function StaffPage() {
   return (
     <>
       <title>Staff · Admin · Dalaki</title>
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-xl">Staff</h2>
+      <h1 className="sr-only">Staff</h1>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p className="text-muted">{barbers.data && countActive(barbers.data, "barber")}</p>
         <Button onClick={() => setDialog({ kind: "add" })}>Add a barber</Button>
       </div>
       {updateBarber.isError && (

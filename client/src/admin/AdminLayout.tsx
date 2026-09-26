@@ -1,15 +1,14 @@
 import { NavLink, Outlet } from "react-router";
 
 const TAB =
-  "-mb-px whitespace-nowrap border-b-2 border-transparent pb-3 text-sm font-medium text-muted hover:text-action-pressed aria-[current=page]:border-action aria-[current=page]:text-ink";
+  "-mb-px whitespace-nowrap border-b-4 border-transparent pb-2.5 font-semibold text-muted transition-colors duration-120 ease-standard hover:text-ink aria-[current=page]:border-action aria-[current=page]:font-extrabold aria-[current=page]:text-ink lg:text-xl";
 
 export function AdminLayout() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-8 sm:py-14">
-      <h1 className="text-3xl">Admin</h1>
+    <div className="mx-auto max-w-5xl px-4 pb-16 pt-5 sm:px-8 lg:pt-10">
       <nav
         aria-label="Admin sections"
-        className="mt-6 flex gap-6 overflow-x-auto border-b border-line"
+        className="flex gap-5 overflow-x-auto border-b border-line lg:gap-8"
       >
         <NavLink to="/admin" end className={TAB}>
           Overview
@@ -24,7 +23,7 @@ export function AdminLayout() {
           Staff
         </NavLink>
       </nav>
-      <div className="mt-8">
+      <div className="mt-6 lg:mt-8">
         <Outlet />
       </div>
     </div>

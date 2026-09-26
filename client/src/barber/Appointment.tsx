@@ -2,6 +2,7 @@ import { errorMessage } from "../api/http.ts";
 import { type Outcome, useRecordOutcome } from "../api/barberQueries.ts";
 import type { BookingStatus, ScheduleBooking } from "../api/types.ts";
 import { Notice } from "../components/Notice.tsx";
+import { Segmented } from "../components/Segmented.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
 import { phoneLink } from "../lib/format.ts";
 
@@ -52,37 +53,13 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
       {hasStarted && (
         <div className="mt-2.5 sm:ml-[4.75rem] sm:max-w-xs">
           {status === "confirmed" && <p className="mb-1.5 text-sm text-muted">How did it go?</p>}
-          <div
-            role="group"
-            aria-label="How did it go?"
-            className={`grid grid-cols-2 rounded-md border border-edge bg-surface p-0.5 ${
-              status === "confirmed" ? "divide-x divide-line" : ""
-            }`}
-          >
-            {OUTCOMES.map((entry) => {
-              const chosen = status === entry.status;
-              return (
-                <button
-                  key={entry.outcome}
-                  type="button"
-                  aria-pressed={chosen}
-                  disabled={recordOutcome.isPending}
-                  onClick={() => {
-                    if (!chosen) {
-                      recordOutcome.mutate({ bookingId: booking.id, outcome: entry.outcome });
-                    }
-                  }}
-                  className={`min-h-11 rounded-[10px] text-sm transition-colors duration-120 ease-standard disabled:cursor-progress ${
-                    chosen
-                      ? "bg-action-tint font-semibold text-action-hover ring-1 ring-inset ring-action"
-                      : "enabled:hover:bg-action-tint enabled:active:bg-action-tint"
-                  }`}
-                >
-                  {entry.label}
-                </button>
-              );
-            })}
-          </div>
+          <Segmented
+            label="How did it go?"
+            options={OUTCOMES.map((entry) => ({ value: entry.outcome, label: entry.label }))}
+            value={OUTCOMES.find((entry) => entry.status === status)?.outcome ?? null}
+            disabled={recordOutcome.isPending}
+            onChange={(outcome) => recordOutcome.mutate({ bookingId: booking.id, outcome })}
+          />
         </div>
       )}
 

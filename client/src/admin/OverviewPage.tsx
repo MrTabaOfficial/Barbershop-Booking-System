@@ -2,17 +2,19 @@ import { useSearchParams } from "react-router";
 import { useOverview } from "../api/adminQueries.ts";
 import { useShop } from "../api/queries.ts";
 import type { BookingStatus, Overview } from "../api/types.ts";
-import { Button } from "../components/Button.tsx";
-import { Card } from "../components/Card.tsx";
 import { Input } from "../components/Input.tsx";
+import { Segmented } from "../components/Segmented.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { statusLabel } from "../components/StatusBadge.tsx";
 import { addDays, dayParts, formatLongDate, isShopDate } from "../lib/dates.ts";
 import { formatPercent, formatPrice } from "../lib/format.ts";
+import { groupByWeek } from "./chartMath.ts";
 import { BarList, ColumnChart } from "./charts.tsx";
 
-const PRESET_DAYS = [7, 30, 90];
+const PRESET_DAYS = ["7", "30", "90"];
 const DEFAULT_DAYS = 30;
+const MOST_DAILY_COLUMNS = 45;
+const WHOLE_LARI = 100;
 const STATUS_ORDER: BookingStatus[] = [
   "completed",
   "confirmed",
@@ -22,13 +24,34 @@ const STATUS_ORDER: BookingStatus[] = [
   "expired",
 ];
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function shortDate(shopDate: string): string {
+  const { day, month } = dayParts(shopDate);
+  return `${day} ${month}`;
+}
+
+function Figure({
+  label,
+  value,
+  note,
+  lead = false,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  lead?: boolean;
+}) {
   return (
-    <Card className="p-4 sm:p-5">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
-      {note && <p className="mt-1 text-xs text-muted">{note}</p>}
-    </Card>
+    <div className="grid grid-cols-[1fr_auto] gap-x-4 py-3 lg:block lg:border-l lg:border-line lg:px-6 lg:py-0 lg:first:border-l-0 lg:first:pl-0">
+      <dt className="col-start-1 font-semibold lg:text-sm lg:font-normal lg:text-muted">{label}</dt>
+      <dd
+        className={`col-start-2 row-span-2 row-start-1 self-center text-right font-extrabold lg:mt-1 lg:text-left ${
+          lead ? "text-3xl lg:text-4xl" : "text-xl lg:text-2xl"
+        }`}
+      >
+        {value}
+      </dd>
+      <dd className="col-start-1 text-sm text-muted lg:mt-1 lg:text-xs">{note}</dd>
+    </div>
   );
 }
 
@@ -44,41 +67,64 @@ function Figures({ overview }: { overview: Overview }) {
     );
   }
 
-  const days = perDay.map((day) => {
-    const { day: dayNumber, month } = dayParts(day.date);
-    return { ...day, label: formatLongDate(day.date), shortLabel: `${dayNumber} ${month}` };
-  });
+  const byWeek = perDay.length > MOST_DAILY_COLUMNS;
+  const periods = byWeek
+    ? groupByWeek(perDay).map((week) => ({
+        ...week,
+        label:
+          week.from === week.to
+            ? formatLongDate(week.from)
+            : `${shortDate(week.from)} to ${shortDate(week.to)}`,
+      }))
+    : perDay.map((day) => ({ ...day, from: day.date, label: formatLongDate(day.date) }));
+  const unit = byWeek ? "week" : "day";
+  const hint = `Press the left and right arrow keys to read each ${unit}.`;
+  const columnsOf = (measure: "bookings" | "revenueCents") =>
+    periods.map((period) => ({
+      key: period.from,
+      label: period.label,
+      shortLabel: shortDate(period.from),
+      value: period[measure],
+    }));
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
-          label="Bookings"
-          value={String(totals.bookings)}
-          note="Not counting cancelled or expired"
-        />
-        <Stat
+      <dl className="divide-y divide-line border-y border-line lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:divide-y-0 lg:border-y-0">
+        <Figure
+          lead
           label="Revenue"
           value={formatPrice(totals.revenueCents)}
           note="Completed bookings only"
         />
-        <Stat
+        <Figure
+          label="Bookings"
+          value={String(totals.bookings)}
+          note="Not counting cancelled or expired"
+        />
+        <Figure
           label="No-show rate"
           value={noShowRate === null ? "–" : formatPercent(noShowRate)}
           note="Of appointments that reached their time"
         />
-        <Stat label="Cancelled" value={String(byStatus.cancelled)} />
-      </div>
+        <Figure
+          label="Cancelled"
+          value={String(byStatus.cancelled)}
+          note="By the customer or by the shop"
+        />
+      </dl>
 
       <div className="grid gap-10 lg:grid-cols-2">
         <ColumnChart
-          title="Bookings per day"
-          columns={days.map((day) => ({ ...day, value: day.bookings }))}
+          title={`Bookings per ${unit}`}
+          hint={hint}
+          columns={columnsOf("bookings")}
           formatValue={String}
         />
         <ColumnChart
-          title="Revenue per day"
-          columns={days.map((day) => ({ ...day, value: day.revenueCents }))}
+          title={`Revenue per ${unit}`}
+          hint={hint}
+          columns={columnsOf("revenueCents")}
+          smallestStep={WHOLE_LARI}
           formatValue={formatPrice}
         />
       </div>
@@ -100,32 +146,32 @@ function Figures({ overview }: { overview: Overview }) {
       </div>
 
       <details>
-        <summary className="cursor-pointer text-sm font-medium text-action underline underline-offset-4">
-          Show the daily numbers as a table
+        <summary className="cursor-pointer font-semibold text-action underline decoration-2 underline-offset-4">
+          Show the {byWeek ? "weekly" : "daily"} numbers as a table
         </summary>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-line text-muted">
+            <thead className="border-b-2 border-ink text-xs text-muted">
               <tr>
-                <th scope="col" className="py-2 pr-4 font-medium">
-                  Day
+                <th scope="col" className="py-2 pr-4 font-semibold">
+                  {byWeek ? "Week" : "Day"}
                 </th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">
+                <th scope="col" className="py-2 pr-4 text-right font-semibold">
                   Bookings
                 </th>
-                <th scope="col" className="py-2 text-right font-medium">
+                <th scope="col" className="py-2 text-right font-semibold">
                   Revenue
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line tabular-nums">
-              {days.map((day) => (
-                <tr key={day.date}>
+              {periods.map((period) => (
+                <tr key={period.from}>
                   <th scope="row" className="py-2 pr-4 font-normal">
-                    {day.label}
+                    {period.label}
                   </th>
-                  <td className="py-2 pr-4 text-right">{day.bookings}</td>
-                  <td className="py-2 text-right">{formatPrice(day.revenueCents)}</td>
+                  <td className="py-2 pr-4 text-right">{period.bookings}</td>
+                  <td className="py-2 text-right">{formatPrice(period.revenueCents)}</td>
                 </tr>
               ))}
             </tbody>
@@ -147,37 +193,35 @@ function OverviewFor({ today }: { today: string }) {
   const setRange = (nextFrom: string, nextTo: string) =>
     setParams({ from: nextFrom, to: nextTo }, { replace: true });
 
+  const startOfPreset = (days: string) => addDays(today, -(Number(days) - 1));
+  const preset = PRESET_DAYS.find((days) => to === today && from === startOfPreset(days)) ?? null;
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end gap-3">
-        {PRESET_DAYS.map((days) => {
-          const presetFrom = addDays(today, -(days - 1));
-          const selected = from === presetFrom && to === today;
-          return (
-            <Button
-              key={days}
-              variant={selected ? "primary" : "secondary"}
-              aria-pressed={selected}
-              onClick={() => setRange(presetFrom, today)}
-            >
-              Last {days} days
-            </Button>
-          );
-        })}
-        <Input
-          label="From"
-          type="date"
-          value={from}
-          max={to}
-          onChange={(event) => event.target.value && setRange(event.target.value, to)}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <Segmented
+          label="Period"
+          className="lg:w-[26rem]"
+          options={PRESET_DAYS.map((days) => ({ value: days, label: `Last ${days} days` }))}
+          value={preset}
+          onChange={(days) => setRange(startOfPreset(days), today)}
         />
-        <Input
-          label="To"
-          type="date"
-          value={to}
-          min={from}
-          onChange={(event) => event.target.value && setRange(from, event.target.value)}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="From"
+            type="date"
+            value={from}
+            max={to}
+            onChange={(event) => event.target.value && setRange(event.target.value, to)}
+          />
+          <Input
+            label="To"
+            type="date"
+            value={to}
+            min={from}
+            onChange={(event) => event.target.value && setRange(from, event.target.value)}
+          />
+        </div>
       </div>
 
       {overview.isError ? (
@@ -203,7 +247,7 @@ export function OverviewPage() {
   return (
     <>
       <title>Overview · Admin · Dalaki</title>
-      <h2 className="sr-only">Overview</h2>
+      <h1 className="sr-only">Overview</h1>
       {shop.isError ? (
         <ErrorState
           title="We couldn't load the overview"

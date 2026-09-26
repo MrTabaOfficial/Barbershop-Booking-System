@@ -10,7 +10,10 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await logIn(page, "tamar@dalaki.example");
 
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { name: "Admin" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Overview" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(page.getByText("No-show rate")).toBeVisible();
   await expect(page.getByRole("group", { name: /^Bookings per day/ })).toBeVisible();
   await expect(page.getByRole("group", { name: /^Revenue per day/ })).toBeVisible();
@@ -32,7 +35,7 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await serviceDialog.getByLabel("Deposit in ₾").fill("5");
   await serviceDialog.getByRole("button", { name: "Save service" }).click();
   await expect(serviceDialog).toBeHidden();
-  await expect(page.getByText("30 min · 20 ₾ · deposit 5 ₾")).toBeVisible();
+  await expect(page.getByText("30 min, 20 ₾, deposit 5 ₾")).toBeVisible();
 
   const onTheBookingPage = page.getByRole("button").filter({ hasText: "Head shave" });
   await page.goto("/book");

@@ -13,6 +13,7 @@ import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { formatDuration, formatPrice, parseLari, toLariInput } from "../lib/format.ts";
+import { countActive, INACTIVE_TAG } from "./activeEntries.ts";
 
 const amount = (message: string) =>
   z.string().refine((value) => parseLari(value) !== null, message);
@@ -148,23 +149,19 @@ export function ServicesPage() {
         {services.data.map((service) => (
           <li
             key={service.id}
-            className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
           >
             <div className={service.isActive ? "" : "text-muted"}>
-              <p className="font-extrabold text-lg">
+              <p className="text-lg font-extrabold">
                 {service.name}
-                {!service.isActive && (
-                  <span className="ml-3 rounded-md border border-edge px-2 py-0.5 text-xs font-semibold uppercase tracking-wider">
-                    Inactive
-                  </span>
-                )}
+                {!service.isActive && <span className={INACTIVE_TAG}>Inactive</span>}
               </p>
-              <p className="mt-1 text-sm text-muted">
-                {formatDuration(service.durationMinutes)} · {formatPrice(service.priceCents)} ·
+              <p className="text-sm text-muted">
+                {formatDuration(service.durationMinutes)}, {formatPrice(service.priceCents)},
                 deposit {formatPrice(service.depositCents)}
               </p>
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 items-center gap-4">
               <Button
                 variant="secondary"
                 aria-label={`Edit ${service.name}`}
@@ -173,7 +170,7 @@ export function ServicesPage() {
                 Edit
               </Button>
               <Button
-                variant="secondary"
+                variant="quiet"
                 disabled={saveService.isPending}
                 aria-label={`${service.isActive ? "Deactivate" : "Activate"} ${service.name}`}
                 onClick={() => saveService.mutate({ id: service.id, isActive: !service.isActive })}
@@ -190,8 +187,9 @@ export function ServicesPage() {
   return (
     <>
       <title>Services · Admin · Dalaki</title>
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-xl">Services</h2>
+      <h1 className="sr-only">Services</h1>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p className="text-muted">{services.data && countActive(services.data, "service")}</p>
         <Button onClick={() => setEditing(null)}>Add a service</Button>
       </div>
       {saveService.isError && (
