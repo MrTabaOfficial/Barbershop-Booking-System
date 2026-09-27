@@ -39,9 +39,9 @@ function Header() {
 
   return (
     <header>
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3.5 sm:px-8 lg:py-5">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3.5 sm:px-8 lg:py-5">
         <Logo />
-        <nav aria-label="Main" className="flex items-center gap-3.5 sm:gap-5">
+        <nav aria-label="Main" className="ml-auto flex items-center gap-3.5 sm:gap-5">
           {status === "authenticated" && (
             <>
               {!isBarber && !isAdmin && (

@@ -158,6 +158,24 @@ test("a customer cancels a booking after seeing the 24-hour rule", async ({ page
   await expect(dialog).toBeHidden();
   await expect(card).toContainText("Your 15 ₾ deposit was refunded.");
   await expect(card.getByRole("button")).toHaveCount(0);
+  await expect(card).toBeFocused();
+});
+
+test.describe("on the narrowest phones", () => {
+  test.use({ viewport: { width: 320, height: 640 } });
+
+  test("a logged-in customer's pages don't scroll sideways", async ({ page }) => {
+    await signUp(page);
+
+    for (const path of ["/bookings", "/book", "/"]) {
+      await page.goto(path);
+      await expect(page.getByRole("link", { name: "My bookings" })).toBeVisible();
+      const scrollsSideways = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(scrollsSideways, `${path} at 320 px`).toBe(false);
+    }
+  });
 });
 
 test("a reload keeps the customer logged in, and logging out ends the session", async ({

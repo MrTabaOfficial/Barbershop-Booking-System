@@ -164,12 +164,7 @@ export function BarberPage() {
       <div className="space-y-12">
         <Today today={today} />
         <Week today={today} />
-        <section aria-labelledby="days-off-title">
-          <h2 id="days-off-title" className="mb-3 text-xl">
-            Days off
-          </h2>
-          <DaysOff today={today} />
-        </section>
+        <DaysOff today={today} />
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
 import { useMyBookings, useShop } from "../api/queries.ts";
 import type { Booking } from "../api/types.ts";
@@ -11,10 +11,13 @@ import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { firstName } from "../lib/format.ts";
+import { useFocusAfter } from "../lib/useFocusAfter.ts";
 
 type OpenDialog = { kind: "cancel" | "reschedule"; booking: Booking } | null;
 
 const DEFAULT_FREE_CANCELLATION_HOURS = 24;
+
+const cardId = (bookingId: string) => `booking-${bookingId}`;
 
 const describe = (booking: Booking) =>
   `${formatLongDate(booking.localDate)} at ${booking.localTime} with ${firstName(booking.barber.name)}`;
@@ -55,6 +58,15 @@ export function MyBookingsPage() {
   const bookings = useMyBookings(params.get("paid"));
   const shop = useShop();
   const [dialog, setDialog] = useState<OpenDialog>(null);
+  const upcomingHeading = useRef<HTMLHeadingElement>(null);
+  const focusAfterCancelling = useFocusAfter<string>(
+    (bookingId) =>
+      !bookings.data?.upcoming.some(
+        (booking) =>
+          booking.id === bookingId && (booking.status === "pending" || booking.status === "confirmed"),
+      ),
+    (bookingId) => document.getElementById(cardId(bookingId)) ?? upcomingHeading.current,
+  );
   const freeCancellationHours =
     shop.data?.freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS;
 
@@ -76,7 +88,7 @@ export function MyBookingsPage() {
     return (
       <div className="space-y-10">
         <section aria-labelledby="upcoming-title">
-          <h2 id="upcoming-title" className="mb-3 text-xl">
+          <h2 id="upcoming-title" ref={upcomingHeading} tabIndex={-1} className="mb-3 text-xl">
             Upcoming
           </h2>
           {upcoming.length === 0 ? (
@@ -89,7 +101,7 @@ export function MyBookingsPage() {
           ) : (
             <ul className="space-y-4">
               {upcoming.map((booking) => (
-                <li key={booking.id}>
+                <li key={booking.id} id={cardId(booking.id)} tabIndex={-1} className="rounded-lg">
                   <BookingCard
                     booking={booking}
                     freeCancellationHours={freeCancellationHours}
@@ -130,6 +142,7 @@ export function MyBookingsPage() {
           booking={dialog.booking}
           freeCancellationHours={freeCancellationHours}
           onClose={() => setDialog(null)}
+          onCancelled={() => focusAfterCancelling(dialog.booking.id)}
         />
       )}
       {dialog?.kind === "reschedule" &&

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useAdminBarbers, useAdminBookings, useCancelBookingAsAdmin } from "../api/adminQueries.ts";
 import { apiDownload, errorMessage } from "../api/http.ts";
@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { StatusBadge, statusLabel } from "../components/StatusBadge.tsx";
 import { dayParts, formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
+import { useFocusAfter } from "../lib/useFocusAfter.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
 const STATUSES: BookingStatus[] = [
@@ -56,7 +57,17 @@ const isCancellable = (booking: AdminBooking) =>
 const cancelLabel = (booking: AdminBooking) =>
   `Cancel ${booking.customer.name}'s booking on ${formatLongDate(booking.localDate)} at ${booking.localTime}`;
 
-function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: () => void }) {
+const rowId = (bookingId: string) => `booking-${bookingId}`;
+
+function CancelDialog({
+  booking,
+  onClose,
+  onCancelled,
+}: {
+  booking: AdminBooking;
+  onClose: () => void;
+  onCancelled: () => void;
+}) {
   const cancelBooking = useCancelBookingAsAdmin();
   const depositPaid = booking.paymentStatus === "paid";
   const [refund, setRefund] = useState(true);
@@ -74,7 +85,15 @@ function CancelDialog({ booking, onClose }: { booking: AdminBooking; onClose: ()
             loading={cancelBooking.isPending}
             loadingLabel="Cancelling…"
             onClick={() =>
-              cancelBooking.mutate({ bookingId: booking.id, refund }, { onSuccess: onClose })
+              cancelBooking.mutate(
+                { bookingId: booking.id, refund },
+                {
+                  onSuccess: () => {
+                    onCancelled();
+                    onClose();
+                  },
+                },
+              )
             }
           >
             Cancel booking
@@ -119,6 +138,15 @@ export function BookingsPage() {
   const [exporting, setExporting] = useState(false);
   const tableFits = useMediaQuery(TABLE_FITS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const list = useRef<HTMLElement | null>(null);
+  const keepList = (element: HTMLElement | null) => {
+    list.current = element;
+  };
+  const focusAfterCancelling = useFocusAfter<string>(
+    (bookingId) =>
+      !bookings.data?.bookings.some((booking) => booking.id === bookingId && isCancellable(booking)),
+    (bookingId) => document.getElementById(rowId(bookingId)) ?? list.current,
+  );
 
   const sort = (params.get("sort") ?? "startsAt") as SortKey;
   const order = params.get("order") ?? "desc";
@@ -230,9 +258,14 @@ export function BookingsPage() {
 
   function renderRowsAsList(rows: AdminBooking[]) {
     return (
-      <ul aria-label="Bookings" className="divide-y divide-line border-y border-line">
+      <ul
+        ref={keepList}
+        tabIndex={-1}
+        aria-label="Bookings"
+        className="divide-y divide-line border-y border-line"
+      >
         {rows.map((booking) => (
-          <li key={booking.id} className="py-4">
+          <li key={booking.id} id={rowId(booking.id)} tabIndex={-1} className="py-4">
             <div className="flex items-start justify-between gap-3">
               <p className="font-semibold tabular-nums">
                 {formatLongDate(booking.localDate)}, {booking.localTime}
@@ -279,8 +312,13 @@ export function BookingsPage() {
         {/* `relative` keeps the absolutely positioned, visually hidden
             heading inside this scrolling box; without it the whole page
             would scroll sideways. */}
-        <div className="relative overflow-x-auto">
-          <table className="w-full min-w-[46rem] text-left text-sm">
+        <div className="relative -mx-1.5 overflow-x-auto px-1.5">
+          <table
+            ref={keepList}
+            tabIndex={-1}
+            aria-label="Bookings"
+            className="w-full min-w-[46rem] text-left text-sm"
+          >
             <thead className="border-b-2 border-ink text-xs">
               <tr>
                 {COLUMNS.map((column) => (
@@ -313,7 +351,7 @@ export function BookingsPage() {
             </thead>
             <tbody className="divide-y divide-line">
               {rows.map((booking) => (
-                <tr key={booking.id}>
+                <tr key={booking.id} id={rowId(booking.id)} tabIndex={-1}>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums">
                     {shortDate(booking.localDate)}, {booking.localTime}
                   </td>
@@ -498,7 +536,13 @@ export function BookingsPage() {
 
       <div className="mt-8">{renderTable()}</div>
 
-      {cancelling && <CancelDialog booking={cancelling} onClose={() => setCancelling(null)} />}
+      {cancelling && (
+        <CancelDialog
+          booking={cancelling}
+          onClose={() => setCancelling(null)}
+          onCancelled={() => focusAfterCancelling(cancelling.id)}
+        />
+      )}
     </>
   );
 }

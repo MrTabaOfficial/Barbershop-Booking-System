@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ApiError, errorMessage } from "../api/http.ts";
@@ -10,6 +10,7 @@ import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { formatLongDate } from "../lib/dates.ts";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
+import { useFocusAfter } from "../lib/useFocusAfter.ts";
 
 const dayOffSchema = z.object({
   date: z.string().min(1, "Choose a date"),
@@ -94,6 +95,11 @@ function AddDayOffForm({ today }: { today: string }) {
 export function DaysOff({ today }: { today: string }) {
   const daysOff = useDaysOff();
   const removeDayOff = useRemoveDayOff();
+  const section = useRef<HTMLElement>(null);
+  const focusAfterRemoving = useFocusAfter<string>(
+    (dayOffId) => !daysOff.data?.some((dayOff) => dayOff.id === dayOffId),
+    () => section.current,
+  );
 
   function renderList() {
     if (daysOff.isPending) {
@@ -127,7 +133,9 @@ export function DaysOff({ today }: { today: string }) {
               variant="quiet"
               disabled={removeDayOff.isPending}
               aria-label={`Remove day off on ${formatLongDate(dayOff.date)}`}
-              onClick={() => removeDayOff.mutate(dayOff.id)}
+              onClick={() =>
+                removeDayOff.mutate(dayOff.id, { onSuccess: () => focusAfterRemoving(dayOff.id) })
+              }
             >
               Remove
             </Button>
@@ -138,10 +146,13 @@ export function DaysOff({ today }: { today: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <section ref={section} tabIndex={-1} aria-labelledby="days-off-title" className="space-y-6">
+      <h2 id="days-off-title" className="text-xl">
+        Days off
+      </h2>
       {renderList()}
       {removeDayOff.isError && <Notice tone="error">{errorMessage(removeDayOff.error)}</Notice>}
       <AddDayOffForm today={today} />
-    </div>
+    </section>
   );
 }

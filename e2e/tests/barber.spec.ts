@@ -61,6 +61,7 @@ test("a barber records how an appointment went and manages days off", async ({
 
   await dayOff.getByRole("button", { name: /^Remove day off/ }).click();
   await expect(dayOff).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Days off" })).toBeFocused();
 });
 
 test("a customer who opens the barber page is told it isn't theirs", async ({ page }) => {

@@ -61,6 +61,22 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
     setActive(index >= 0 && index < columns.length ? index : null);
   }
 
+  const isReading = active !== null;
+  useEffect(() => {
+    if (!isReading) {
+      return;
+    }
+    // A reading opened by hovering has to close on Escape as well, and the
+    // chart doesn't have keyboard focus then.
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActive(null);
+      }
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isReading]);
+
   function activateFromKeyboard(event: KeyboardEvent<HTMLDivElement>) {
     const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (step === 0 || columns.length === 0) {
@@ -72,10 +88,13 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
   }
 
   const activeColumn = active === null ? undefined : columns[active];
+  const activeCenter = active === null ? 0 : x(active) + barWidth / 2;
 
   return (
     <figure>
-      <figcaption className="mb-3 font-semibold">{title}</figcaption>
+      <figcaption className="mb-3">
+        <h2 className="text-base font-semibold tracking-normal">{title}</h2>
+      </figcaption>
       <div
         ref={ref}
         tabIndex={0}
@@ -130,6 +149,15 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
                     className={index === active ? "fill-action-pressed" : "fill-action"}
                   />
                 )}
+                {index === active && (
+                  <rect
+                    x={barLeft - 1}
+                    y={bottom + 2}
+                    width={barWidth + 2}
+                    height={3}
+                    className="fill-ink"
+                  />
+                )}
                 {index % labelEvery === 0 && (
                   <text
                     x={barLeft + barWidth / 2}
@@ -148,11 +176,12 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
         <div aria-live="polite">
           {activeColumn && active !== null && (
             <div
-              className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-surface px-3 py-2 text-sm shadow-pop"
-              style={{
-                left: Math.min(Math.max(x(active) + barWidth / 2, 80), Math.max(width - 80, 80)),
-                top: 0,
-              }}
+              className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-line bg-surface px-3 py-2 text-sm shadow-pop"
+              style={
+                activeCenter < width / 2
+                  ? { left: Math.max(activeCenter - 20, left) }
+                  : { right: Math.max(width - activeCenter - 20, 0) }
+              }
             >
               <span className="block font-semibold tabular-nums">
                 {formatValue(activeColumn.value)}
@@ -175,7 +204,9 @@ export function BarList({ title, rows }: BarListProps) {
   const longest = Math.max(...rows.map((row) => row.value), 1);
   return (
     <figure>
-      <figcaption className="mb-3 font-semibold">{title}</figcaption>
+      <figcaption className="mb-3">
+        <h2 className="text-base font-semibold tracking-normal">{title}</h2>
+      </figcaption>
       <ul className="space-y-3">
         {rows.map((row) => (
           <li key={row.label}>

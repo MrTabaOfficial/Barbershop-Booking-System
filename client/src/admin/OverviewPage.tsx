@@ -89,6 +89,7 @@ function Figures({ overview }: { overview: Overview }) {
 
   return (
     <div className="space-y-10">
+      <h2 className="sr-only">Key figures</h2>
       <dl className="divide-y divide-line border-y border-line lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:divide-y-0 lg:border-y-0">
         <Figure
           lead

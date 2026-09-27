@@ -13,9 +13,15 @@ type CancelDialogProps = {
   booking: Booking;
   freeCancellationHours: number;
   onClose: () => void;
+  onCancelled: () => void;
 };
 
-export function CancelDialog({ booking, freeCancellationHours, onClose }: CancelDialogProps) {
+export function CancelDialog({
+  booking,
+  freeCancellationHours,
+  onClose,
+  onCancelled,
+}: CancelDialogProps) {
   const cancelBooking = useCancelBooking();
   const deposit = formatPrice(booking.depositCents);
 
@@ -42,7 +48,14 @@ export function CancelDialog({ booking, freeCancellationHours, onClose }: Cancel
             variant="danger"
             loading={cancelBooking.isPending}
             loadingLabel="Cancelling…"
-            onClick={() => cancelBooking.mutate(booking.id, { onSuccess: onClose })}
+            onClick={() =>
+              cancelBooking.mutate(booking.id, {
+                onSuccess: () => {
+                  onCancelled();
+                  onClose();
+                },
+              })
+            }
           >
             Cancel booking
           </Button>

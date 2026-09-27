@@ -74,6 +74,7 @@ test("the admin reads the overview, manages a service, the bookings and a barber
   await rows.first().getByRole("button", { name: /^Cancel / }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Cancel booking" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.getByRole("table", { name: "Bookings" })).toBeFocused();
   await expect(showing).toHaveText(new RegExp(` of ${totalBefore - 1}$`));
 
   const downloading = page.waitForEvent("download");
