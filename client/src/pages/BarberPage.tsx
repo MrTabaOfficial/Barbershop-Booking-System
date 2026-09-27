@@ -3,14 +3,10 @@ import { useSchedule } from "../api/barberQueries.ts";
 import { useShop } from "../api/queries.ts";
 import { countAppointments, DayAgenda, describeHours } from "../barber/DayAgenda.tsx";
 import { DaysOff } from "../barber/DaysOff.tsx";
-import { Button } from "../components/Button.tsx";
+import { Button, TEXT_LINK } from "../components/Button.tsx";
 import { ErrorState, LoadingBlock } from "../components/States.tsx";
-import { addDays, dayParts, formatLongDate, startOfWeek } from "../lib/dates.ts";
-
-function shortDate(shopDate: string): string {
-  const { weekday, day, month } = dayParts(shopDate);
-  return `${weekday} ${day} ${month}`;
-}
+import { Tag } from "../components/Tag.tsx";
+import { addDays, formatLongDate, formatShortDate, startOfWeek } from "../lib/dates.ts";
 
 function Today({ today }: { today: string }) {
   const schedule = useSchedule(today, today);
@@ -34,7 +30,7 @@ function Today({ today }: { today: string }) {
             onRetry={() => void schedule.refetch()}
           />
         ) : day ? (
-          <DayAgenda day={day} />
+          <DayAgenda day={day} markNow />
         ) : (
           <LoadingBlock label="Loading today's appointments" />
         )}
@@ -56,7 +52,7 @@ function Week({ today }: { today: string }) {
       </h2>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p>
-          {shortDate(weekStart)} to {shortDate(weekEnd)}
+          {formatShortDate(weekStart)} to {formatShortDate(weekEnd)}
         </p>
         <div className="flex gap-2">
           <Button
@@ -98,11 +94,9 @@ function Week({ today }: { today: string }) {
               const label = (
                 <span>
                   <span className="block font-semibold">
-                    {shortDate(day.date)}
+                    {formatShortDate(day.date)}
                     {day.date === today && (
-                      <span className="ml-2 rounded-sm bg-action-tint px-1.5 py-0.5 text-xs text-action-hover">
-                        Today
-                      </span>
+                      <Tag className="ml-2">Today</Tag>
                     )}
                   </span>
                   <span className="block text-sm text-muted">{describeHours(day)}</span>
@@ -124,7 +118,7 @@ function Week({ today }: { today: string }) {
                     {label}
                     <span className="shrink-0 text-right text-sm">
                       <span className="block">{countAppointments(day)}</span>
-                      <span className="font-semibold text-action underline decoration-2 underline-offset-4">
+                      <span className={TEXT_LINK}>
                         <span className="group-open:hidden">Show</span>
                         <span className="hidden group-open:inline">Hide</span>
                       </span>

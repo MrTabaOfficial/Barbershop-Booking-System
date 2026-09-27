@@ -10,7 +10,7 @@ import { Notice } from "../components/Notice.tsx";
 import { Select } from "../components/Select.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { StatusBadge, statusLabel } from "../components/StatusBadge.tsx";
-import { dayParts, formatLongDate } from "../lib/dates.ts";
+import { formatLongDate, formatShortDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 import { useFocusAfter } from "../lib/useFocusAfter.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
@@ -46,10 +46,7 @@ const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
 
 const TABLE_FITS = "(min-width: 60rem)";
 
-function shortDate(shopDate: string): string {
-  const { weekday, day, month } = dayParts(shopDate);
-  return `${weekday} ${day} ${month}`;
-}
+
 
 const isCancellable = (booking: AdminBooking) =>
   booking.status === "pending" || booking.status === "confirmed";
@@ -353,14 +350,11 @@ export function BookingsPage() {
               {rows.map((booking) => (
                 <tr key={booking.id} id={rowId(booking.id)} tabIndex={-1}>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums">
-                    {shortDate(booking.localDate)}, {booking.localTime}
+                    {formatShortDate(booking.localDate)}, {booking.localTime}
                   </td>
                   <td className="max-w-[13rem] py-3 pr-4">
-                    <span className="block truncate">{booking.customer.name}</span>
-                    <span
-                      className="block truncate text-xs text-muted"
-                      title={booking.customer.phone ?? booking.customer.email}
-                    >
+                    {booking.customer.name}
+                    <span className="block break-words text-xs text-muted">
                       {booking.customer.phone ?? booking.customer.email}
                     </span>
                   </td>

@@ -3,6 +3,7 @@ import {
   addDays,
   dayParts,
   formatLongDate,
+  formatShortDate,
   isShopDate,
   shopClockOf,
   startOfWeek,
@@ -24,6 +25,11 @@ describe("shop dates", () => {
     expect(addDays("2026-10-30", 3)).toBe("2026-11-02");
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2026-10-06", -7)).toBe("2026-09-29");
+  });
+
+  it("writes a short date with or without the weekday", () => {
+    expect(formatShortDate("2026-10-06")).toBe("Tue 6 Oct");
+    expect(formatShortDate("2026-10-06", { weekday: false })).toBe("6 Oct");
   });
 
   it("numbers weekdays from Sunday, like the API", () => {

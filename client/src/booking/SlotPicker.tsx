@@ -3,7 +3,14 @@ import { useAvailability } from "../api/queries.ts";
 import type { Shop, Slot, WorkingHours } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
-import { addDays, dayParts, daysBetween, formatLongDate, weekdayOf } from "../lib/dates.ts";
+import {
+  addDays,
+  dayParts,
+  daysBetween,
+  formatLongDate,
+  formatShortDate,
+  weekdayOf,
+} from "../lib/dates.ts";
 import { formatClock } from "../lib/format.ts";
 
 const DAYS_PER_PAGE = 7;
@@ -26,11 +33,6 @@ const PARTS_OF_DAY = [
   { label: "Afternoon", from: "12:00", to: "17:00" },
   { label: "Evening", from: "17:00", to: "24:00" },
 ];
-
-function shortDate(shopDate: string): string {
-  const { weekday, day, month } = dayParts(shopDate);
-  return `${weekday} ${day} ${month}`;
-}
 
 function cityOf(timeZone: string): string {
   return (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
@@ -95,7 +97,7 @@ export function SlotPicker({
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-muted">
-            {shortDate(days[0] ?? activeDate)} to {shortDate(days.at(-1) ?? activeDate)}
+            {formatShortDate(days[0] ?? activeDate)} to {formatShortDate(days.at(-1) ?? activeDate)}
           </p>
           <div className="flex gap-2">
             <Button
@@ -208,7 +210,7 @@ export function SlotPicker({
                               >
                                 {slot.localTime}
                                 {current && (
-                                  <span className="block text-[0.6875rem] font-semibold">
+                                  <span className="block text-xs font-semibold">
                                     Current
                                   </span>
                                 )}

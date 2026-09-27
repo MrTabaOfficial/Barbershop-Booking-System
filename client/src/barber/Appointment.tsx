@@ -1,9 +1,11 @@
 import { errorMessage } from "../api/http.ts";
 import { type Outcome, useRecordOutcome } from "../api/barberQueries.ts";
 import type { BookingStatus, ScheduleBooking } from "../api/types.ts";
+import { TEXT_LINK } from "../components/Button.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { Segmented } from "../components/Segmented.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
+import { Tag } from "../components/Tag.tsx";
 import { phoneLink } from "../lib/format.ts";
 
 const OUTCOMES: { outcome: Outcome; status: BookingStatus; label: string }[] = [
@@ -11,7 +13,13 @@ const OUTCOMES: { outcome: Outcome; status: BookingStatus; label: string }[] = [
   { outcome: "no-show", status: "no_show", label: "No-show" },
 ];
 
-export function Appointment({ booking }: { booking: ScheduleBooking }) {
+export function Appointment({
+  booking,
+  marker,
+}: {
+  booking: ScheduleBooking;
+  marker?: "Now" | "Next";
+}) {
   const recordOutcome = useRecordOutcome();
 
   const hasStarted = Date.parse(booking.startsAt) <= Date.now() && booking.status !== "pending";
@@ -28,6 +36,9 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
         <p className="tabular-nums">
           <span className="block font-extrabold">{booking.localTime}</span>
           <span className="block text-sm text-muted">to {booking.localEndTime}</span>
+          {marker && (
+            <Tag className="mt-1">{marker}</Tag>
+          )}
         </p>
         <div className="min-w-0">
           <p className="font-semibold">{name}</p>
@@ -39,7 +50,7 @@ export function Appointment({ booking }: { booking: ScheduleBooking }) {
             <a
               href={phoneLink(phone)}
               aria-label={`Call ${name} on ${phone}`}
-              className="-mb-2.5 inline-flex min-h-11 items-center text-sm font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed"
+              className={`${TEXT_LINK} -mb-2.5 inline-flex min-h-11 items-center text-sm`}
             >
               <span className="sm:hidden">Call</span>
               <span className="hidden tabular-nums sm:inline">{phone}</span>

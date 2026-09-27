@@ -10,10 +10,11 @@ import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { Tag } from "../components/Tag.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
-import { countActive, INACTIVE_TAG } from "./activeEntries.ts";
+import { countActive } from "./activeEntries.ts";
 import { WorkingHoursDialog } from "./WorkingHoursDialog.tsx";
 
 const name = z.string().trim().min(1, "Enter a name").max(100);
@@ -181,7 +182,11 @@ export function StaffPage() {
             <div className={barber.isActive ? "" : "text-muted"}>
               <p className="text-lg font-extrabold">
                 {barber.name}
-                {!barber.isActive && <span className={INACTIVE_TAG}>Inactive</span>}
+                {!barber.isActive && (
+                  <Tag tone="neutral" className="ml-2.5 align-middle">
+                    Inactive
+                  </Tag>
+                )}
               </p>
               <p className="text-sm text-muted">{barber.email}</p>
               <p className="text-sm font-semibold text-muted">

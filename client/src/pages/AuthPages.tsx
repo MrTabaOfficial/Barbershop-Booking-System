@@ -2,12 +2,10 @@ import type { ReactNode } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/AuthContext.ts";
 import { LoginForm, RegisterForm } from "../auth/AuthForms.tsx";
+import { TEXT_LINK } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { homeFor, safeNextPath, withNext } from "../lib/nextPath.ts";
-
-const TEXT_LINK =
-  "font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed";
 
 function AuthPage({
   title,

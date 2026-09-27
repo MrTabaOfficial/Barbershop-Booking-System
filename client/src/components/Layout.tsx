@@ -2,17 +2,17 @@ import { Link, NavLink, Outlet, ScrollRestoration, useNavigate } from "react-rou
 import { useShop } from "../api/queries.ts";
 import { useAuth } from "../auth/AuthContext.ts";
 import { brand } from "../brand.ts";
+import { buttonClasses } from "./Button.tsx";
 import { phoneLink } from "../lib/format.ts";
 
 const NAV_LINK =
-  "whitespace-nowrap py-2 text-sm font-semibold underline-offset-4 sm:text-base transition-colors duration-120 ease-standard hover:text-action aria-[current=page]:underline aria-[current=page]:decoration-2";
+  "inline-flex min-h-11 items-center whitespace-nowrap text-sm font-semibold underline-offset-4 sm:text-base transition-colors duration-120 ease-standard hover:text-action aria-[current=page]:underline aria-[current=page]:decoration-2";
 
-const NAV_PLATE =
-  "rounded-md border-2 border-ink px-3 py-1.5 text-sm font-semibold sm:px-4 sm:text-base transition-colors duration-120 ease-standard hover:border-action hover:bg-action-tint hover:text-action-hover aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-on-action";
+const NAV_BUTTON = `${buttonClasses({ variant: "secondary", size: "sm" })} aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-on-action`;
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-3" aria-label={`${brand.name}, home`}>
+    <Link to="/" className="flex min-h-11 items-center gap-3" aria-label={`${brand.name}, home`}>
       <span
         lang="ka"
         className="rounded-md bg-action px-2.5 pb-2.5 pt-2 text-base font-semibold leading-none text-on-action sm:px-3 sm:text-lg"
@@ -60,15 +60,15 @@ function Header() {
             </NavLink>
           )}
           {isBarber ? (
-            <NavLink to="/barber" className={NAV_PLATE}>
+            <NavLink to="/barber" className={NAV_BUTTON}>
               Schedule
             </NavLink>
           ) : isAdmin ? (
-            <NavLink to="/admin" className={NAV_PLATE}>
+            <NavLink to="/admin" className={NAV_BUTTON}>
               Admin
             </NavLink>
           ) : (
-            <NavLink to="/book" className={NAV_PLATE}>
+            <NavLink to="/book" className={NAV_BUTTON}>
               Book
             </NavLink>
           )}
@@ -90,7 +90,10 @@ function Footer() {
               {shop.data.address.street}, {shop.data.address.district}, {shop.data.address.city}
             </p>
             <p>
-              <a href={phoneLink(shop.data.phone)} className="underline-offset-4 hover:underline">
+              <a
+                href={phoneLink(shop.data.phone)}
+                className="inline-block py-1 underline underline-offset-4 transition-colors duration-120 ease-standard hover:text-ink"
+              >
                 {shop.data.phone}
               </a>
             </p>

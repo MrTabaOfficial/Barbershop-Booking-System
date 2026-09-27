@@ -1,6 +1,6 @@
 export type Step = {
   label: string;
-  choice?: string;
+  choice?: string | [string, string];
   onChange?: () => void;
 };
 
@@ -12,6 +12,7 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
           const number = index + 1;
           const isCurrent = number === current;
           const isDone = number < current;
+          const choiceLines = typeof step.choice === "string" ? [step.choice] : (step.choice ?? []);
           const content = (
             <>
               <span
@@ -23,7 +24,11 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
               </span>
               {step.choice && (
                 <span className="block break-words font-semibold text-action underline underline-offset-2 transition-colors duration-120 ease-standard group-hover:text-action-pressed">
-                  {step.choice}
+                  {choiceLines.map((line) => (
+                    <span key={line} className="block">
+                      {line}
+                    </span>
+                  ))}
                 </span>
               )}
             </>
@@ -40,7 +45,7 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
                 <button
                   type="button"
                   onClick={step.onChange}
-                  aria-label={`Change ${step.label.toLowerCase()}, now ${step.choice}`}
+                  aria-label={`Change ${step.label.toLowerCase()}, now ${choiceLines.join(", ")}`}
                   className="group block w-full pb-1 pt-2 text-left"
                 >
                   {content}

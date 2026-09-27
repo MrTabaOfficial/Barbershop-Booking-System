@@ -1,4 +1,4 @@
-import type { ScheduleDay } from "../api/types.ts";
+import type { ScheduleBooking, ScheduleDay } from "../api/types.ts";
 import { formatClock } from "../lib/format.ts";
 import { Appointment } from "./Appointment.tsx";
 
@@ -24,7 +24,7 @@ export function countAppointments(day: ScheduleDay): string {
   return count === 1 ? "1 appointment" : `${count} appointments`;
 }
 
-export function DayAgenda({ day }: { day: ScheduleDay }) {
+export function DayAgenda({ day, markNow = false }: { day: ScheduleDay; markNow?: boolean }) {
   if (day.bookings.length === 0) {
     return (
       <p className="rounded-md bg-sunken px-4 py-6 text-center text-muted">
@@ -32,11 +32,19 @@ export function DayAgenda({ day }: { day: ScheduleDay }) {
       </p>
     );
   }
+  const now = Date.now();
+  const current = day.bookings.find(
+    (booking) => Date.parse(booking.startsAt) <= now && now < Date.parse(booking.endsAt),
+  );
+  const next = day.bookings.find((booking) => Date.parse(booking.startsAt) > now);
+  const markerOf = (booking: ScheduleBooking) =>
+    !markNow ? undefined : booking === current ? "Now" : booking === next ? "Next" : undefined;
+
   return (
     <ul className="divide-y divide-line rounded-lg border border-line bg-surface px-4">
       {day.bookings.map((booking) => (
         <li key={booking.id} className="py-3">
-          <Appointment booking={booking} />
+          <Appointment booking={booking} marker={markerOf(booking)} />
         </li>
       ))}
     </ul>

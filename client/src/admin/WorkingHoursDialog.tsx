@@ -4,6 +4,7 @@ import { ApiError, errorMessage } from "../api/http.ts";
 import type { AdminBarber, WorkingDay } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
+import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { formatClock, parseClock } from "../lib/format.ts";
 
@@ -18,9 +19,6 @@ const WEEK = [
 ];
 
 type Row = { works: boolean; start: string; end: string; breakStart: string; breakEnd: string };
-
-const TIME_INPUT =
-  "min-h-11 w-full rounded-md border border-edge bg-surface px-2 text-ink disabled:border-line disabled:text-faint";
 
 function toRow(day: WorkingDay | undefined): Row {
   const clock = (minute: number | null | undefined) =>
@@ -130,7 +128,7 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
                 {!row.works && <span className="font-normal text-muted">Not working</span>}
               </label>
               {row.works && (
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+                <div className="mt-2 grid grid-cols-2 gap-3">
                   {(
                     [
                       ["start", "Start"],
@@ -139,17 +137,15 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
                       ["breakEnd", "Break to"],
                     ] as const
                   ).map(([field, label]) => (
-                    <label key={field} className="block text-xs text-muted">
-                      {label}
-                      <input
-                        type="time"
-                        step={900}
-                        aria-label={`${name}: ${label.toLowerCase()}`}
-                        className={`${TIME_INPUT} mt-1 block text-base`}
-                        value={row[field]}
-                        onChange={(event) => change(index, { [field]: event.target.value })}
-                      />
-                    </label>
+                    <Input
+                      key={field}
+                      label={label}
+                      type="time"
+                      step={900}
+                      aria-label={`${name}: ${label.toLowerCase()}`}
+                      value={row[field]}
+                      onChange={(event) => change(index, { [field]: event.target.value })}
+                    />
                   ))}
                 </div>
               )}

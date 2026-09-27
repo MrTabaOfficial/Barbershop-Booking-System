@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Booking } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
-import { dayParts } from "../lib/dates.ts";
+import { formatShortDate } from "../lib/dates.ts";
 import { describeCancellation } from "./BookingCard.tsx";
 
 const RECENT_VISITS = 5;
@@ -18,12 +18,11 @@ export function PastVisits({ bookings }: { bookings: Booking[] }) {
         {bookings.slice(0, shown).map((booking) => {
           const cancellationNote =
             booking.status === "cancelled" ? describeCancellation(booking) : null;
-          const { weekday, day, month } = dayParts(booking.localDate);
           return (
             <li key={booking.id} className="flex items-start justify-between gap-4 py-3">
               <div className="min-w-0 sm:grid sm:grid-cols-[10rem_1fr] sm:gap-x-4">
                 <p className="tabular-nums">
-                  {weekday} {day} {month}, {booking.localTime}
+                  {formatShortDate(booking.localDate)}, {booking.localTime}
                 </p>
                 <p className="text-sm text-muted sm:text-base">
                   {booking.service.name} with {booking.barber.name}

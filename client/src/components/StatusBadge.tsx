@@ -1,4 +1,5 @@
 import type { BookingStatus } from "../api/types.ts";
+import { Tag, type TagTone } from "./Tag.tsx";
 
 const STAFF_LABELS: Record<BookingStatus, string> = {
   pending: "Pending",
@@ -15,13 +16,13 @@ const CUSTOMER_LABELS: Record<BookingStatus, string> = {
   no_show: "Missed",
 };
 
-const TONES: Record<BookingStatus, string> = {
-  pending: "bg-warning-tint text-warning",
-  confirmed: "bg-action-tint text-action-hover",
-  completed: "bg-success-tint text-success",
-  no_show: "bg-danger-tint text-danger",
-  cancelled: "bg-sunken text-muted",
-  expired: "bg-sunken text-muted",
+const TONES: Record<BookingStatus, TagTone> = {
+  pending: "warning",
+  confirmed: "action",
+  completed: "success",
+  no_show: "danger",
+  cancelled: "neutral",
+  expired: "neutral",
 };
 
 export function statusLabel(status: BookingStatus, audience: "staff" | "customer" = "staff") {
@@ -35,11 +36,5 @@ export function StatusBadge({
   status: BookingStatus;
   audience?: "staff" | "customer";
 }) {
-  return (
-    <span
-      className={`inline-block whitespace-nowrap rounded-sm px-2 py-0.5 text-xs font-semibold ${TONES[status]}`}
-    >
-      {statusLabel(status, audience)}
-    </span>
-  );
+  return <Tag tone={TONES[status]}>{statusLabel(status, audience)}</Tag>;
 }

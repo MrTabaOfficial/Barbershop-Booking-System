@@ -3,8 +3,8 @@ import { axisTicks } from "./chartMath.ts";
 
 const HEIGHT = 220;
 const MARGIN = { top: 12, right: 4, bottom: 26 };
-const AXIS_CHARACTER_WIDTH = 7;
-const AXIS_LABEL_ROOM = 64;
+const AXIS_CHARACTER_WIDTH = 7.5;
+const AXIS_LABEL_ROOM = 70;
 const MAX_BAR_WIDTH = 24;
 const BAR_GAP = 2;
 const CORNER = 4;
@@ -129,7 +129,7 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
                 y={y(tick)}
                 textAnchor="end"
                 dominantBaseline="middle"
-                className="fill-muted text-[0.75rem] tabular-nums"
+                className="fill-muted text-xs tabular-nums"
               >
                 {formatValue(tick)}
               </text>
@@ -163,7 +163,7 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
                     x={barLeft + barWidth / 2}
                     y={HEIGHT - 8}
                     textAnchor={index === 0 ? "start" : "middle"}
-                    className="fill-muted text-[0.75rem]"
+                    className="fill-muted text-xs"
                   >
                     {column.shortLabel}
                   </text>

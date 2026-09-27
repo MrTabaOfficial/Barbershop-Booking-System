@@ -2,11 +2,12 @@ import { useSearchParams } from "react-router";
 import { useOverview } from "../api/adminQueries.ts";
 import { useShop } from "../api/queries.ts";
 import type { BookingStatus, Overview } from "../api/types.ts";
+import { TEXT_LINK } from "../components/Button.tsx";
 import { Input } from "../components/Input.tsx";
 import { Segmented } from "../components/Segmented.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { statusLabel } from "../components/StatusBadge.tsx";
-import { addDays, dayParts, formatLongDate, isShopDate } from "../lib/dates.ts";
+import { addDays, formatLongDate, formatShortDate, isShopDate } from "../lib/dates.ts";
 import { formatPercent, formatPrice } from "../lib/format.ts";
 import { groupByWeek } from "./chartMath.ts";
 import { BarList, ColumnChart } from "./charts.tsx";
@@ -24,10 +25,7 @@ const STATUS_ORDER: BookingStatus[] = [
   "expired",
 ];
 
-function shortDate(shopDate: string): string {
-  const { day, month } = dayParts(shopDate);
-  return `${day} ${month}`;
-}
+const shortDate = (shopDate: string) => formatShortDate(shopDate, { weekday: false });
 
 function Figure({
   label,
@@ -41,16 +39,16 @@ function Figure({
   lead?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-x-4 py-3 lg:block lg:border-l lg:border-line lg:px-6 lg:py-0 lg:first:border-l-0 lg:first:pl-0">
-      <dt className="col-start-1 font-semibold lg:text-sm lg:font-normal lg:text-muted">{label}</dt>
+    <div className="grid grid-cols-[1fr_auto] gap-x-4 py-3 md:block md:border-l md:border-line md:px-5 md:py-0 md:first:border-l-0 md:first:pl-0 lg:px-6">
+      <dt className="col-start-1 font-semibold md:text-sm md:font-normal md:text-muted">{label}</dt>
       <dd
-        className={`col-start-2 row-span-2 row-start-1 self-center text-right font-extrabold lg:mt-1 lg:text-left ${
-          lead ? "text-3xl lg:text-4xl" : "text-xl lg:text-2xl"
+        className={`col-start-2 row-span-2 row-start-1 self-center text-right font-extrabold md:mt-1 md:text-left ${
+          lead ? "text-3xl lg:text-4xl" : "text-xl md:text-2xl"
         }`}
       >
         {value}
       </dd>
-      <dd className="col-start-1 text-sm text-muted lg:mt-1 lg:text-xs">{note}</dd>
+      <dd className="col-start-1 text-sm text-muted md:mt-1 md:text-xs">{note}</dd>
     </div>
   );
 }
@@ -90,7 +88,7 @@ function Figures({ overview }: { overview: Overview }) {
   return (
     <div className="space-y-10">
       <h2 className="sr-only">Key figures</h2>
-      <dl className="divide-y divide-line border-y border-line lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:divide-y-0 lg:border-y-0">
+      <dl className="divide-y divide-line border-y border-line md:grid md:grid-cols-[1.5fr_1fr_1fr_1fr] md:divide-y-0 md:border-y-0">
         <Figure
           lead
           label="Revenue"
@@ -114,7 +112,7 @@ function Figures({ overview }: { overview: Overview }) {
         />
       </dl>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid gap-10 md:grid-cols-2">
         <ColumnChart
           title={`Bookings per ${unit}`}
           hint={hint}
@@ -130,7 +128,7 @@ function Figures({ overview }: { overview: Overview }) {
         />
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid gap-10 md:grid-cols-2">
         <BarList
           title="Bookings by status"
           rows={STATUS_ORDER.map((status) => ({
@@ -147,7 +145,7 @@ function Figures({ overview }: { overview: Overview }) {
       </div>
 
       <details>
-        <summary className="cursor-pointer font-semibold text-action underline decoration-2 underline-offset-4">
+        <summary className={`${TEXT_LINK} cursor-pointer py-2.5`}>
           Show the {byWeek ? "weekly" : "daily"} numbers as a table
         </summary>
         <div className="mt-4 overflow-x-auto">
@@ -199,10 +197,10 @@ function OverviewFor({ today }: { today: string }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end">
         <Segmented
           label="Period"
-          className="lg:w-[26rem]"
+          className="md:w-[22rem] lg:w-[26rem]"
           options={PRESET_DAYS.map((days) => ({ value: days, label: `Last ${days} days` }))}
           value={preset}
           onChange={(days) => setRange(startOfPreset(days), today)}

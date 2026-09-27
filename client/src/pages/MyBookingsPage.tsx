@@ -35,7 +35,11 @@ function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
   }
 
   if (booking.status === "confirmed") {
-    return <Notice className="mb-8">You are booked for {describe(booking)}. See you then.</Notice>;
+    return (
+      <Notice tone="success" className="mb-8">
+        You are booked for {describe(booking)}. See you then.
+      </Notice>
+    );
   }
   if (booking.status !== "pending") {
     return null;

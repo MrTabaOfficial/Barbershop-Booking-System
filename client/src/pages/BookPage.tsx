@@ -9,7 +9,7 @@ import { type Step, Stepper } from "../booking/Stepper.tsx";
 import { describeWorkingDays } from "../booking/workingDays.ts";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
-import { dayParts, isShopDate } from "../lib/dates.ts";
+import { formatShortDate, isShopDate } from "../lib/dates.ts";
 import { firstName, formatDuration, formatPrice } from "../lib/format.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
@@ -93,7 +93,6 @@ export function BookPage() {
       );
     }
 
-    const chosenDay = date && slot && step === 4 ? dayParts(date) : null;
     const steps: Step[] = [
       {
         label: "Service",
@@ -108,8 +107,8 @@ export function BookPage() {
       {
         label: "Time",
         choice:
-          chosenDay && slot
-            ? `${chosenDay.weekday} ${chosenDay.day} ${chosenDay.month}, ${slot.localTime}`
+          date && slot && step === 4
+            ? [formatShortDate(date), slot.localTime]
             : undefined,
         onChange: () => update({ time: null }),
       },

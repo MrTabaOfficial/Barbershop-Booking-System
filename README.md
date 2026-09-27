@@ -593,6 +593,11 @@ e2e/
   lari sign in one design, but its package can't be split by alphabet, so
   each of the three weights is a 250 KB file that carries every script
   the font supports.
+- **The emails were not tested in real Gmail, Outlook or Apple Mail.**
+  They were checked in Mailpit, with fallback fonts, with colours
+  inverted and with `max-width` ignored, which is not the same thing.
+- **The wordmark in emails is drawn by the reader's own Georgian font.**
+  Mail programs don't load web fonts, so it won't match the site's.
 - **Notifications are sent in the request.** The email and the owner's
   alert go out before the response does, so a slow mail server slows the
   booking down and a message that fails is logged, not retried. A

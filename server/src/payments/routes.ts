@@ -21,12 +21,15 @@ function fakeCheckoutPage(description: string, amount: string, cancelUrl: string
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fake payment page</title>
     <style>
-      body { font-family: system-ui, sans-serif; background: #141210; color: #f2ebdd; margin: 0; padding: 2rem 1rem; }
+      body { font-family: FiraGO, "Fira Sans", "Segoe UI", system-ui, sans-serif; font-size: 17px; background: #f8f9fb; color: #101b3b; margin: 0; padding: 2rem 1rem; }
       main { max-width: 28rem; margin: 0 auto; }
-      p { line-height: 1.6; }
-      .note { color: #b4aa99; }
-      button { font: inherit; font-weight: 600; background: #b8893b; color: #141210; border: 0; border-radius: 2px; padding: 0.75rem 1.5rem; cursor: pointer; }
-      a { color: #cfa55c; }
+      h1 { font-size: 1.875rem; line-height: 1.15; letter-spacing: -0.025em; }
+      p { line-height: 1.55; }
+      .note { color: #566080; }
+      button { font: inherit; font-weight: 600; min-height: 3.5rem; background: #1d3fbb; color: #ffffff; border: 0; border-radius: 12px; padding: 0.75rem 1.75rem; cursor: pointer; }
+      button:hover { background: #17339a; }
+      a { display: inline-block; padding: 0.625rem 0; font-weight: 600; color: #1d3fbb; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+      :focus-visible { outline: 2px solid #101b3b; outline-offset: 2px; }
     </style>
   </head>
   <body>

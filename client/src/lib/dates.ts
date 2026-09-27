@@ -72,3 +72,8 @@ export function shopClockOf(instant: Date, timeZone: string): { date: string; ti
     time: `${part("hour")}:${part("minute")}`,
   };
 }
+
+export function formatShortDate(shopDate: string, { weekday = true } = {}): string {
+  const parts = dayParts(shopDate);
+  return weekday ? `${parts.weekday} ${parts.day} ${parts.month}` : `${parts.day} ${parts.month}`;
+}

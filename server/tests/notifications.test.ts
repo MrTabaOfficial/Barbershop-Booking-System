@@ -128,11 +128,11 @@ describe("when a booking is confirmed", () => {
     expect(email?.text).toContain("Service: Haircut");
     expect(email?.text).toContain("Barber: Luka Gelashvili");
     expect(email?.text).toMatch(/When: \w+ \d+ \w+ at 10:00 \(\w+ time\)/);
-    expect(email?.text).toContain("Deposit paid: 10 ₾");
-    expect(email?.text).toContain("To pay at the shop: 15 ₾");
+    expect(email?.text).toContain("Deposit paid: 10 GEL");
+    expect(email?.text).toContain("To pay at the shop: 15 GEL");
     expect(email?.html).toContain("დალაქი");
     expect(email?.html).toContain("Luka Gelashvili");
-    expect(email?.html).toContain("10 ₾");
+    expect(email?.html).toContain("10 GEL");
 
     expect(ownerAlerts.sent).toHaveLength(1);
     expect(ownerAlerts.sent[0]).toContain("New booking: Haircut with Luka Gelashvili");
@@ -188,7 +188,7 @@ describe("when a booking is cancelled", () => {
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.subject).toBe("Your booking at Dalaki is cancelled");
     expect(mailer.sent[0]?.text).toContain("as you asked, we have cancelled your appointment");
-    expect(mailer.sent[0]?.text).toContain("Your 10 ₾ deposit has been refunded");
+    expect(mailer.sent[0]?.text).toContain("Your 10 GEL deposit has been refunded");
     expect(ownerAlerts.sent[0]).toContain("Cancelled by the customer: Haircut with Luka Gelashvili");
     expect(ownerAlerts.sent[0]).toContain("The 10 ₾ deposit was refunded.");
   });
@@ -199,7 +199,7 @@ describe("when a booking is cancelled", () => {
     await cancel(booking.id);
 
     expect(mailer.sent[0]?.text).toContain(
-      "Because the appointment was less than 24 hours away, the 10 ₾ deposit has been kept.",
+      "Because the appointment was less than 24 hours away, the 10 GEL deposit has been kept.",
     );
     expect(mailer.sent[0]?.text).not.toContain("refunded");
     expect(ownerAlerts.sent[0]).toContain("The 10 ₾ deposit was kept.");
@@ -213,7 +213,7 @@ describe("when a booking is cancelled", () => {
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.to).toBe("davit@dalaki.example");
     expect(mailer.sent[0]?.text).toContain("we have had to cancel your appointment");
-    expect(mailer.sent[0]?.text).toContain("Your 10 ₾ deposit has been refunded");
+    expect(mailer.sent[0]?.text).toContain("Your 10 GEL deposit has been refunded");
     expect(ownerAlerts.sent[0]).toContain("Cancelled by the shop");
   });
 
@@ -222,7 +222,7 @@ describe("when a booking is cancelled", () => {
 
     await cancelAsAdmin(booking.id, { refund: false });
 
-    expect(mailer.sent[0]?.text).toContain("The 10 ₾ deposit has been kept.");
+    expect(mailer.sent[0]?.text).toContain("The 10 GEL deposit has been kept.");
   });
 
   it("owns up when the refund didn't go through", async () => {
@@ -262,7 +262,7 @@ describe("when a payment arrives too late to keep the slot", () => {
 
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.subject).toBe("We couldn't confirm your booking at Dalaki");
-    expect(mailer.sent[0]?.text).toContain("Your 10 ₾ deposit has been refunded");
+    expect(mailer.sent[0]?.text).toContain("Your 10 GEL deposit has been refunded");
   });
 });
 

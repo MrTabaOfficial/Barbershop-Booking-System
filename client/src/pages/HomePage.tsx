@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useBarbers, useServices, useShop } from "../api/queries.ts";
 import { describeWorkingDays, shopOpeningHours } from "../booking/workingDays.ts";
-import { ButtonLink } from "../components/Button.tsx";
+import { ButtonLink, TEXT_LINK } from "../components/Button.tsx";
+import { Tag } from "../components/Tag.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { weekdayOf } from "../lib/dates.ts";
 import { brand } from "../brand.ts";
@@ -13,9 +14,6 @@ import {
   formatPrice,
   phoneLink,
 } from "../lib/format.ts";
-
-const TEXT_LINK =
-  "font-semibold text-action underline decoration-2 underline-offset-4 transition-colors duration-120 ease-standard hover:text-action-pressed";
 
 const OPEN_TODAY = "mt-3 text-center text-sm lg:text-base";
 
@@ -50,11 +48,11 @@ function OpenToday() {
 
 function ShopSign() {
   return (
-    <div className="w-full sm:max-w-md lg:order-2 lg:max-w-none">
+    <div className="w-full md:order-2">
       <p
         lang="ka"
         aria-hidden="true"
-        className="whitespace-nowrap rounded-lg bg-action px-5 py-8 text-center text-[17.5vw] font-extrabold leading-none text-on-action sm:text-[5rem] lg:py-14 lg:text-[4.625rem]"
+        className="whitespace-nowrap rounded-lg bg-action px-5 py-8 text-center text-[17.5vw] font-extrabold leading-none text-on-action sm:text-[7rem] md:py-10 md:text-[3.375rem] lg:py-14 lg:text-[4.625rem]"
       >
         {brand.wordmark}
       </p>
@@ -65,7 +63,7 @@ function ShopSign() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-5xl gap-7 px-4 pb-12 pt-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:gap-12 lg:pb-24 lg:pt-16">
+    <section className="mx-auto grid max-w-5xl gap-7 px-4 pb-12 pt-5 sm:px-8 md:grid-cols-[minmax(0,1fr)_16rem] md:items-center md:gap-8 md:pt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 lg:pb-24 lg:pt-16">
       <ShopSign />
       <div>
         <h1 className="text-balance text-3xl lg:text-5xl">
@@ -75,11 +73,11 @@ function Hero() {
           {brand.name} is a small barbershop on Asatiani Street in Sololaki. Classic cuts, beard
           work and hot towel shaves, by appointment, so the chair is yours when you walk in.
         </p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 lg:mt-8">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 lg:mt-8">
           <ButtonLink to="/book" size="lg">
             Book an appointment
           </ButtonLink>
-          <a href="#services" className={`${TEXT_LINK} py-2 text-center`}>
+          <a href="#services" className={`${TEXT_LINK} inline-flex min-h-11 items-center justify-center`}>
             See services and prices
           </a>
         </div>
@@ -148,7 +146,7 @@ function Services() {
             className="group block border-b border-line py-4"
           >
             <span className="flex items-baseline gap-2.5">
-              <span className="text-lg font-extrabold transition-colors duration-120 ease-standard group-hover:text-action">
+              <span className="text-lg font-extrabold underline decoration-action decoration-2 underline-offset-4 transition-colors duration-120 ease-standard group-hover:text-action">
                 <span className="sr-only">Book </span>
                 {service.name}
               </span>
@@ -199,7 +197,7 @@ function Barbers() {
             {describeWorkingDays(barber.workingHours)}
           </p>
           {barber.bio && <p className="mt-3 text-sm">{barber.bio}</p>}
-          <Link to={`/book?barber=${barber.id}`} className={`${TEXT_LINK} mt-2 inline-block py-2`}>
+          <Link to={`/book?barber=${barber.id}`} className={`${TEXT_LINK} mt-1 inline-flex min-h-11 items-center`}>
             Book with {firstName(barber.name)}
           </Link>
         </li>
@@ -233,7 +231,7 @@ function Address() {
       </p>
       <p className="pt-2 text-sm text-muted">{directions}</p>
       <p className="pt-2">
-        <a href={phoneLink(phone)} className={TEXT_LINK}>
+        <a href={phoneLink(phone)} className={`${TEXT_LINK} inline-flex min-h-11 items-center`}>
           {phone}
         </a>
       </p>
@@ -269,9 +267,7 @@ function OpeningHours() {
           <dt>
             {day.name}
             {day.weekday === today && (
-              <span className="ml-2 rounded-sm bg-action-tint px-1.5 py-0.5 text-xs text-action-hover">
-                Today
-              </span>
+              <Tag className="ml-2">Today</Tag>
             )}
           </dt>
           <dd className="tabular-nums">
@@ -316,7 +312,7 @@ export function HomePage() {
             <div>
               <h3 className="mb-3 text-lg">Address</h3>
               <Address />
-              <ButtonLink to="/book" className="mt-7">
+              <ButtonLink to="/book" variant="secondary" className="mt-5">
                 Book an appointment
               </ButtonLink>
             </div>
