@@ -43,7 +43,7 @@ export function BookingCard({
   return (
     <Card>
       <StatusBadge status={booking.status} audience="customer" />
-      <p className="mt-2 text-lg font-extrabold">
+      <p className="mt-2 text-lg font-semibold">
         {formatLongDate(booking.localDate)}, {booking.localTime}
       </p>
       <p className="text-muted">

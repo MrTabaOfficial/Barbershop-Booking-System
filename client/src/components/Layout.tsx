@@ -15,11 +15,11 @@ function Logo() {
     <Link to="/" className="flex min-h-11 items-center gap-3" aria-label={`${brand.name}, home`}>
       <span
         lang="ka"
-        className="rounded-md bg-action px-2.5 pb-2.5 pt-2 text-base font-semibold leading-none text-on-action sm:px-3 sm:text-lg"
+        className="font-wordmark text-lg font-semibold leading-none sm:text-xl"
       >
         {brand.wordmark}
       </span>
-      <span className="hidden text-lg font-semibold sm:inline">{brand.name}</span>
+      <span className="hidden text-lg font-medium sm:inline">{brand.name}</span>
     </Link>
   );
 }
@@ -81,9 +81,9 @@ function Header() {
 function Footer() {
   const shop = useShop();
   return (
-    <footer className="mt-20 border-t-2 border-ink">
+    <footer className="mt-20 border-t border-line">
       <div className="mx-auto max-w-5xl space-y-1 px-4 py-8 text-sm text-muted sm:px-8">
-        <p className="font-semibold text-ink">{brand.name}</p>
+        <p className="font-medium text-ink">{brand.name}</p>
         {shop.data && (
           <>
             <p>

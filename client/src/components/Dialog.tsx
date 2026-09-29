@@ -39,7 +39,7 @@ export function Dialog({ title, onClose, children, actions }: DialogProps) {
           onClose();
         }
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-lg bg-surface p-0 text-ink shadow-overlay backdrop:bg-ink/55 motion-safe:animate-dialog-in"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-lg bg-surface p-0 text-ink shadow-overlay backdrop:bg-black/65 motion-safe:animate-dialog-in"
     >
       <div className="flex max-h-[calc(100dvh-2rem)] flex-col">
         <div className="overflow-y-auto p-5 sm:p-7">

@@ -42,7 +42,7 @@ function Figure({
     <div className="grid grid-cols-[1fr_auto] gap-x-4 py-3 md:block md:border-l md:border-line md:px-5 md:py-0 md:first:border-l-0 md:first:pl-0 lg:px-6">
       <dt className="col-start-1 font-semibold md:text-sm md:font-normal md:text-muted">{label}</dt>
       <dd
-        className={`col-start-2 row-span-2 row-start-1 self-center text-right font-extrabold md:mt-1 md:text-left ${
+        className={`col-start-2 row-span-2 row-start-1 self-center text-right font-semibold md:mt-1 md:text-left ${
           lead ? "text-3xl lg:text-4xl" : "text-xl md:text-2xl"
         }`}
       >

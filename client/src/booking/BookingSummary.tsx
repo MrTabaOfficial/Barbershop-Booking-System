@@ -43,7 +43,7 @@ export function BookingSummary({ service, barber, date, slot, compact }: Booking
         {service && (
           <div className={`flex items-baseline justify-between gap-4 ${rowPadding} last:pb-1`}>
             <dt className="text-muted">Price</dt>
-            <dd className="text-xl font-extrabold tabular-nums text-action">
+            <dd className="text-xl font-semibold tabular-nums text-action">
               {formatPrice(service.priceCents)}
             </dd>
           </div>

@@ -15,8 +15,6 @@ import {
   phoneLink,
 } from "../lib/format.ts";
 
-const OPEN_TODAY = "mt-3 text-center text-sm lg:text-base";
-
 function OpenToday() {
   const barbers = useBarbers();
   const shop = useShop();
@@ -26,7 +24,7 @@ function OpenToday() {
   }
   if (!barbers.data || !shop.data) {
     return (
-      <p aria-hidden="true" className={`${OPEN_TODAY} invisible`}>
+      <p aria-hidden="true" className="invisible mt-4 text-lg">
         Open today 00:00 to 00:00
       </p>
     );
@@ -35,44 +33,34 @@ function OpenToday() {
   const today = weekdayOf(shop.data.today);
   const hours = shopOpeningHours(barbers.data).find((day) => day.weekday === today)?.hours;
   return hours ? (
-    <p className={OPEN_TODAY}>
-      <span className="text-muted">Open today</span>{" "}
-      <span className="font-semibold tabular-nums">
+    <p className="mt-4 text-lg text-muted">
+      Open today{" "}
+      <span className="text-ink tabular-nums">
         {formatClock(hours.opens)} to {formatClock(hours.closes)}
       </span>
     </p>
   ) : (
-    <p className={`${OPEN_TODAY} font-semibold`}>Closed today</p>
-  );
-}
-
-function ShopSign() {
-  return (
-    <div className="w-full md:order-2">
-      <p
-        lang="ka"
-        aria-hidden="true"
-        className="whitespace-nowrap rounded-lg bg-action px-5 py-8 text-center text-[17.5vw] font-extrabold leading-none text-on-action sm:text-[7rem] md:py-10 md:text-[3.375rem] lg:py-14 lg:text-[4.625rem]"
-      >
-        {brand.wordmark}
-      </p>
-      <OpenToday />
-    </div>
+    <p className="mt-4 text-lg text-muted">Closed today</p>
   );
 }
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-5xl gap-7 px-4 pb-12 pt-5 sm:px-8 md:grid-cols-[minmax(0,1fr)_16rem] md:items-center md:gap-8 md:pt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 lg:pb-24 lg:pt-16">
-      <ShopSign />
-      <div>
-        <h1 className="text-balance text-3xl lg:text-5xl">
+    <section className="relative isolate flex min-h-[72svh] flex-col justify-end lg:min-h-[86svh]">
+      <img
+        src="/photos/window-night.webp"
+        width={1600}
+        height={807}
+        fetchPriority="high"
+        alt="The shop front at night, every window lit."
+        className="absolute inset-0 -z-10 h-full w-full object-cover object-[50%_60%]"
+      />
+      {/* The page colour rising into the photograph, so the words sit on the dark street, not on the lit window. */}
+      <div className="bg-linear-to-t from-page via-page/75 via-40% to-transparent px-4 pb-8 pt-40 sm:px-8 lg:px-10 lg:pb-12">
+        <h1 className="max-w-[18ch] text-balance text-3xl lg:text-5xl">
           A proper haircut, in an unhurried chair.
         </h1>
-        <p className="mt-4 max-w-xl text-muted lg:mt-6 lg:text-lg">
-          {brand.name} is a small barbershop on Asatiani Street in Sololaki. Classic cuts, beard
-          work and hot towel shaves, by appointment, so the chair is yours when you walk in.
-        </p>
+        <OpenToday />
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 lg:mt-8">
           <ButtonLink to="/book" size="lg">
             Book an appointment
@@ -86,28 +74,62 @@ function Hero() {
   );
 }
 
-function Section({
+function Photo({
+  name,
+  alt,
+  position = "object-[50%_40%]",
+  band = false,
+  className = "",
+}: {
+  name: string;
+  alt: string;
+  position?: string;
+  band?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-lg bg-surface ${
+        band ? "aspect-video sm:col-span-2 lg:col-span-12" : "aspect-4/3 lg:aspect-auto lg:row-span-2"
+      } ${className}`}
+    >
+      {/* Absolute, so a tall photograph can never set the height of its row. */}
+      <img
+        src={`/photos/${name}.webp`}
+        alt={alt}
+        loading="lazy"
+        className={`absolute inset-0 h-full w-full object-cover ${position}`}
+      />
+    </div>
+  );
+}
+
+function Cell({
   id,
   title,
   intro,
   children,
+  className = "",
 }: {
   id: string;
   title: string;
   intro?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="scroll-mt-4 border-t-2 border-ink py-12 lg:py-20"
+      className={`flex scroll-mt-4 flex-col gap-5 rounded-lg bg-surface p-5 sm:col-span-2 sm:p-6 lg:row-span-2 lg:p-8 ${className}`}
     >
-      <h2 id={`${id}-title`} className="text-2xl lg:text-3xl">
-        {title}
-      </h2>
-      {intro && <p className="mt-3 max-w-2xl text-muted">{intro}</p>}
-      <div className="mt-6 lg:mt-8">{children}</div>
+      <div>
+        <h2 id={`${id}-title`} className="text-xl lg:text-2xl">
+          {title}
+        </h2>
+        {intro && <p className="mt-2 max-w-xl text-muted">{intro}</p>}
+      </div>
+      {children}
     </section>
   );
 }
@@ -138,30 +160,26 @@ function Services() {
   }
 
   return (
-    <ul className="border-t border-line">
+    <ul className="border-b border-line">
       {services.data.map((service) => (
         <li key={service.id}>
           <Link
             to={`/book?service=${service.id}`}
-            className="group block border-b border-line py-4"
+            className="group block border-t border-line py-3 transition-colors duration-120 ease-standard hover:text-action-hover"
           >
-            <span className="flex items-baseline gap-2.5">
-              <span className="text-lg font-extrabold underline decoration-action decoration-2 underline-offset-4 transition-colors duration-120 ease-standard group-hover:text-action">
+            <span className="flex items-baseline justify-between gap-4">
+              <span className="font-semibold underline decoration-action decoration-1 underline-offset-4">
                 <span className="sr-only">Book </span>
                 {service.name}
               </span>
-              <span
-                aria-hidden="true"
-                className="flex-1 -translate-y-1 border-b-2 border-dotted border-edge/55"
-              />
-              <span className="text-xl font-extrabold tabular-nums text-action">
-                {formatPrice(service.priceCents)}
+              <span className="flex shrink-0 items-baseline gap-3 tabular-nums">
+                <span className="text-sm text-muted">{formatDuration(service.durationMinutes)}</span>
+                <span className="font-semibold text-action">{formatPrice(service.priceCents)}</span>
               </span>
             </span>
-            <span className="mt-0.5 block text-sm text-muted">
-              {formatDuration(service.durationMinutes)}
-              {service.description && `. ${service.description}`}
-            </span>
+            {service.description && (
+              <span className="mt-0.5 block text-sm text-muted">{service.description}</span>
+            )}
           </Link>
         </li>
       ))}
@@ -189,15 +207,16 @@ function Barbers() {
   }
 
   return (
-    <ul className="grid gap-9 sm:grid-cols-3 sm:gap-8">
+    <ul className="space-y-5">
       {barbers.data.map((barber) => (
         <li key={barber.id}>
-          <h3 className="text-xl">{barber.name}</h3>
-          <p className="mt-1 text-sm font-semibold text-muted">
-            {describeWorkingDays(barber.workingHours)}
-          </p>
-          {barber.bio && <p className="mt-3 text-sm">{barber.bio}</p>}
-          <Link to={`/book?barber=${barber.id}`} className={`${TEXT_LINK} mt-1 inline-flex min-h-11 items-center`}>
+          <h3 className="text-lg">{barber.name}</h3>
+          <p className="text-sm text-muted">{describeWorkingDays(barber.workingHours)}</p>
+          {barber.bio && <p className="mt-1 max-w-xl text-sm">{barber.bio}</p>}
+          <Link
+            to={`/book?barber=${barber.id}`}
+            className={`${TEXT_LINK} inline-flex min-h-11 items-center text-sm`}
+          >
             Book with {firstName(barber.name)}
           </Link>
         </li>
@@ -262,15 +281,13 @@ function OpeningHours() {
       {shopOpeningHours(barbers.data).map((day) => (
         <div
           key={day.weekday}
-          className={`flex justify-between gap-4 border-b border-line py-2.5 ${day.weekday === today ? "font-semibold" : ""}`}
+          className={`flex justify-between gap-4 border-b border-line py-2 ${day.weekday === today ? "font-semibold" : ""}`}
         >
           <dt>
             {day.name}
-            {day.weekday === today && (
-              <Tag className="ml-2">Today</Tag>
-            )}
+            {day.weekday === today && <Tag className="ml-2">Today</Tag>}
           </dt>
-          <dd className="tabular-nums">
+          <dd className="whitespace-nowrap tabular-nums">
             {day.hours
               ? `${formatClock(day.hours.opens)} to ${formatClock(day.hours.closes)}`
               : "Closed"}
@@ -284,40 +301,86 @@ function OpeningHours() {
 export function HomePage() {
   return (
     <>
-      <title>Dalaki · Barbershop in Tbilisi</title>
+      <title>{`${brand.name} · Barbershop in Tbilisi`}</title>
       <Hero />
-      <div className="mx-auto max-w-5xl px-4 sm:px-8">
-        <Section
+      <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 lg:auto-rows-[minmax(17.5rem,auto)] lg:grid-cols-12 lg:gap-3 lg:p-3">
+        <Photo
+          name="interior"
+          alt="Six green leather chairs in a row under hanging lamps, a chequered floor below."
+          className="lg:col-span-8"
+        />
+        <Cell
           id="services"
           title="What we do, and what it costs"
           intro="The price on this list is the price you pay. Pick a service to book it."
+          className="lg:col-span-4"
         >
           <Services />
-        </Section>
+        </Cell>
 
-        <Section
+        <Photo
+          name="fade"
+          alt="Clippers working up the back of a head, the fade half done."
+          position="object-[70%_40%]"
+          className="lg:col-span-3"
+        />
+        <Cell
           id="barbers"
           title="The people holding the scissors"
           intro="Book with whoever suits you. If you can't decide, take any chair: we'll tell you if a colleague is the better fit."
+          className="lg:col-span-5"
         >
           <Barbers />
-        </Section>
+        </Cell>
+        <Photo
+          name="tools"
+          alt="Two pairs of scissors, a comb and a razor laid out on a wooden counter."
+          className="lg:col-span-4"
+        />
 
-        <Section id="visit" title="Hours and where to find us">
-          <div className="grid gap-10 sm:grid-cols-2 sm:gap-12">
+        <Photo
+          name="chair"
+          alt="A customer in the chair seen from behind, the barber's clippers at his neck."
+          className="lg:col-span-7"
+        />
+        <Cell id="visit" title="Hours and where to find us" className="lg:col-span-5">
+          <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <h3 className="mb-3 text-lg">Opening hours</h3>
+              <h3 className="mb-2 text-base font-semibold">Opening hours</h3>
               <OpeningHours />
             </div>
             <div>
-              <h3 className="mb-3 text-lg">Address</h3>
+              <h3 className="mb-2 text-base font-semibold">Address</h3>
               <Address />
-              <ButtonLink to="/book" variant="secondary" className="mt-5">
+              <ButtonLink to="/book" variant="secondary" className="mt-4">
                 Book an appointment
               </ButtonLink>
             </div>
           </div>
-        </Section>
+        </Cell>
+
+        <Photo
+          name="scissors"
+          alt="A barber's hands holding comb and scissors against short dark hair."
+          className="lg:col-span-4"
+        />
+        <Photo
+          name="shave"
+          alt="A straight razor on a lathered cheek, steam rising."
+          className="lg:col-span-4"
+        />
+        <Photo
+          name="finished"
+          alt="A finished fade seen from behind, the clippers lifting away."
+          className="lg:col-span-4"
+        />
+
+        <Photo
+          name="bulbs"
+          alt="Three filament bulbs hanging over the counter, the rest of the room in shadow."
+          position="object-[50%_55%]"
+          band
+        />
       </div>
     </>
   );

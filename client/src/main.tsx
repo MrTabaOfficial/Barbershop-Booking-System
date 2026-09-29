@@ -8,7 +8,7 @@ import { router } from "./routes.tsx";
 
 import "@fontsource/firago/400.css";
 import "@fontsource/firago/600.css";
-import "@fontsource/firago/800.css";
+
 import "./index.css";
 
 const queryClient = new QueryClient({

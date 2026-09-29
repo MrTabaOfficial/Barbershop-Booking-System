@@ -180,7 +180,7 @@ export function StaffPage() {
             className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"
           >
             <div className={barber.isActive ? "" : "text-muted"}>
-              <p className="text-lg font-extrabold">
+              <p className="text-lg font-semibold">
                 {barber.name}
                 {!barber.isActive && (
                   <Tag tone="neutral" className="ml-2.5 align-middle">

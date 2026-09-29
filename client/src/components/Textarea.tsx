@@ -17,7 +17,7 @@ export function Textarea({ label, error, id, className = "", ...textareaProps }:
         rows={3}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`block w-full rounded-md border bg-surface px-3 py-2 text-base text-ink transition-colors duration-120 ease-standard placeholder:text-muted disabled:border-line disabled:bg-sunken disabled:text-faint ${
+        className={`block w-full rounded-md border bg-page px-3 py-2 text-base text-ink transition-colors duration-120 ease-standard placeholder:text-muted disabled:border-line disabled:bg-sunken disabled:text-faint ${
           error ? "border-danger ring-1 ring-danger" : "border-edge hover:border-ink"
         }`}
         {...textareaProps}

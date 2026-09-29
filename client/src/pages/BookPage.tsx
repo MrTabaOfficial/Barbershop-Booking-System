@@ -139,7 +139,7 @@ export function BookPage() {
                   description: entry.description,
                   aside: (
                     <>
-                      <span className="block text-xl font-extrabold tabular-nums text-action">
+                      <span className="block text-xl font-semibold tabular-nums text-action">
                         {formatPrice(entry.priceCents)}
                       </span>
                       <span className="block text-muted">

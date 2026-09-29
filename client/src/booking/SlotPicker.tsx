@@ -140,7 +140,7 @@ export function SlotPicker({
                 >
                   <span>{weekday}</span>
                   <span
-                    className={`text-xl font-extrabold tabular-nums ${
+                    className={`text-xl font-semibold tabular-nums ${
                       working && !selected ? "text-ink" : ""
                     }`}
                   >

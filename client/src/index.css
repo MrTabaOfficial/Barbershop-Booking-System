@@ -1,28 +1,46 @@
 @import "tailwindcss";
 
-@theme {
-  --color-page: #f8f9fb;
-  --color-surface: #ffffff;
-  --color-sunken: #e9ebf1;
-  --color-ink: #101b3b;
-  --color-muted: #566080;
-  --color-faint: #8d95ad;
-  --color-line: #d3d7e2;
-  --color-edge: #737d9d;
-  --color-action: #1d3fbb;
-  --color-action-hover: #17339a;
-  --color-action-pressed: #122778;
-  --color-action-tint: #e9edfb;
-  --color-on-action: #ffffff;
-  --color-danger: #b4261b;
-  --color-danger-strong: #8f1d14;
-  --color-danger-tint: #fbe7e4;
-  --color-success: #17663f;
-  --color-success-tint: #e1f2e8;
-  --color-warning: #7a4b00;
-  --color-warning-tint: #fbebc8;
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/literata-normal.woff2") format("woff2");
+}
 
-  --font-sans: "FiraGO", system-ui, sans-serif;
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/literata-italic.woff2") format("woff2");
+}
+
+@theme {
+  --color-page: #0e0a07;
+  --color-surface: #1b130e;
+  --color-sunken: #2a1f18;
+  --color-ink: #f3e3cc;
+  --color-muted: #c6b1a0;
+  --color-faint: #8a7b6d;
+  --color-line: #3b2b21;
+  --color-edge: #7a675a;
+  --color-action: #d78b55;
+  --color-action-hover: #e49d68;
+  --color-action-pressed: #c57a46;
+  --color-action-tint: #3a2214;
+  --color-on-action: #0e0a07;
+  --color-danger: #ef8c7c;
+  --color-danger-strong: #ff9f90;
+  --color-danger-tint: #3a1a15;
+  --color-success: #8fd4a6;
+  --color-success-tint: #17301f;
+  --color-warning: #f0c36a;
+  --color-warning-tint: #3a2a0c;
+
+  /* Literata has no lari sign, so FiraGO follows it in the stack to draw ₾. */
+  --font-body: "Literata", "FiraGO", Georgia, serif;
+  --font-wordmark: "FiraGO", system-ui, sans-serif;
 
   --text-xs: 0.8125rem;
   --text-xs--line-height: 1.4;
@@ -43,12 +61,12 @@
   --text-5xl: 3.625rem;
   --text-5xl--line-height: 1.02;
 
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
 
-  --shadow-pop: 0 6px 16px rgb(16 27 59 / 0.16);
-  --shadow-overlay: 0 18px 48px rgb(16 27 59 / 0.24);
+  --shadow-pop: 0 6px 16px rgb(0 0 0 / 0.5);
+  --shadow-overlay: 0 18px 48px rgb(0 0 0 / 0.6);
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
@@ -64,22 +82,23 @@
 
 @layer base {
   html {
-    color-scheme: light;
+    color-scheme: dark;
     scroll-behavior: smooth;
+    font-optical-sizing: auto;
   }
 
   body {
-    @apply bg-page font-sans text-base text-ink antialiased;
+    @apply bg-page font-body text-base text-ink antialiased;
   }
 
   h1,
   h2,
   h3 {
-    @apply font-extrabold tracking-tight;
+    @apply font-medium;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-ink);
+    outline: 3px solid var(--color-ink);
     outline-offset: 2px;
   }
 

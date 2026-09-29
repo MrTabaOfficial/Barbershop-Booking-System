@@ -153,7 +153,7 @@ export function ServicesPage() {
             className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
           >
             <div className={service.isActive ? "" : "text-muted"}>
-              <p className="text-lg font-extrabold">
+              <p className="text-lg font-semibold">
                 {service.name}
                 {!service.isActive && (
                   <Tag tone="neutral" className="ml-2.5 align-middle">

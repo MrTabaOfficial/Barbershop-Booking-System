@@ -16,7 +16,7 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
           const content = (
             <>
               <span
-                className={`block ${isCurrent ? "font-extrabold text-ink" : "text-muted"}`}
+                className={`block ${isCurrent ? "font-semibold text-ink" : "text-muted"}`}
               >
                 <span className="mr-1 tabular-nums">{number}</span>
                 {step.label}

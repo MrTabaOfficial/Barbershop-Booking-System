@@ -34,7 +34,7 @@ export function Appointment({
     <>
       <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-x-3">
         <p className="tabular-nums">
-          <span className="block font-extrabold">{booking.localTime}</span>
+          <span className="block font-semibold">{booking.localTime}</span>
           <span className="block text-sm text-muted">to {booking.localEndTime}</span>
           {marker && (
             <Tag className="mt-1">{marker}</Tag>

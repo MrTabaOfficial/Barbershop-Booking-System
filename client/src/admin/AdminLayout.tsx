@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router";
 
 const TAB =
-  "whitespace-nowrap border-b-4 border-transparent px-1.5 pb-2.5 pt-1 font-semibold text-muted focus-visible:-outline-offset-2 transition-colors duration-120 ease-standard hover:text-ink aria-[current=page]:border-action aria-[current=page]:font-extrabold aria-[current=page]:text-ink lg:text-xl";
+  "whitespace-nowrap border-b-4 border-transparent px-1.5 pb-2.5 pt-1 font-semibold text-muted focus-visible:-outline-offset-2 transition-colors duration-120 ease-standard hover:text-ink aria-[current=page]:border-action aria-[current=page]:font-semibold aria-[current=page]:text-ink lg:text-xl";
 
 export function AdminLayout() {
   return (
