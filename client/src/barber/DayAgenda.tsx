@@ -41,7 +41,7 @@ export function DayAgenda({ day, markNow = false }: { day: ScheduleDay; markNow?
     !markNow ? undefined : booking === current ? "Now" : booking === next ? "Next" : undefined;
 
   return (
-    <ul className="divide-y divide-line rounded-lg border border-line bg-surface px-4">
+    <ul className="divide-y divide-line border-t border-line">
       {day.bookings.map((booking) => (
         <li key={booking.id} className="py-3">
           <Appointment booking={booking} marker={markerOf(booking)} />

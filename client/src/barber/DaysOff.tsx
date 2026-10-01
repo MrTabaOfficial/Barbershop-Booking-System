@@ -146,7 +146,7 @@ export function DaysOff({ today }: { today: string }) {
   }
 
   return (
-    <section ref={section} tabIndex={-1} aria-labelledby="days-off-title" className="space-y-6">
+    <section ref={section} tabIndex={-1} aria-labelledby="days-off-title" className="rounded-lg bg-surface p-4 sm:p-6 space-y-6">
       <h2 id="days-off-title" className="text-xl">
         Days off
       </h2>

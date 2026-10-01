@@ -13,7 +13,7 @@ function Today({ today }: { today: string }) {
   const day = schedule.data?.[0];
 
   return (
-    <section aria-labelledby="today-title">
+    <section aria-labelledby="today-title" className="rounded-lg bg-surface p-4 sm:p-6 lg:row-span-2">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="today-title" className="text-xl">
           Today
@@ -46,7 +46,7 @@ function Week({ today }: { today: string }) {
   const schedule = useSchedule(weekStart, weekEnd);
 
   return (
-    <section aria-labelledby="week-title">
+    <section aria-labelledby="week-title" className="rounded-lg bg-surface p-4 sm:p-6">
       <h2 id="week-title" className="text-xl">
         {weekStart === thisWeek ? "This week" : "Week"}
       </h2>
@@ -155,7 +155,7 @@ export function BarberPage() {
     }
     const { today } = shop.data;
     return (
-      <div className="space-y-12">
+      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-3">
         <Today today={today} />
         <Week today={today} />
         <DaysOff today={today} />
@@ -164,9 +164,9 @@ export function BarberPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-8 lg:pt-12">
+    <div className="mx-auto max-w-6xl px-2.5 pb-16 pt-5 sm:px-3 lg:pt-8">
       <title>Schedule · Dalaki</title>
-      <h1 className="mb-6 text-3xl">Schedule</h1>
+      <h1 className="mb-4 px-2 text-3xl sm:px-3">Schedule</h1>
       {renderBody()}
     </div>
   );
