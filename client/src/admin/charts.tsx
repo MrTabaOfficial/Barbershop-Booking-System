@@ -176,7 +176,7 @@ export function ColumnChart({ title, hint, columns, smallestStep, formatValue }:
         <div aria-live="polite">
           {activeColumn && active !== null && (
             <div
-              className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-line bg-surface px-3 py-2 text-sm shadow-pop"
+              className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-line bg-page px-3 py-2 text-sm shadow-pop"
               style={
                 activeCenter < width / 2
                   ? { left: Math.max(activeCenter - 20, left) }

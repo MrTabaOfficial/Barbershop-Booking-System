@@ -223,7 +223,7 @@ export function BookingsPage() {
     const first = (page - 1) * pageSize + 1;
     const last = Math.min(page * pageSize, total);
     return (
-      <div className={bookings.isPlaceholderData ? "opacity-50 transition-opacity" : ""}>
+      <div className={`rounded-lg bg-surface p-4 sm:p-6 ${bookings.isPlaceholderData ? "opacity-50 transition-opacity" : ""}`}>
         {tableFits
           ? renderRowsAsTable(bookings.data.bookings)
           : renderRowsAsList(bookings.data.bookings)}
@@ -259,7 +259,7 @@ export function BookingsPage() {
         ref={keepList}
         tabIndex={-1}
         aria-label="Bookings"
-        className="divide-y divide-line border-y border-line"
+        className="divide-y divide-line"
       >
         {rows.map((booking) => (
           <li key={booking.id} id={rowId(booking.id)} tabIndex={-1} className="py-4">
@@ -392,7 +392,7 @@ export function BookingsPage() {
   }
 
   const filterFields = (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 px-0.5 sm:grid-cols-2 sm:px-1.5 lg:grid-cols-4">
       <Input
         label="From"
         type="date"
@@ -490,14 +490,14 @@ export function BookingsPage() {
       {tableFits ? (
         <>
           {filterFields}
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-3 px-0.5 sm:px-1.5">
             {searchForm}
             {exportButton}
           </div>
         </>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 px-0.5 sm:px-1.5">
             <Button
               variant="secondary"
               aria-expanded={filtersOpen}
@@ -528,7 +528,7 @@ export function BookingsPage() {
         </Notice>
       )}
 
-      <div className="mt-8">{renderTable()}</div>
+      <div className="mt-5">{renderTable()}</div>
 
       {cancelling && (
         <CancelDialog

@@ -86,9 +86,9 @@ function Figures({ overview }: { overview: Overview }) {
     }));
 
   return (
-    <div className="space-y-10">
+    <div className="grid gap-2.5 lg:gap-3">
       <h2 className="sr-only">Key figures</h2>
-      <dl className="divide-y divide-line border-y border-line md:grid md:grid-cols-[1.5fr_1fr_1fr_1fr] md:divide-y-0 md:border-y-0">
+      <dl className="rounded-lg bg-surface p-4 sm:p-6 divide-y divide-line md:grid md:grid-cols-[1.5fr_1fr_1fr_1fr] md:divide-y-0">
         <Figure
           lead
           label="Revenue"
@@ -112,39 +112,44 @@ function Figures({ overview }: { overview: Overview }) {
         />
       </dl>
 
-      <div className="grid gap-10 md:grid-cols-2">
-        <ColumnChart
-          title={`Bookings per ${unit}`}
-          hint={hint}
-          columns={columnsOf("bookings")}
-          formatValue={String}
-        />
-        <ColumnChart
-          title={`Revenue per ${unit}`}
-          hint={hint}
-          columns={columnsOf("revenueCents")}
-          smallestStep={WHOLE_LARI}
-          formatValue={formatPrice}
-        />
-      </div>
-
-      <div className="grid gap-10 md:grid-cols-2">
-        <BarList
-          title="Bookings by status"
-          rows={STATUS_ORDER.map((status) => ({
-            label: statusLabel(status),
-            value: byStatus[status],
-          }))}
-        />
-        {topServices.length > 0 && (
-          <BarList
-            title="Most booked services"
-            rows={topServices.map((service) => ({ label: service.name, value: service.bookings }))}
+      <div className="grid gap-2.5 md:grid-cols-2 lg:gap-3">
+        <div className="rounded-lg bg-surface p-4 sm:p-6">
+          <ColumnChart
+            title={`Bookings per ${unit}`}
+            hint={hint}
+            columns={columnsOf("bookings")}
+            formatValue={String}
           />
+        </div>
+        <div className="rounded-lg bg-surface p-4 sm:p-6">
+          <ColumnChart
+            title={`Revenue per ${unit}`}
+            hint={hint}
+            columns={columnsOf("revenueCents")}
+            smallestStep={WHOLE_LARI}
+            formatValue={formatPrice}
+          />
+        </div>
+        <div className="rounded-lg bg-surface p-4 sm:p-6">
+          <BarList
+            title="Bookings by status"
+            rows={STATUS_ORDER.map((status) => ({
+              label: statusLabel(status),
+              value: byStatus[status],
+            }))}
+          />
+        </div>
+        {topServices.length > 0 && (
+          <div className="rounded-lg bg-surface p-4 sm:p-6">
+            <BarList
+              title="Most booked services"
+              rows={topServices.map((service) => ({ label: service.name, value: service.bookings }))}
+            />
+          </div>
         )}
       </div>
 
-      <details>
+      <details className="rounded-lg bg-surface p-4 sm:p-6">
         <summary className={`${TEXT_LINK} cursor-pointer py-2.5`}>
           Show the {byWeek ? "weekly" : "daily"} numbers as a table
         </summary>
@@ -196,8 +201,8 @@ function OverviewFor({ today }: { today: string }) {
   const preset = PRESET_DAYS.find((days) => to === today && from === startOfPreset(days)) ?? null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 px-0.5 sm:px-1.5 md:flex-row md:items-end">
         <Segmented
           label="Period"
           className="md:w-[22rem] lg:w-[26rem]"

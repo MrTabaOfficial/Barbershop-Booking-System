@@ -146,7 +146,7 @@ export function ServicesPage() {
       );
     }
     return (
-      <ul className="divide-y divide-line border-y border-line">
+      <ul className="rounded-lg bg-surface p-4 sm:p-6 divide-y divide-line">
         {services.data.map((service) => (
           <li
             key={service.id}
@@ -193,7 +193,7 @@ export function ServicesPage() {
     <>
       <title>Services · Admin · Dalaki</title>
       <h1 className="sr-only">Services</h1>
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-3 flex items-center justify-between gap-4 px-0.5 sm:px-1.5">
         <p className="text-muted">{services.data && countActive(services.data, "service")}</p>
         <Button onClick={() => setEditing(null)}>Add a service</Button>
       </div>

@@ -5,10 +5,10 @@ const TAB =
 
 export function AdminLayout() {
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-16 pt-5 sm:px-8 lg:pt-10">
+    <div className="mx-auto max-w-6xl px-2.5 pb-16 pt-5 sm:px-3 lg:pt-8">
       <nav
         aria-label="Admin sections"
-        className="-mx-1.5 flex gap-2 overflow-x-auto lg:gap-5"
+        className="flex gap-2 overflow-x-auto px-0.5 sm:px-1.5 lg:gap-5"
       >
         <NavLink to="/admin" end className={TAB}>
           Overview
@@ -23,7 +23,7 @@ export function AdminLayout() {
           Staff
         </NavLink>
       </nav>
-      <div className="border-t border-line pt-6 lg:pt-8">
+      <div className="border-t border-line pt-4 lg:pt-5">
         <Outlet />
       </div>
     </div>

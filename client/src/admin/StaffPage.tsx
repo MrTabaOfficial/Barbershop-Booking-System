@@ -173,7 +173,7 @@ export function StaffPage() {
       return <EmptyState title="No barbers yet">Add the first one to start taking bookings.</EmptyState>;
     }
     return (
-      <ul className="divide-y divide-line border-y border-line">
+      <ul className="rounded-lg bg-surface p-4 sm:p-6 divide-y divide-line">
         {barbers.data.map((barber) => (
           <li
             key={barber.id}
@@ -196,7 +196,7 @@ export function StaffPage() {
               </p>
               {barber.bio && <p className="mt-2 max-w-xl text-sm">{barber.bio}</p>}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 whitespace-nowrap">
               <Button
                 variant="secondary"
                 aria-label={`Edit ${barber.name}`}
@@ -231,7 +231,7 @@ export function StaffPage() {
     <>
       <title>Staff · Admin · Dalaki</title>
       <h1 className="sr-only">Staff</h1>
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-3 flex items-center justify-between gap-4 px-0.5 sm:px-1.5">
         <p className="text-muted">{barbers.data && countActive(barbers.data, "barber")}</p>
         <Button onClick={() => setDialog({ kind: "add" })}>Add a barber</Button>
       </div>
