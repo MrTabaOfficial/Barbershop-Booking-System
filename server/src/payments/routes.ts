@@ -21,15 +21,15 @@ function fakeCheckoutPage(description: string, amount: string, cancelUrl: string
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fake payment page</title>
     <style>
-      body { font-family: FiraGO, "Fira Sans", "Segoe UI", system-ui, sans-serif; font-size: 17px; background: #f8f9fb; color: #101b3b; margin: 0; padding: 2rem 1rem; }
+      body { font-family: Literata, Georgia, "Times New Roman", serif; font-size: 17px; background: #0e0a07; color: #f3e3cc; margin: 0; padding: 2rem 1rem; }
       main { max-width: 28rem; margin: 0 auto; }
-      h1 { font-size: 1.875rem; line-height: 1.15; letter-spacing: -0.025em; }
+      h1 { font-size: 1.875rem; font-weight: normal; line-height: 1.15; }
       p { line-height: 1.55; }
-      .note { color: #566080; }
-      button { font: inherit; font-weight: 600; min-height: 3.5rem; background: #1d3fbb; color: #ffffff; border: 0; border-radius: 12px; padding: 0.75rem 1.75rem; cursor: pointer; }
-      button:hover { background: #17339a; }
-      a { display: inline-block; padding: 0.625rem 0; font-weight: 600; color: #1d3fbb; text-decoration-thickness: 2px; text-underline-offset: 4px; }
-      :focus-visible { outline: 2px solid #101b3b; outline-offset: 2px; }
+      .note { color: #c6b1a0; }
+      button { font: inherit; font-weight: 600; min-height: 3.5rem; background: #d78b55; color: #0e0a07; border: 0; border-radius: 4px; padding: 0.75rem 1.75rem; cursor: pointer; }
+      button:hover { background: #e49d68; }
+      a { display: inline-block; padding: 0.625rem 0; font-weight: 600; color: #d78b55; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+      :focus-visible { outline: 3px solid #f3e3cc; outline-offset: 2px; }
     </style>
   </head>
   <body>

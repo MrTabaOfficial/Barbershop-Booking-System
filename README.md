@@ -15,7 +15,7 @@ All taken from the demo data that `npm run db:seed` loads.
 
 | Home | Picking a time |
 | --- | --- |
-| ![Home page with the shop's introduction, today's hours and the price list](docs/screenshots/home.png) | ![Third step of booking: a week of days and the free times for a haircut with Luka](docs/screenshots/booking-time.png) |
+| ![Home page: the shop front at night with the headline and today's hours](docs/screenshots/home.png) | ![Third step of booking: a week of days and the free times for a haircut with Luka](docs/screenshots/booking-time.png) |
 
 | My bookings | Admin: overview |
 | --- | --- |
@@ -298,9 +298,11 @@ that nothing scrolls sideways at 320 px.
 - The emails were checked in Mailpit only, not in real Gmail, Outlook or
   Apple Mail. The Georgian wordmark in them is drawn by the reader's own
   font, since mail programs don't load web fonts.
-- The typeface, FiraGO, is about 770 KB over its three weights. It was
-  chosen because it draws Latin, Georgian and the lari sign in one
-  design, and its package can't be split by alphabet.
+- The fonts are about 680 KB: Literata for the text, plus two weights
+  of FiraGO kept for the Georgian wordmark and the lari sign, which
+  Literata lacks. FiraGO's package can't be split by alphabet.
+- The photographs are stock photos of other barbershops, from Pexels
+  and Unsplash, not of a shop in Tbilisi.
 
 ## More detail
 

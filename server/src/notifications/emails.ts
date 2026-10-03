@@ -13,16 +13,16 @@ export const bookingForEmail = {
 export type BookingForEmail = Prisma.BookingGetPayload<{ include: typeof bookingForEmail }>;
 
 // Mail programs don't load web fonts and many ignore style sheets, so the
-// type falls back to each system's own sans and every style is written inline.
-const PAGE = "#f8f9fb";
-const SURFACE = "#ffffff";
-const LINE = "#d3d7e2";
-const INK = "#101b3b";
-const MUTED = "#566080";
-const ACTION = "#1d3fbb";
-const ON_ACTION = "#ffffff";
-const SANS =
-  "FiraGO, 'Fira Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif";
+// type falls back to each system's own serif and every style is written inline.
+const PAGE = "#0e0a07";
+const SURFACE = "#1b130e";
+const LINE = "#3b2b21";
+const INK = "#f3e3cc";
+const MUTED = "#c6b1a0";
+const ACTION = "#d78b55";
+const ON_ACTION = "#0e0a07";
+const SANS = "Literata, Georgia, 'Times New Roman', serif";
+const WORDMARK = "FiraGO, 'Segoe UI', -apple-system, Helvetica, Arial, sans-serif";
 
 // A mail program draws the lari sign from a fallback font, where it comes
 // out undersized, so emails spell the currency out.
@@ -84,7 +84,7 @@ function compose(content: Content): Email {
     ? `
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 16px;">
                   <tr>
-                    <td bgcolor="${ACTION}" style="background-color:${ACTION};border-radius:12px;">
+                    <td bgcolor="${ACTION}" style="background-color:${ACTION};border-radius:4px;">
                       <a href="${escapeHtml(content.action.url)}" style="display:inline-block;padding:14px 24px;font-family:${SANS};font-size:16px;font-weight:bold;line-height:1.25;color:${ON_ACTION};text-decoration:none;">${escapeHtml(content.action.label)}</a>
                     </td>
                   </tr>
@@ -110,8 +110,8 @@ function compose(content: Content): Email {
               <td style="padding:0 0 20px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td bgcolor="${ACTION}" style="background-color:${ACTION};border-radius:10px;padding:7px 12px 9px;">
-                      <span lang="ka" style="font-family:${SANS};font-size:20px;font-weight:bold;line-height:1;color:${ON_ACTION};">${shopDetails.wordmark}</span>
+                    <td bgcolor="${ACTION}" style="background-color:${ACTION};border-radius:4px;padding:7px 12px 9px;">
+                      <span lang="ka" style="font-family:${WORDMARK};font-size:20px;font-weight:bold;line-height:1;color:${ON_ACTION};">${shopDetails.wordmark}</span>
                     </td>
                     <td style="padding-left:12px;font-family:${SANS};font-size:18px;font-weight:bold;color:${INK};">${escapeHtml(shopDetails.name)}</td>
                   </tr>
@@ -119,8 +119,8 @@ function compose(content: Content): Email {
               </td>
             </tr>
             <tr>
-              <td bgcolor="${SURFACE}" style="background-color:${SURFACE};border:1px solid ${LINE};border-radius:20px;padding:28px 24px 12px;">
-                <h1 style="margin:0 0 16px;font-family:${SANS};font-size:26px;font-weight:bold;line-height:1.2;color:${INK};">${escapeHtml(content.heading)}</h1>
+              <td bgcolor="${SURFACE}" style="background-color:${SURFACE};border-radius:6px;padding:28px 24px 12px;">
+                <h1 style="margin:0 0 16px;font-family:${SANS};font-size:26px;font-weight:normal;line-height:1.2;color:${INK};">${escapeHtml(content.heading)}</h1>
                 ${content.intro.map((line) => paragraph(line)).join("\n                ")}
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;border-bottom:1px solid ${LINE};">${detailRows}
                 </table>
