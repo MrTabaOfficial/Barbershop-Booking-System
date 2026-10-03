@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.ts";
 import type { Session, User } from "./types.ts";
 
 const API_PREFIX = "/api";
@@ -87,7 +88,7 @@ async function toApiError(response: Response): Promise<ApiError> {
     return new ApiError(
       response.status,
       "UNEXPECTED_RESPONSE",
-      "Something went wrong on our side. Please try again in a moment.",
+      t("error.server"),
     );
   }
 }
@@ -162,7 +163,7 @@ async function request(path: string, options: RequestOptions): Promise<Response>
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "We couldn't reach the server. Check your connection and try again.",
+      t("error.network"),
     );
   }
 
@@ -192,5 +193,5 @@ export async function apiDownload(path: string, fallbackName: string): Promise<v
 }
 
 export function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
+  return error instanceof ApiError ? error.message : t("error.generic");
 }

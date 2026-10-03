@@ -1,19 +1,20 @@
 import type { BookingStatus } from "../api/types.ts";
+import { t, type TranslationKey } from "../i18n/index.ts";
 import { Tag, type TagTone } from "./Tag.tsx";
 
-const STAFF_LABELS: Record<BookingStatus, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No-show",
-  expired: "Expired",
+const STAFF_LABELS: Record<BookingStatus, TranslationKey> = {
+  pending: "status.pending",
+  confirmed: "status.confirmed",
+  completed: "status.completed",
+  cancelled: "status.cancelled",
+  no_show: "status.noShow",
+  expired: "status.expired",
 };
 
-const CUSTOMER_LABELS: Record<BookingStatus, string> = {
+const CUSTOMER_LABELS: Record<BookingStatus, TranslationKey> = {
   ...STAFF_LABELS,
-  pending: "Awaiting payment",
-  no_show: "Missed",
+  pending: "status.awaitingPayment",
+  no_show: "status.missed",
 };
 
 const TONES: Record<BookingStatus, TagTone> = {
@@ -26,7 +27,7 @@ const TONES: Record<BookingStatus, TagTone> = {
 };
 
 export function statusLabel(status: BookingStatus, audience: "staff" | "customer" = "staff") {
-  return (audience === "customer" ? CUSTOMER_LABELS : STAFF_LABELS)[status];
+  return t((audience === "customer" ? CUSTOMER_LABELS : STAFF_LABELS)[status]);
 }
 
 export function StatusBadge({

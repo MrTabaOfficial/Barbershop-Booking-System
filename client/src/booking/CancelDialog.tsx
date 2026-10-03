@@ -4,6 +4,7 @@ import type { Booking } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 
@@ -24,30 +25,31 @@ export function CancelDialog({
 }: CancelDialogProps) {
   const cancelBooking = useCancelBooking();
   const deposit = formatPrice(booking.depositCents);
+  const hours = freeCancellationHours;
 
   const hoursUntilStart = (Date.parse(booking.startsAt) - Date.now()) / HOUR_MS;
   const isFree = hoursUntilStart >= freeCancellationHours;
 
   const consequence =
     booking.paymentStatus !== "paid"
-      ? "You haven't paid anything for this booking, so cancelling costs nothing."
+      ? t("cancel.nothingPaid")
       : isFree
-        ? `Your appointment is more than ${freeCancellationHours} hours away, so your ${deposit} deposit will be refunded to the card you paid with.`
-        : `Your appointment starts in less than ${freeCancellationHours} hours, so the ${deposit} deposit will be kept.`;
+        ? t("cancel.willRefund", { hours, deposit })
+        : t("cancel.willKeep", { hours, deposit });
 
   return (
     <Dialog
-      title="Cancel this booking?"
+      title={t("cancel.title")}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Keep booking
+            {t("cancel.keep")}
           </Button>
           <Button
             variant="danger"
             loading={cancelBooking.isPending}
-            loadingLabel="Cancelling…"
+            loadingLabel={t("cancel.cancelling")}
             onClick={() =>
               cancelBooking.mutate(booking.id, {
                 onSuccess: () => {
@@ -57,19 +59,20 @@ export function CancelDialog({
               })
             }
           >
-            Cancel booking
+            {t("cancel.confirm")}
           </Button>
         </>
       }
     >
       <p>
-        {booking.service.name} with {booking.barber.name} on {formatLongDate(booking.localDate)}{" "}
-        at {booking.localTime}.
+        {t("cancel.what", {
+          service: booking.service.name,
+          barber: booking.barber.name,
+          date: formatLongDate(booking.localDate),
+          time: booking.localTime,
+        })}
       </p>
-      <p className="text-muted">
-        Cancelling {freeCancellationHours} hours or more before the appointment refunds the
-        deposit. After that the deposit is kept.
-      </p>
+      <p className="text-muted">{t("cancel.rule", { hours })}</p>
       <Notice>{consequence}</Notice>
       {cancelBooking.isError && <Notice tone="error">{errorMessage(cancelBooking.error)}</Notice>}
     </Dialog>

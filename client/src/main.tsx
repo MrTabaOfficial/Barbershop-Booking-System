@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { ApiError } from "./api/http.ts";
 import { AuthProvider } from "./auth/AuthProvider.tsx";
+import { LanguageProvider, useLanguage } from "./i18n/LanguageProvider.tsx";
 import { router } from "./routes.tsx";
 
 import "@fontsource/firago/400.css";
@@ -22,6 +23,13 @@ const queryClient = new QueryClient({
   },
 });
 
+// Every page reads the language through t(), not through React, so a change
+// of language remounts the whole router to re-render them.
+function App() {
+  const { language } = useLanguage();
+  return <RouterProvider key={language} router={router} />;
+}
+
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("index.html has no #root element");
@@ -31,7 +39,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

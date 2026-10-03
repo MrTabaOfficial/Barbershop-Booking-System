@@ -81,6 +81,15 @@
 }
 
 @layer base {
+  /* Literata has no Georgian, so the Georgian site is set in FiraGO throughout. */
+  html[lang="ka"] {
+    --font-body: "FiraGO", system-ui, sans-serif;
+  }
+
+  html[lang="ka"] :is(h1, h2, h3) {
+    font-weight: 600;
+  }
+
   html {
     color-scheme: dark;
     scroll-behavior: smooth;

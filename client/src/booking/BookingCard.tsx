@@ -2,6 +2,7 @@ import type { Booking } from "../api/types.ts";
 import { Button, buttonClasses } from "../components/Button.tsx";
 import { Card } from "../components/Card.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 
@@ -15,13 +16,14 @@ type BookingCardProps = {
 };
 
 export function describeCancellation(booking: Booking): string | null {
+  const deposit = formatPrice(booking.depositCents);
   switch (booking.paymentStatus) {
     case "refunded":
-      return `Your ${formatPrice(booking.depositCents)} deposit was refunded.`;
+      return t("card.refunded", { deposit });
     case "paid":
-      return `The ${formatPrice(booking.depositCents)} deposit was kept.`;
+      return t("card.kept", { deposit });
     case "refund_failed":
-      return "Your deposit is due back to you but the refund didn't go through. Please call us and we will sort it out.";
+      return t("card.refundFailed");
     default:
       return null;
   }
@@ -47,26 +49,27 @@ export function BookingCard({
         {formatLongDate(booking.localDate)}, {booking.localTime}
       </p>
       <p className="text-muted">
-        {booking.service.name} with {booking.barber.name}
+        {t("common.with", { service: booking.service.name, barber: booking.barber.name })}
       </p>
 
       <p className="mt-3 text-sm text-muted">
-        {formatPrice(booking.priceCents)}, including a {formatPrice(booking.depositCents)}{" "}
-        deposit
+        {t("card.price", {
+          price: formatPrice(booking.priceCents),
+          deposit: formatPrice(booking.depositCents),
+        })}
       </p>
 
       {awaitingPayment && (
         <p className="mt-2 text-sm">
-          This booking isn't confirmed until the deposit is paid.
+          {t("card.unpaid")}
           {booking.heldUntilLocalTime &&
-            ` We are holding the time until ${booking.heldUntilLocalTime}.`}
+            ` ${t("card.heldUntil", { time: booking.heldUntilLocalTime })}`}
         </p>
       )}
       {cancellationNote && <p className="mt-2 text-sm text-muted">{cancellationNote}</p>}
       {confirmed && onReschedule && !canStillMove && (
         <p className="mt-2 text-sm text-muted">
-          With less than {freeCancellationHours} hours to go, this booking can no longer be
-          moved.
+          {t("card.cannotMove", { hours: freeCancellationHours })}
         </p>
       )}
 
@@ -74,17 +77,17 @@ export function BookingCard({
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
           {awaitingPayment && booking.paymentUrl && (
             <a href={booking.paymentUrl} className={buttonClasses({})}>
-              Pay the deposit
+              {t("card.pay")}
             </a>
           )}
           {confirmed && onReschedule && canStillMove && (
             <Button variant="secondary" onClick={onReschedule}>
-              Move booking
+              {t("card.move")}
             </Button>
           )}
           {onCancel && (
             <Button variant="quiet-danger" onClick={onCancel}>
-              Cancel booking
+              {t("card.cancel")}
             </Button>
           )}
         </div>

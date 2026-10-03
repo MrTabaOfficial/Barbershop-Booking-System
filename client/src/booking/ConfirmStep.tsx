@@ -5,6 +5,7 @@ import type { Barber, Service, Shop, Slot } from "../api/types.ts";
 import { useAuth } from "../auth/AuthContext.ts";
 import { Button, ButtonLink } from "../components/Button.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate, shopClockOf } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 import { withNext } from "../lib/nextPath.ts";
@@ -27,16 +28,27 @@ function describeRules(shop: Shop, service: Service, slot: Slot): string[] {
   const lastFreeMoment = shopClockOf(deadline, shop.timeZone);
 
   const payment = hasDeposit
-    ? `Pay ${formatPrice(service.depositCents)} now by card and ${formatPrice(service.priceCents - service.depositCents)} at the shop.`
-    : `Pay ${formatPrice(service.priceCents)} at the shop.`;
+    ? t("confirm.payDeposit", {
+        deposit: formatPrice(service.depositCents),
+        rest: formatPrice(service.priceCents - service.depositCents),
+      })
+    : t("confirm.payAtShop", { price: formatPrice(service.priceCents) });
   const changes =
     deadline.getTime() > Date.now()
-      ? `Cancel or move it free until ${formatLongDate(lastFreeMoment.date)} at ${lastFreeMoment.time}.${hasDeposit ? " After that the deposit is kept." : ""}`
-      : `This appointment is less than ${shop.freeCancellationHours} hours away, so it can't be moved${hasDeposit ? " and the deposit is kept if you cancel" : ""}.`;
+      ? [
+          t("confirm.freeUntil", {
+            date: formatLongDate(lastFreeMoment.date),
+            time: lastFreeMoment.time,
+          }),
+          hasDeposit ? t("confirm.depositKeptAfter") : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : t(hasDeposit ? "confirm.tooCloseKept" : "confirm.tooClose", {
+          hours: shop.freeCancellationHours,
+        });
 
-  return hasDeposit
-    ? [payment, changes, "We hold this time for 30 minutes while you pay."]
-    : [payment, changes];
+  return hasDeposit ? [payment, changes, t("confirm.hold")] : [payment, changes];
 }
 
 export function ConfirmStep({ shop, service, barber, date, slot, showSummary }: ConfirmStepProps) {
@@ -86,23 +98,21 @@ export function ConfirmStep({ shop, service, barber, date, slot, showSummary }: 
           // for the payment page, so that a second click can't book a second
           // slot.
           loading={createBooking.isPending || createBooking.isSuccess}
-          loadingLabel={hasDeposit ? "Taking you to the payment page…" : "Booking…"}
+          loadingLabel={t(hasDeposit ? "confirm.goingToPayment" : "confirm.booking")}
           onClick={confirm}
         >
-          {hasDeposit ? "Continue to payment" : "Confirm booking"}
+          {t(hasDeposit ? "confirm.continueToPayment" : "confirm.confirmBooking")}
         </Button>
       ) : status === "loading" ? (
         <Button size="lg" className="w-full" disabled>
-          Checking your session…
+          {t("confirm.checkingSession")}
         </Button>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-muted">
-            Your choices are kept. You'll come straight back here after logging in.
-          </p>
+          <p className="text-sm text-muted">{t("confirm.keptChoices")}</p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <ButtonLink size="lg" className="flex-1" to={withNext("/login", thisStep)}>
-              Log in to continue
+              {t("confirm.logIn")}
             </ButtonLink>
             <ButtonLink
               size="lg"
@@ -110,7 +120,7 @@ export function ConfirmStep({ shop, service, barber, date, slot, showSummary }: 
               className="flex-1"
               to={withNext("/register", thisStep)}
             >
-              Create an account
+              {t("confirm.createAccount")}
             </ButtonLink>
           </div>
         </div>

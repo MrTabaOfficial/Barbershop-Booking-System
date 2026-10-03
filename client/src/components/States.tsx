@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { errorMessage } from "../api/http.ts";
+import { t } from "../i18n/index.ts";
 import { Button } from "./Button.tsx";
 
 export function LoadingBlock({ label, rows = 3 }: { label: string; rows?: number }) {
@@ -36,7 +37,7 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  title = "We couldn't load this",
+  title = t("common.loadError"),
   error,
   onRetry,
 }: {
@@ -49,7 +50,7 @@ export function ErrorState({
       <p className="text-lg font-semibold">{title}</p>
       <p className="mt-2 text-sm">{errorMessage(error)}</p>
       <Button variant="secondary" className="mt-5" onClick={onRetry}>
-        Try again
+        {t("common.tryAgain")}
       </Button>
     </div>
   );

@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.ts";
+
 // Shop dates are handled as midnight UTC, so the visitor's own time zone
 // never enters the calendar arithmetic.
 
@@ -32,28 +34,32 @@ export function startOfWeek(shopDate: string): string {
   return addDays(shopDate, -daysSinceMonday);
 }
 
-const longDateFormat = new Intl.DateTimeFormat("en-GB", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-});
-
-export function formatLongDate(shopDate: string): string {
-  return longDateFormat.format(toUtcMidnight(shopDate));
+// Day and month names come from the dictionaries rather than Intl, because
+// not every browser build carries Georgian locale data.
+export function weekdayName(weekday: number, style: "long" | "short"): string {
+  return t(style === "long" ? "date.weekdaysLong" : "date.weekdaysShort").split(",")[weekday] ?? "";
 }
 
-const dayPartsFormat = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
+function monthName(month: number, style: "long" | "short"): string {
+  return t(style === "long" ? "date.monthsLong" : "date.monthsShort").split(",")[month] ?? "";
+}
+
+export function formatLongDate(shopDate: string): string {
+  const date = toUtcMidnight(shopDate);
+  return t("date.long", {
+    weekday: weekdayName(date.getUTCDay(), "long"),
+    day: date.getUTCDate(),
+    month: monthName(date.getUTCMonth(), "long"),
+  });
+}
 
 export function dayParts(shopDate: string): { weekday: string; day: string; month: string } {
-  const parts = dayPartsFormat.formatToParts(toUtcMidnight(shopDate));
-  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? "";
-  return { weekday: part("weekday"), day: part("day"), month: part("month") };
+  const date = toUtcMidnight(shopDate);
+  return {
+    weekday: weekdayName(date.getUTCDay(), "short"),
+    day: String(date.getUTCDate()),
+    month: monthName(date.getUTCMonth(), "short"),
+  };
 }
 
 export function shopClockOf(instant: Date, timeZone: string): { date: string; time: string } {
@@ -75,5 +81,5 @@ export function shopClockOf(instant: Date, timeZone: string): { date: string; ti
 
 export function formatShortDate(shopDate: string, { weekday = true } = {}): string {
   const parts = dayParts(shopDate);
-  return weekday ? `${parts.weekday} ${parts.day} ${parts.month}` : `${parts.day} ${parts.month}`;
+  return t(weekday ? "date.short" : "date.dayMonth", parts);
 }

@@ -1,5 +1,6 @@
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 import { ApiError } from "../api/http.ts";
+import { t } from "../i18n/index.ts";
 
 const FIELD_FOR_CODE: Record<string, string> = {
   EMAIL_TAKEN: "email",
@@ -12,7 +13,7 @@ export function showApiErrorOnForm<Values extends FieldValues>(
   setError: UseFormSetError<Values>,
 ): string | null {
   if (!(error instanceof ApiError)) {
-    return "Something went wrong. Please try again.";
+    return t("error.generic");
   }
 
   const isField = (path: string): path is Path<Values> =>

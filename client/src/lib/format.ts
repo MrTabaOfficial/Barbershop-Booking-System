@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.ts";
+
 const NO_BREAK_SPACE = " ";
 
 export const LARI_SIGN = "₾";
@@ -14,9 +16,11 @@ export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   if (hours === 0) {
-    return `${rest} min`;
+    return t("duration.minutes", { n: rest });
   }
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  return rest === 0
+    ? t("duration.hours", { n: hours })
+    : t("duration.hoursMinutes", { h: hours, m: rest });
 }
 
 export function formatClock(minutesAfterMidnight: number): string {

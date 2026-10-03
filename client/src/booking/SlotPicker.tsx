@@ -3,6 +3,7 @@ import { useAvailability } from "../api/queries.ts";
 import type { Shop, Slot, WorkingHours } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
+import { t, type TranslationKey } from "../i18n/index.ts";
 import {
   addDays,
   dayParts,
@@ -28,14 +29,15 @@ type SlotPickerProps = {
   onSlotSelect: (date: string, slot: Slot) => void;
 };
 
-const PARTS_OF_DAY = [
-  { label: "Morning", from: "00:00", to: "12:00" },
-  { label: "Afternoon", from: "12:00", to: "17:00" },
-  { label: "Evening", from: "17:00", to: "24:00" },
+const PARTS_OF_DAY: { label: TranslationKey; from: string; to: string }[] = [
+  { label: "slots.morning", from: "00:00", to: "12:00" },
+  { label: "slots.afternoon", from: "12:00", to: "17:00" },
+  { label: "slots.evening", from: "17:00", to: "24:00" },
 ];
 
 function cityOf(timeZone: string): string {
-  return (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
+  const city = (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
+  return city === "Tbilisi" ? t("city.tbilisi") : city;
 }
 
 export function SlotPicker({
@@ -97,7 +99,10 @@ export function SlotPicker({
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-muted">
-            {formatShortDate(days[0] ?? activeDate)} to {formatShortDate(days.at(-1) ?? activeDate)}
+            {t("common.range", {
+              from: formatShortDate(days[0] ?? activeDate),
+              to: formatShortDate(days.at(-1) ?? activeDate),
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -106,7 +111,7 @@ export function SlotPicker({
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
             >
-              Earlier
+              {t("slots.earlier")}
             </Button>
             <Button
               variant="secondary"
@@ -114,12 +119,12 @@ export function SlotPicker({
               disabled={page >= lastPage}
               onClick={() => setPage(page + 1)}
             >
-              Later
+              {t("slots.later")}
             </Button>
           </div>
         </div>
 
-        <ul aria-label="Days" className="grid grid-cols-7 gap-1 sm:gap-2">
+        <ul aria-label={t("slots.days")} className="grid grid-cols-7 gap-1 sm:gap-2">
           {days.map((day) => {
             const { weekday, day: dayNumber, month } = dayParts(day);
             const selected = day === activeDate;
@@ -130,7 +135,11 @@ export function SlotPicker({
                   type="button"
                   disabled={!working}
                   aria-pressed={selected}
-                  aria-label={`${formatLongDate(day)}${working ? "" : ", not a working day"}`}
+                  aria-label={
+                    working
+                      ? formatLongDate(day)
+                      : t("slots.notWorkingDay", { date: formatLongDate(day) })
+                  }
                   onClick={() => onDateChange(day)}
                   className={`flex min-h-[4.5rem] w-full flex-col items-center justify-center rounded-md border text-center text-xs leading-tight transition-colors duration-120 ease-standard disabled:cursor-not-allowed disabled:border-transparent disabled:bg-sunken disabled:text-faint lg:min-h-20 ${
                     selected
@@ -157,22 +166,20 @@ export function SlotPicker({
       <div>
         <h3 className="text-xl">{formatLongDate(activeDate)}</h3>
         <p className="mt-1 text-sm text-muted">
-          Times are shown in {cityOf(shop.timeZone)} time.
+          {t("slots.timesIn", { city: cityOf(shop.timeZone) })}
         </p>
 
         <div className="mt-4">
           {availability.isPending ? (
-            <LoadingBlock label="Loading free times" rows={2} />
+            <LoadingBlock label={t("slots.loading")} rows={2} />
           ) : availability.isError ? (
             <ErrorState
-              title="We couldn't load the free times"
+              title={t("slots.loadError")}
               error={availability.error}
               onRetry={() => void availability.refetch()}
             />
           ) : slots.length === 0 ? (
-            <EmptyState title="No free times on this day">
-              Every slot is taken or the barber is away. Try another day.
-            </EmptyState>
+            <EmptyState title={t("slots.none")}>{t("slots.noneHint")}</EmptyState>
           ) : (
             <div className="space-y-5">
               {PARTS_OF_DAY.map((part) => {
@@ -182,9 +189,10 @@ export function SlotPicker({
                 if (partSlots.length === 0) {
                   return null;
                 }
+                const label = t(part.label);
                 return (
-                  <section key={part.label} aria-label={part.label}>
-                    <h4 className="mb-2 text-sm font-semibold">{part.label}</h4>
+                  <section key={part.label} aria-label={label}>
+                    <h4 className="mb-2 text-sm font-semibold">{label}</h4>
                     <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                       {partSlots.map((slot) => {
                         const selected = slot.startsAt === selectedStartsAt;
@@ -193,7 +201,7 @@ export function SlotPicker({
                           <Fragment key={slot.startsAt}>
                             {shopBreak && slot.startsAt === firstAfterBreak && (
                               <li className="col-span-full flex items-center gap-3 text-sm text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-                                Break {shopBreak.start} to {shopBreak.end}
+                                {t("slots.break", { from: shopBreak.start, to: shopBreak.end })}
                               </li>
                             )}
                             <li>
@@ -211,7 +219,7 @@ export function SlotPicker({
                                 {slot.localTime}
                                 {current && (
                                   <span className="block text-xs font-semibold">
-                                    Current
+                                    {t("slots.current")}
                                   </span>
                                 )}
                               </button>

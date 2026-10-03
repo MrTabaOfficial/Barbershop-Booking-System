@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { Link, type LinkProps } from "react-router";
+import { t } from "../i18n/index.ts";
 
 type Variant = "primary" | "secondary" | "quiet" | "quiet-danger" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -47,7 +48,7 @@ export function Button({
   variant,
   size,
   loading = false,
-  loadingLabel = "Please wait…",
+  loadingLabel = t("common.wait"),
   className,
   disabled,
   children,

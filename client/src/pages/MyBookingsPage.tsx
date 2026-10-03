@@ -9,6 +9,7 @@ import { RescheduleDialog } from "../booking/RescheduleDialog.tsx";
 import { ButtonLink } from "../components/Button.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate } from "../lib/dates.ts";
 import { firstName } from "../lib/format.ts";
 import { useFocusAfter } from "../lib/useFocusAfter.ts";
@@ -20,7 +21,11 @@ const DEFAULT_FREE_CANCELLATION_HOURS = 24;
 const cardId = (bookingId: string) => `booking-${bookingId}`;
 
 const describe = (booking: Booking) =>
-  `${formatLongDate(booking.localDate)} at ${booking.localTime} with ${firstName(booking.barber.name)}`;
+  t("my.bookedWhen", {
+    date: formatLongDate(booking.localDate),
+    time: booking.localTime,
+    barber: firstName(booking.barber.name),
+  });
 
 function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
   const location = useLocation();
@@ -37,7 +42,7 @@ function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
   if (booking.status === "confirmed") {
     return (
       <Notice tone="success" className="mb-8">
-        You are booked for {describe(booking)}. See you then.
+        {t("my.booked", { when: describe(booking) })}
       </Notice>
     );
   }
@@ -45,16 +50,9 @@ function ArrivalNotice({ bookings }: { bookings: Booking[] }) {
     return null;
   }
   if (booking.id === paidId) {
-    return (
-      <Notice className="mb-8">
-        Thank you. We are confirming your payment; this page will update by itself in a
-        moment.
-      </Notice>
-    );
+    return <Notice className="mb-8">{t("my.confirming")}</Notice>;
   }
-  return (
-    <Notice className="mb-8">Pay the deposit to confirm your booking.</Notice>
-  );
+  return <Notice className="mb-8">{t("my.payToConfirm")}</Notice>;
 }
 
 export function MyBookingsPage() {
@@ -76,12 +74,12 @@ export function MyBookingsPage() {
 
   function renderLists() {
     if (bookings.isPending) {
-      return <LoadingBlock label="Loading your bookings" />;
+      return <LoadingBlock label={t("my.loading")} />;
     }
     if (bookings.isError) {
       return (
         <ErrorState
-          title="We couldn't load your bookings"
+          title={t("my.loadError")}
           error={bookings.error}
           onRetry={() => void bookings.refetch()}
         />
@@ -93,14 +91,14 @@ export function MyBookingsPage() {
       <div className="space-y-10">
         <section aria-labelledby="upcoming-title">
           <h2 id="upcoming-title" ref={upcomingHeading} tabIndex={-1} className="mb-3 text-xl">
-            Upcoming
+            {t("my.upcoming")}
           </h2>
           {upcoming.length === 0 ? (
             <EmptyState
-              title="Nothing booked"
-              action={<ButtonLink to="/book">Book an appointment</ButtonLink>}
+              title={t("my.nothing")}
+              action={<ButtonLink to="/book">{t("home.book")}</ButtonLink>}
             >
-              When you book a visit it will appear here, where you can move or cancel it.
+              {t("my.nothingHint")}
             </EmptyState>
           ) : (
             <ul className="space-y-4">
@@ -120,10 +118,10 @@ export function MyBookingsPage() {
 
         <section aria-labelledby="past-title">
           <h2 id="past-title" className="mb-3 text-xl">
-            Past
+            {t("my.past")}
           </h2>
           {past.length === 0 ? (
-            <EmptyState title="No past visits yet" />
+            <EmptyState title={t("my.noPast")} />
           ) : (
             <PastVisits bookings={past} />
           )}
@@ -134,8 +132,8 @@ export function MyBookingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-8 lg:pt-12">
-      <title>My bookings · Dalaki</title>
-      <h1 className="mb-6 text-3xl">My bookings</h1>
+      <title>{t("my.title")}</title>
+      <h1 className="mb-6 text-3xl">{t("my.heading")}</h1>
 
       {bookings.data && <ArrivalNotice bookings={bookings.data.upcoming} />}
 

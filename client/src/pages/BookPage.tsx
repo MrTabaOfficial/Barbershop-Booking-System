@@ -9,15 +9,16 @@ import { type Step, Stepper } from "../booking/Stepper.tsx";
 import { describeWorkingDays } from "../booking/workingDays.ts";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
+import { t, type TranslationKey } from "../i18n/index.ts";
 import { formatShortDate, isShopDate } from "../lib/dates.ts";
 import { firstName, formatDuration, formatPrice } from "../lib/format.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
-const STEP_TITLES = [
-  "Choose a service",
-  "Choose your barber",
-  "Pick a day and time",
-  "Confirm your booking",
+const STEP_TITLES: TranslationKey[] = [
+  "book.chooseService",
+  "book.chooseBarber",
+  "book.pickTime",
+  "book.confirm",
 ];
 
 const SUMMARY_FITS_BESIDE = "(min-width: 64rem)";
@@ -72,7 +73,7 @@ export function BookPage() {
     if (failed) {
       return (
         <ErrorState
-          title="We couldn't load the booking form"
+          title={t("book.loadError")}
           error={failed.error}
           onRetry={() => {
             void shop.refetch();
@@ -83,36 +84,36 @@ export function BookPage() {
       );
     }
     if (!shop.data || !services.data || !barbers.data) {
-      return <LoadingBlock label="Loading the booking form" />;
+      return <LoadingBlock label={t("book.loading")} />;
     }
     if (services.data.length === 0 || barbers.data.length === 0) {
       return (
-        <EmptyState title="Online booking is closed for now">
-          Call us on {shop.data.phone} and we will find you a time.
+        <EmptyState title={t("book.closed")}>
+          {t("book.closedHint", { phone: shop.data.phone })}
         </EmptyState>
       );
     }
 
     const steps: Step[] = [
       {
-        label: "Service",
+        label: t("book.step.service"),
         choice: service && step > 1 ? service.name : undefined,
         onChange: () => update({ service: null, time: null }),
       },
       {
-        label: "Barber",
+        label: t("book.step.barber"),
         choice: barber && step > 2 ? firstName(barber.name) : undefined,
         onChange: () => update({ barber: null, date: null, time: null }),
       },
       {
-        label: "Time",
+        label: t("book.step.time"),
         choice:
           date && slot && step === 4
             ? [formatShortDate(date), slot.localTime]
             : undefined,
         onChange: () => update({ time: null }),
       },
-      { label: "Confirm" },
+      { label: t("book.step.confirm") },
     ];
 
     return (
@@ -127,7 +128,7 @@ export function BookPage() {
               tabIndex={-1}
               className="text-2xl outline-none lg:text-3xl"
             >
-              {STEP_TITLES[step - 1]}
+              {t(STEP_TITLES[step - 1] ?? "book.chooseService")}
             </h2>
 
             {step === 1 && (
@@ -167,11 +168,7 @@ export function BookPage() {
 
             {step === 3 && service && barber && (
               <>
-                {slotWasTaken && (
-                  <Notice tone="error">
-                    That time has just been taken. These are the times still free.
-                  </Notice>
-                )}
+                {slotWasTaken && <Notice tone="error">{t("book.slotTaken")}</Notice>}
                 <SlotPicker
                   shop={shop.data}
                   barberId={barber.id}
@@ -191,7 +188,7 @@ export function BookPage() {
               date &&
               (availability.isError ? (
                 <ErrorState
-                  title="We couldn't check that time"
+                  title={t("book.checkError")}
                   error={availability.error}
                   onRetry={() => void availability.refetch()}
                 />
@@ -205,12 +202,12 @@ export function BookPage() {
                   showSummary={!summaryBeside}
                 />
               ) : (
-                <LoadingBlock label="Checking that the time is still free" rows={2} />
+                <LoadingBlock label={t("book.checking")} rows={2} />
               ))}
           </section>
 
           {summaryBeside && (
-            <aside aria-label="Your booking so far" className="sticky top-6">
+            <aside aria-label={t("book.summaryAside")} className="sticky top-6">
               <BookingSummary
                 service={service}
                 barber={barber}
@@ -226,10 +223,10 @@ export function BookPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-16 pt-5 sm:px-8 lg:pt-12">
-      <title>Book an appointment · Dalaki</title>
+      <title>{t("book.title")}</title>
       <div className="max-w-2xl lg:max-w-none">
         <h1 className="mb-3 text-sm font-semibold tracking-normal text-muted lg:mb-4 lg:text-base">
-          Book an appointment
+          {t("book.heading")}
         </h1>
         {renderBody()}
       </div>

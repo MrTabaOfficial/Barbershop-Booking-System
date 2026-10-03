@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Booking } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { StatusBadge } from "../components/StatusBadge.tsx";
+import { t } from "../i18n/index.ts";
 import { formatShortDate } from "../lib/dates.ts";
 import { describeCancellation } from "./BookingCard.tsx";
 
@@ -25,7 +26,7 @@ export function PastVisits({ bookings }: { bookings: Booking[] }) {
                   {formatShortDate(booking.localDate)}, {booking.localTime}
                 </p>
                 <p className="text-sm text-muted sm:text-base">
-                  {booking.service.name} with {booking.barber.name}
+                  {t("common.with", { service: booking.service.name, barber: booking.barber.name })}
                 </p>
                 {cancellationNote && (
                   <p className="text-sm text-muted sm:col-start-2">{cancellationNote}</p>
@@ -42,7 +43,7 @@ export function PastVisits({ bookings }: { bookings: Booking[] }) {
           className="mt-4"
           onClick={() => setShown(shown + EARLIER_VISITS_PER_CLICK)}
         >
-          Show earlier visits ({hidden})
+          {t("past.showEarlier", { count: hidden })}
         </Button>
       )}
     </>

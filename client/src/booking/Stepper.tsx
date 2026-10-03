@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.ts";
+
 export type Step = {
   label: string;
   choice?: string | [string, string];
@@ -6,7 +8,7 @@ export type Step = {
 
 export function Stepper({ current, steps }: { current: number; steps: Step[] }) {
   return (
-    <nav aria-label="Booking steps">
+    <nav aria-label={t("book.steps")}>
       <ol className="grid grid-cols-4 gap-1.5 lg:gap-2.5">
         {steps.map((step, index) => {
           const number = index + 1;
@@ -20,7 +22,7 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
               >
                 <span className="mr-1 tabular-nums">{number}</span>
                 {step.label}
-                {isDone && <span className="sr-only"> (done)</span>}
+                {isDone && <span className="sr-only"> {t("book.stepDone")}</span>}
               </span>
               {step.choice && (
                 <span className="block break-words font-semibold text-action underline underline-offset-2 transition-colors duration-120 ease-standard group-hover:text-action-pressed">
@@ -45,7 +47,10 @@ export function Stepper({ current, steps }: { current: number; steps: Step[] }) 
                 <button
                   type="button"
                   onClick={step.onChange}
-                  aria-label={`Change ${step.label.toLowerCase()}, now ${choiceLines.join(", ")}`}
+                  aria-label={t("book.changeStep", {
+                    step: step.label.toLowerCase(),
+                    choice: choiceLines.join(", "),
+                  })}
                   className="group block w-full pb-1 pt-2 text-left"
                 >
                   {content}

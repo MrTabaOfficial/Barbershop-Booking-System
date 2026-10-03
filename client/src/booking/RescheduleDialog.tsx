@@ -5,6 +5,7 @@ import type { Booking, Shop, Slot } from "../api/types.ts";
 import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate } from "../lib/dates.ts";
 import { SlotPicker } from "./SlotPicker.tsx";
 
@@ -37,32 +38,33 @@ export function RescheduleDialog({ booking, shop, onClose }: RescheduleDialogPro
 
   return (
     <Dialog
-      title="Move this booking"
+      title={t("move.title")}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Keep current time
+            {t("move.keep")}
           </Button>
           <Button
             disabled={!slot}
             loading={rescheduleBooking.isPending}
-            loadingLabel="Moving…"
+            loadingLabel={t("move.moving")}
             onClick={move}
           >
-            {slot && date ? `Move to ${slot.localTime}` : "Move booking"}
+            {slot && date ? t("move.to", { time: slot.localTime }) : t("move.button")}
           </Button>
         </>
       }
     >
       <p>
-        {booking.service.name} with {booking.barber.name}, currently{" "}
-        {formatLongDate(booking.localDate)} at {booking.localTime}.
+        {t("move.current", {
+          service: booking.service.name,
+          barber: booking.barber.name,
+          date: formatLongDate(booking.localDate),
+          time: booking.localTime,
+        })}
       </p>
-      <p className="text-muted">
-        Pick a new time at least an hour from now. The {shop.freeCancellationHours}-hour
-        cancellation rule then applies to the new time.
-      </p>
+      <p className="text-muted">{t("move.rule", { hours: shop.freeCancellationHours })}</p>
       {rescheduleBooking.isError && (
         <Notice tone="error">{errorMessage(rescheduleBooking.error)}</Notice>
       )}

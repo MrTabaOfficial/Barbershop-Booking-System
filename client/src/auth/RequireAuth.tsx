@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router";
 import type { Role } from "../api/types.ts";
 import { ButtonLink } from "../components/Button.tsx";
 import { LoadingBlock } from "../components/States.tsx";
+import { t } from "../i18n/index.ts";
 import { withNext } from "../lib/nextPath.ts";
 import { useAuth } from "./AuthContext.ts";
 
@@ -15,7 +16,7 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
   if (status === "loading") {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-8">
-        <LoadingBlock label="Checking your session" />
+        <LoadingBlock label={t("auth.checking")} />
       </div>
     );
   }
@@ -25,13 +26,13 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
   if (role && user.role !== role) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-8">
-        <title>Not available · Dalaki</title>
-        <h1 className="text-3xl">This page isn't for your account</h1>
+        <title>{t("auth.notYours.title")}</title>
+        <h1 className="text-3xl">{t("auth.notYours")}</h1>
         <p className="mt-4 text-muted">
-          You are logged in as {user.name}, and this part of the site is for {role}s.
+          {t(role === "barber" ? "auth.forBarbers" : "auth.forAdmins", { name: user.name })}
         </p>
         <ButtonLink to="/" className="mt-8">
-          Back to the home page
+          {t("auth.backHome")}
         </ButtonLink>
       </div>
     );

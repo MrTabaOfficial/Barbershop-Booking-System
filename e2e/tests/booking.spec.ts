@@ -194,3 +194,23 @@ test("a reload keeps the customer logged in, and logging out ends the session", 
   await page.goto("/bookings");
   await expect(page).toHaveURL(/\/login\?next=%2Fbookings$/);
 });
+
+test("a visitor can read the site in Georgian, and the choice survives a reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "A proper haircut, in an unhurried chair." })).toBeVisible();
+
+  await page.getByRole("button", { name: "Switch to ქართული" }).click();
+  await expect(page.getByRole("heading", { name: "ნამდვილი თმის შეჭრა, აუჩქარებელ სავარძელში." })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ka");
+
+  await page.getByRole("link", { name: "ვიზიტის დაჯავშნა" }).first().click();
+  await expect(page.getByRole("heading", { name: "აირჩიეთ სერვისი" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "აირჩიეთ სერვისი" })).toBeVisible();
+
+  await page.getByRole("button", { name: "English ენაზე გადართვა" }).click();
+  await expect(page.getByRole("heading", { name: "Choose a service" })).toBeVisible();
+});

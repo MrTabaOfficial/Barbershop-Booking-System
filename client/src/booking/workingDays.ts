@@ -1,17 +1,8 @@
 import type { Barber, WorkingHours } from "../api/types.ts";
+import { t } from "../i18n/index.ts";
+import { weekdayName } from "../lib/dates.ts";
 
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
-
-const SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const LONG_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 export function describeWorkingDays(workingHours: WorkingHours[]): string {
   const worked = new Set(workingHours.map((hours) => hours.weekday));
@@ -20,7 +11,7 @@ export function describeWorkingDays(workingHours: WorkingHours[]): string {
   let currentRun: string[] = [];
   for (const weekday of MONDAY_FIRST) {
     if (worked.has(weekday)) {
-      currentRun.push(SHORT_NAMES[weekday] ?? "");
+      currentRun.push(weekdayName(weekday, "short"));
     } else if (currentRun.length > 0) {
       runs.push(currentRun);
       currentRun = [];
@@ -31,7 +22,9 @@ export function describeWorkingDays(workingHours: WorkingHours[]): string {
   }
 
   return runs
-    .map((run) => (run.length > 2 ? `${run[0]} to ${run.at(-1)}` : run.join(", ")))
+    .map((run) =>
+      run.length > 2 ? t("common.range", { from: run[0] ?? "", to: run.at(-1) ?? "" }) : run.join(", "),
+    )
     .join(", ");
 }
 
@@ -48,7 +41,7 @@ export function shopOpeningHours(barbers: Barber[]): OpeningDay[] {
     );
     return {
       weekday,
-      name: LONG_NAMES[weekday] ?? "",
+      name: weekdayName(weekday, "long"),
       hours:
         shifts.length === 0
           ? null

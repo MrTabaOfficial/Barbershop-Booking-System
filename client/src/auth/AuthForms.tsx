@@ -5,32 +5,32 @@ import { z } from "zod";
 import { Button } from "../components/Button.tsx";
 import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { t } from "../i18n/index.ts";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { useAuth } from "./AuthContext.ts";
 
-const email = z.string().trim().pipe(z.email("Enter an email address like name@example.com"));
+const email = () => z.string().trim().pipe(z.email(t("form.v.email")));
 
-const loginSchema = z.object({
-  email,
-  password: z.string().min(1, "Enter your password"),
-});
+const loginSchema = () =>
+  z.object({
+    email: email(),
+    password: z.string().min(1, t("form.v.password")),
+  });
 
-const registerSchema = z.object({
-  name: z.string().trim().min(1, "Enter your name").max(100, "That name is too long"),
-  email,
-  phone: z
-    .string()
-    .trim()
-    .max(30, "That number is too long")
-    .refine((value) => value === "" || value.length >= 5, "Enter a full number or leave this empty"),
-  password: z
-    .string()
-    .min(8, "Use at least 8 characters")
-    .max(72, "Use at most 72 characters"),
-});
+const registerSchema = () =>
+  z.object({
+    name: z.string().trim().min(1, t("form.v.name")).max(100, t("form.v.nameLong")),
+    email: email(),
+    phone: z
+      .string()
+      .trim()
+      .max(30, t("form.v.phoneLong"))
+      .refine((value) => value === "" || value.length >= 5, t("form.v.phone")),
+    password: z.string().min(8, t("form.v.passwordShort")).max(72, t("form.v.passwordLong")),
+  });
 
-type LoginValues = z.infer<typeof loginSchema>;
-type RegisterValues = z.infer<typeof registerSchema>;
+type LoginValues = z.infer<ReturnType<typeof loginSchema>>;
+type RegisterValues = z.infer<ReturnType<typeof registerSchema>>;
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -40,7 +40,7 @@ export function LoginForm() {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema()) });
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -55,21 +55,27 @@ export function LoginForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       {formError && <Notice tone="error">{formError}</Notice>}
       <Input
-        label="Email"
+        label={t("form.email")}
         type="email"
         autoComplete="email"
         error={errors.email?.message}
         {...register("email")}
       />
       <Input
-        label="Password"
+        label={t("form.password")}
         type="password"
         autoComplete="current-password"
         error={errors.password?.message}
         {...register("password")}
       />
-      <Button type="submit" size="lg" className="w-full" loading={isSubmitting} loadingLabel="Logging in…">
-        Log in
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        loading={isSubmitting}
+        loadingLabel={t("form.loggingIn")}
+      >
+        {t("auth.logIn")}
       </Button>
     </form>
   );
@@ -83,7 +89,7 @@ export function RegisterForm() {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema) });
+  } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema()) });
 
   const onSubmit = handleSubmit(async ({ phone, ...values }) => {
     setFormError(null);
@@ -100,37 +106,43 @@ export function RegisterForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       {formError && <Notice tone="error">{formError}</Notice>}
       <Input
-        label="Full name"
+        label={t("form.name")}
         autoComplete="name"
         error={errors.name?.message}
         {...register("name")}
       />
       <Input
-        label="Email"
+        label={t("form.email")}
         type="email"
         autoComplete="email"
         error={errors.email?.message}
         {...register("email")}
       />
       <Input
-        label="Phone (optional)"
+        label={t("form.phone")}
         type="tel"
         autoComplete="tel"
         placeholder="+995 5XX XX XX XX"
-        hint="Only used if we need to reach you about a booking."
+        hint={t("form.phoneHint")}
         error={errors.phone?.message}
         {...register("phone")}
       />
       <Input
-        label="Password"
+        label={t("form.password")}
         type="password"
         autoComplete="new-password"
-        hint="At least 8 characters."
+        hint={t("form.passwordHint")}
         error={errors.password?.message}
         {...register("password")}
       />
-      <Button type="submit" size="lg" className="w-full" loading={isSubmitting} loadingLabel="Creating your account…">
-        Create account
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        loading={isSubmitting}
+        loadingLabel={t("form.creatingAccount")}
+      >
+        {t("form.createAccount")}
       </Button>
     </form>
   );
