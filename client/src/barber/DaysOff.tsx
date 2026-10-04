@@ -8,15 +8,17 @@ import { Button } from "../components/Button.tsx";
 import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
+import { t } from "../i18n/index.ts";
 import { formatLongDate } from "../lib/dates.ts";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { useFocusAfter } from "../lib/useFocusAfter.ts";
 
-const dayOffSchema = z.object({
-  date: z.string().min(1, "Choose a date"),
-  reason: z.string().trim().max(200, "Keep the reason under 200 characters"),
-});
-type DayOffValues = z.infer<typeof dayOffSchema>;
+const dayOffSchema = () =>
+  z.object({
+    date: z.string().min(1, t("barber.v.date")),
+    reason: z.string().trim().max(200, t("barber.v.reason")),
+  });
+type DayOffValues = z.infer<ReturnType<typeof dayOffSchema>>;
 
 type BlockingBooking = { id: string; localTime: string; customerName: string; serviceName: string };
 
@@ -38,7 +40,7 @@ function AddDayOffForm({ today }: { today: string }) {
     reset,
     formState: { errors },
   } = useForm<DayOffValues>({
-    resolver: zodResolver(dayOffSchema),
+    resolver: zodResolver(dayOffSchema()),
     defaultValues: { date: "", reason: "" },
   });
 
@@ -72,21 +74,21 @@ function AddDayOffForm({ today }: { today: string }) {
       )}
       <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
         <Input
-          label="Date"
+          label={t("barber.date")}
           type="date"
           min={today}
           error={errors.date?.message}
           {...register("date")}
         />
         <Input
-          label="Reason (optional)"
-          hint="Only you and the admin see this."
+          label={t("barber.reason")}
+          hint={t("barber.reasonHint")}
           error={errors.reason?.message}
           {...register("reason")}
         />
       </div>
-      <Button type="submit" loading={addDayOff.isPending} loadingLabel="Adding…">
-        Add day off
+      <Button type="submit" loading={addDayOff.isPending} loadingLabel={t("barber.adding")}>
+        {t("barber.addDayOff")}
       </Button>
     </form>
   );
@@ -103,12 +105,12 @@ export function DaysOff({ today }: { today: string }) {
 
   function renderList() {
     if (daysOff.isPending) {
-      return <LoadingBlock label="Loading your days off" rows={2} />;
+      return <LoadingBlock label={t("barber.daysOffLoading")} rows={2} />;
     }
     if (daysOff.isError) {
       return (
         <ErrorState
-          title="We couldn't load your days off"
+          title={t("barber.daysOffError")}
           error={daysOff.error}
           onRetry={() => void daysOff.refetch()}
         />
@@ -116,9 +118,7 @@ export function DaysOff({ today }: { today: string }) {
     }
     if (daysOff.data.length === 0) {
       return (
-        <EmptyState title="No days off planned">
-          Add one below and customers won't be offered any times on that day.
-        </EmptyState>
+        <EmptyState title={t("barber.noDaysOff")}>{t("barber.noDaysOffHint")}</EmptyState>
       );
     }
     return (
@@ -132,12 +132,12 @@ export function DaysOff({ today }: { today: string }) {
             <Button
               variant="quiet"
               disabled={removeDayOff.isPending}
-              aria-label={`Remove day off on ${formatLongDate(dayOff.date)}`}
+              aria-label={t("barber.removeDayOff", { date: formatLongDate(dayOff.date) })}
               onClick={() =>
                 removeDayOff.mutate(dayOff.id, { onSuccess: () => focusAfterRemoving(dayOff.id) })
               }
             >
-              Remove
+              {t("barber.remove")}
             </Button>
           </li>
         ))}
@@ -148,7 +148,7 @@ export function DaysOff({ today }: { today: string }) {
   return (
     <section ref={section} tabIndex={-1} aria-labelledby="days-off-title" className="rounded-lg bg-surface p-4 sm:p-6 space-y-6">
       <h2 id="days-off-title" className="text-xl">
-        Days off
+        {t("barber.daysOff")}
       </h2>
       {renderList()}
       {removeDayOff.isError && <Notice tone="error">{errorMessage(removeDayOff.error)}</Notice>}

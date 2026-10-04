@@ -14,22 +14,24 @@ import { Tag } from "../components/Tag.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
+import { t } from "../i18n/index.ts";
 import { countActive } from "./activeEntries.ts";
 import { WorkingHoursDialog } from "./WorkingHoursDialog.tsx";
 
-const name = z.string().trim().min(1, "Enter a name").max(100);
-const bio = z.string().trim().max(1000, "Keep it under 1000 characters");
+const name = () => z.string().trim().min(1, t("staff.v.name")).max(100);
+const bio = () => z.string().trim().max(1000, t("staff.v.bio"));
 
-const newBarberSchema = z.object({
-  name,
-  email: z.string().trim().pipe(z.email("Enter a valid email address")),
-  password: z.string().min(8, "Use at least 8 characters").max(72),
-  bio,
-});
-type NewBarberValues = z.infer<typeof newBarberSchema>;
+const newBarberSchema = () =>
+  z.object({
+    name: name(),
+    email: z.string().trim().pipe(z.email(t("staff.v.email"))),
+    password: z.string().min(8, t("staff.v.password")).max(72),
+    bio: bio(),
+  });
+type NewBarberValues = z.infer<ReturnType<typeof newBarberSchema>>;
 
-const editBarberSchema = z.object({ name, bio });
-type EditBarberValues = z.infer<typeof editBarberSchema>;
+const editBarberSchema = () => z.object({ name: name(), bio: bio() });
+type EditBarberValues = z.infer<ReturnType<typeof editBarberSchema>>;
 
 function AddBarberDialog({ onClose }: { onClose: () => void }) {
   const createBarber = useCreateBarber();
@@ -40,7 +42,7 @@ function AddBarberDialog({ onClose }: { onClose: () => void }) {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<NewBarberValues>({ resolver: zodResolver(newBarberSchema) });
+  } = useForm<NewBarberValues>({ resolver: zodResolver(newBarberSchema()) });
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -54,41 +56,39 @@ function AddBarberDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
-      title="Add a barber"
+      title={t("staff.add")}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Discard
+            {t("services.discard")}
           </Button>
-          <Button type="submit" form={formId} loading={createBarber.isPending} loadingLabel="Adding…">
-            Add barber
+          <Button type="submit" form={formId} loading={createBarber.isPending} loadingLabel={t("barber.adding")}>
+            {t("staff.addButton")}
           </Button>
         </>
       }
     >
-      <p className="text-muted">
-        This creates their login. They appear on the website once they have working hours.
-      </p>
+      <p className="text-muted">{t("staff.addHint")}</p>
       <form id={formId} onSubmit={onSubmit} noValidate className="space-y-4 text-base">
         {formError && <Notice tone="error">{formError}</Notice>}
-        <Input label="Full name" error={errors.name?.message} {...register("name")} />
+        <Input label={t("form.name")} error={errors.name?.message} {...register("name")} />
         <Input
-          label="Email"
+          label={t("form.email")}
           type="email"
           autoComplete="off"
           error={errors.email?.message}
           {...register("email")}
         />
         <Input
-          label="Password"
+          label={t("form.password")}
           type="password"
           autoComplete="new-password"
-          hint="At least 8 characters. Give it to the barber yourself."
+          hint={t("staff.passwordHint")}
           error={errors.password?.message}
           {...register("password")}
         />
-        <Textarea label="Bio (optional)" error={errors.bio?.message} {...register("bio")} />
+        <Textarea label={t("staff.bio")} error={errors.bio?.message} {...register("bio")} />
       </form>
     </Dialog>
   );
@@ -104,7 +104,7 @@ function EditBarberDialog({ barber, onClose }: { barber: AdminBarber; onClose: (
     setError,
     formState: { errors },
   } = useForm<EditBarberValues>({
-    resolver: zodResolver(editBarberSchema),
+    resolver: zodResolver(editBarberSchema()),
     defaultValues: { name: barber.name, bio: barber.bio ?? "" },
   });
 
@@ -124,23 +124,23 @@ function EditBarberDialog({ barber, onClose }: { barber: AdminBarber; onClose: (
 
   return (
     <Dialog
-      title={`Edit ${barber.name}`}
+      title={t("staff.edit", { name: barber.name })}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Discard
+            {t("services.discard")}
           </Button>
-          <Button type="submit" form={formId} loading={updateBarber.isPending} loadingLabel="Saving…">
-            Save barber
+          <Button type="submit" form={formId} loading={updateBarber.isPending} loadingLabel={t("services.saving")}>
+            {t("staff.save")}
           </Button>
         </>
       }
     >
       <form id={formId} onSubmit={onSubmit} noValidate className="space-y-4 text-base">
         {formError && <Notice tone="error">{formError}</Notice>}
-        <Input label="Full name" error={errors.name?.message} {...register("name")} />
-        <Textarea label="Bio" rows={5} error={errors.bio?.message} {...register("bio")} />
+        <Input label={t("form.name")} error={errors.name?.message} {...register("name")} />
+        <Textarea label={t("staff.bioRequired")} rows={5} error={errors.bio?.message} {...register("bio")} />
       </form>
     </Dialog>
   );
@@ -158,19 +158,19 @@ export function StaffPage() {
 
   function renderList() {
     if (barbers.isPending) {
-      return <LoadingBlock label="Loading staff" />;
+      return <LoadingBlock label={t("staff.loading")} />;
     }
     if (barbers.isError) {
       return (
         <ErrorState
-          title="We couldn't load the staff"
+          title={t("staff.loadError")}
           error={barbers.error}
           onRetry={() => void barbers.refetch()}
         />
       );
     }
     if (barbers.data.length === 0) {
-      return <EmptyState title="No barbers yet">Add the first one to start taking bookings.</EmptyState>;
+      return <EmptyState title={t("staff.none")}>{t("staff.noneHint")}</EmptyState>;
     }
     return (
       <ul className="rounded-lg bg-surface p-4 sm:p-6 divide-y divide-line">
@@ -184,7 +184,7 @@ export function StaffPage() {
                 {barber.name}
                 {!barber.isActive && (
                   <Tag tone="neutral" className="ml-2.5 align-middle">
-                    Inactive
+                    {t("services.inactive")}
                   </Tag>
                 )}
               </p>
@@ -192,33 +192,33 @@ export function StaffPage() {
               <p className="text-sm font-semibold text-muted">
                 {barber.workingHours.length > 0
                   ? describeWorkingDays(barber.workingHours)
-                  : "No working hours yet"}
+                  : t("staff.noHours")}
               </p>
               {barber.bio && <p className="mt-2 max-w-xl text-sm">{barber.bio}</p>}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2 whitespace-nowrap">
               <Button
                 variant="secondary"
-                aria-label={`Edit ${barber.name}`}
+                aria-label={t("staff.edit", { name: barber.name })}
                 onClick={() => setDialog({ kind: "edit", barber })}
               >
-                Edit
+                {t("services.editButton")}
               </Button>
               <Button
                 variant="secondary"
-                aria-label={`Working hours of ${barber.name}`}
+                aria-label={t("staff.workingHoursOf", { name: barber.name })}
                 onClick={() => setDialog({ kind: "hours", barber })}
               >
-                Working hours
+                {t("staff.workingHours")}
               </Button>
               <Button
                 variant="quiet"
                 className="ml-2"
                 disabled={updateBarber.isPending}
-                aria-label={`${barber.isActive ? "Deactivate" : "Activate"} ${barber.name}`}
+                aria-label={t(barber.isActive ? "services.deactivateName" : "services.activateName", { name: barber.name })}
                 onClick={() => updateBarber.mutate({ id: barber.id, isActive: !barber.isActive })}
               >
-                {barber.isActive ? "Deactivate" : "Activate"}
+                {t(barber.isActive ? "services.deactivate" : "services.activate")}
               </Button>
             </div>
           </li>
@@ -229,11 +229,11 @@ export function StaffPage() {
 
   return (
     <>
-      <title>Staff · Admin · Dalaki</title>
-      <h1 className="sr-only">Staff</h1>
+      <title>{`${t("admin.staff")} ${t("admin.titleSuffix")}`}</title>
+      <h1 className="sr-only">{t("admin.staff")}</h1>
       <div className="mb-3 flex items-center justify-between gap-4 px-0.5 sm:px-1.5">
         <p className="text-muted">{barbers.data && countActive(barbers.data, "barber")}</p>
-        <Button onClick={() => setDialog({ kind: "add" })}>Add a barber</Button>
+        <Button onClick={() => setDialog({ kind: "add" })}>{t("staff.add")}</Button>
       </div>
       {updateBarber.isError && (
         <Notice tone="error" className="mb-4">

@@ -14,6 +14,7 @@ import { formatLongDate, formatShortDate } from "../lib/dates.ts";
 import { formatPrice } from "../lib/format.ts";
 import { useFocusAfter } from "../lib/useFocusAfter.ts";
 import { useMediaQuery } from "../lib/useMediaQuery.ts";
+import { t, type TranslationKey } from "../i18n/index.ts";
 
 const STATUSES: BookingStatus[] = [
   "pending",
@@ -24,24 +25,24 @@ const STATUSES: BookingStatus[] = [
   "expired",
 ];
 
-const PAYMENT_LABELS: Record<PaymentStatus, string> = {
-  unpaid: "Deposit unpaid",
-  paid: "Deposit paid",
-  refunded: "Deposit refunded",
-  refund_failed: "Refund failed",
+const PAYMENT_LABELS: Record<PaymentStatus, TranslationKey> = {
+  unpaid: "bookings.payment.unpaid",
+  paid: "bookings.payment.paid",
+  refunded: "bookings.payment.refunded",
+  refund_failed: "bookings.payment.refundFailed",
 };
 
 const FILTERS = ["from", "to", "barberId", "status", "search"];
 
 type SortKey = "startsAt" | "customer" | "barber" | "service" | "status" | "price";
 
-const COLUMNS: { key: SortKey; label: string; alignRight?: boolean }[] = [
-  { key: "startsAt", label: "When" },
-  { key: "customer", label: "Customer" },
-  { key: "barber", label: "Barber" },
-  { key: "service", label: "Service" },
-  { key: "status", label: "Status" },
-  { key: "price", label: "Price", alignRight: true },
+const COLUMNS: { key: SortKey; label: TranslationKey; alignRight?: boolean }[] = [
+  { key: "startsAt", label: "bookings.col.when" },
+  { key: "customer", label: "bookings.col.customer" },
+  { key: "barber", label: "bookings.col.barber" },
+  { key: "service", label: "bookings.col.service" },
+  { key: "status", label: "bookings.col.status" },
+  { key: "price", label: "bookings.col.price", alignRight: true },
 ];
 
 const TABLE_FITS = "(min-width: 60rem)";
@@ -52,7 +53,11 @@ const isCancellable = (booking: AdminBooking) =>
   booking.status === "pending" || booking.status === "confirmed";
 
 const cancelLabel = (booking: AdminBooking) =>
-  `Cancel ${booking.customer.name}'s booking on ${formatLongDate(booking.localDate)} at ${booking.localTime}`;
+  t("bookings.cancelLabel", {
+    name: booking.customer.name,
+    date: formatLongDate(booking.localDate),
+    time: booking.localTime,
+  });
 
 const rowId = (bookingId: string) => `booking-${bookingId}`;
 
@@ -70,17 +75,17 @@ function CancelDialog({
   const [refund, setRefund] = useState(true);
   return (
     <Dialog
-      title="Cancel this booking?"
+      title={t("bookings.cancelTitle")}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Keep booking
+            {t("bookings.keep")}
           </Button>
           <Button
             variant="danger"
             loading={cancelBooking.isPending}
-            loadingLabel="Cancelling…"
+            loadingLabel={t("bookings.cancelling")}
             onClick={() =>
               cancelBooking.mutate(
                 { bookingId: booking.id, refund },
@@ -93,14 +98,19 @@ function CancelDialog({
               )
             }
           >
-            Cancel booking
+            {t("bookings.cancelConfirm")}
           </Button>
         </>
       }
     >
       <p>
-        {booking.service.name} for {booking.customer.name} with {booking.barber.name} on{" "}
-        {formatLongDate(booking.localDate)} at {booking.localTime}.
+        {t("bookings.cancelWhat", {
+          service: booking.service.name,
+          customer: booking.customer.name,
+          barber: booking.barber.name,
+          date: formatLongDate(booking.localDate),
+          time: booking.localTime,
+        })}
       </p>
       {depositPaid ? (
         <label className="flex min-h-11 items-center gap-3 font-semibold">
@@ -110,16 +120,16 @@ function CancelDialog({
             checked={refund}
             onChange={(event) => setRefund(event.target.checked)}
           />
-          Refund the {formatPrice(booking.depositCents)} deposit
+          {t("bookings.refundDeposit", { deposit: formatPrice(booking.depositCents) })}
         </label>
       ) : (
-        <p className="text-muted">No deposit was paid, so there is nothing to refund.</p>
+        <p className="text-muted">{t("bookings.noDeposit")}</p>
       )}
       <p className="text-muted">
-        The time becomes free for other customers straight away.{" "}
+        {t("bookings.slotFrees")}{" "}
         {booking.status === "confirmed"
-          ? `${booking.customer.name} gets an email saying the booking is cancelled and what happened to the deposit.`
-          : "The booking was never confirmed, so no email is sent."}
+          ? t("bookings.emailSent", { name: booking.customer.name })
+          : t("bookings.noEmail")}
       </p>
       {cancelBooking.isError && <Notice tone="error">{errorMessage(cancelBooking.error)}</Notice>}
     </Dialog>
@@ -195,24 +205,24 @@ export function BookingsPage() {
     if (bookings.isError) {
       return (
         <ErrorState
-          title="We couldn't load the bookings"
+          title={t("bookings.loadError")}
           error={bookings.error}
           onRetry={() => void bookings.refetch()}
         />
       );
     }
     if (!bookings.data) {
-      return <LoadingBlock label="Loading bookings" rows={6} />;
+      return <LoadingBlock label={t("bookings.loading")} rows={6} />;
     }
     const { total, pageSize } = bookings.data;
     if (total === 0) {
       return (
         <EmptyState
-          title={hasFilters ? "No bookings match these filters" : "No bookings yet"}
+          title={t(hasFilters ? "bookings.noneMatch" : "bookings.none")}
           action={
             hasFilters && (
               <Button variant="secondary" onClick={() => setParams({}, { replace: true })}>
-                Clear filters
+                {t("bookings.clearFilters")}
               </Button>
             )
           }
@@ -230,7 +240,7 @@ export function BookingsPage() {
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted" role="status">
-            Showing {first} to {last} of {total}
+            {t("bookings.showing", { first, last, total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -238,14 +248,14 @@ export function BookingsPage() {
               disabled={page <= 1}
               onClick={() => update({ page: String(page - 1) })}
             >
-              Previous page
+              {t("bookings.previousPage")}
             </Button>
             <Button
               variant="secondary"
               disabled={last >= total}
               onClick={() => update({ page: String(page + 1) })}
             >
-              Next page
+              {t("bookings.nextPage")}
             </Button>
           </div>
         </div>
@@ -258,7 +268,7 @@ export function BookingsPage() {
       <ul
         ref={keepList}
         tabIndex={-1}
-        aria-label="Bookings"
+        aria-label={t("bookings.list")}
         className="divide-y divide-line"
       >
         {rows.map((booking) => (
@@ -274,7 +284,7 @@ export function BookingsPage() {
               {booking.customer.phone ?? booking.customer.email}
             </p>
             <p className="mt-1 text-sm">
-              {booking.service.name} with {booking.barber.name}
+              {t("common.with", { service: booking.service.name, barber: booking.barber.name })}
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">
               <p className="text-sm">
@@ -284,7 +294,7 @@ export function BookingsPage() {
                     booking.paymentStatus === "refund_failed" ? "text-danger" : "text-muted"
                   }`}
                 >
-                  {PAYMENT_LABELS[booking.paymentStatus]}
+                  {t(PAYMENT_LABELS[booking.paymentStatus])}
                 </span>
               </p>
               {isCancellable(booking) && (
@@ -293,7 +303,7 @@ export function BookingsPage() {
                   aria-label={cancelLabel(booking)}
                   onClick={() => setCancelling(booking)}
                 >
-                  Cancel
+                  {t("bookings.cancel")}
                 </Button>
               )}
             </div>
@@ -313,7 +323,7 @@ export function BookingsPage() {
           <table
             ref={keepList}
             tabIndex={-1}
-            aria-label="Bookings"
+            aria-label={t("bookings.list")}
             className="w-full min-w-[46rem] text-left text-sm"
           >
             <thead className="border-b-2 border-ink text-xs">
@@ -334,7 +344,7 @@ export function BookingsPage() {
                         sort === column.key ? "text-ink" : "text-muted"
                       }`}
                     >
-                      {column.label}
+                      {t(column.label)}
                       <span aria-hidden="true" className="ml-1 text-action">
                         {sort !== column.key ? "" : order === "asc" ? "↑" : "↓"}
                       </span>
@@ -342,7 +352,7 @@ export function BookingsPage() {
                   </th>
                 ))}
                 <th scope="col" className="py-2">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("bookings.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -368,7 +378,7 @@ export function BookingsPage() {
                     <span
                       className={`block text-xs ${booking.paymentStatus === "refund_failed" ? "text-danger" : "text-muted"}`}
                     >
-                      {PAYMENT_LABELS[booking.paymentStatus]}
+                      {t(PAYMENT_LABELS[booking.paymentStatus])}
                     </span>
                   </td>
                   <td className="py-2 text-right">
@@ -378,7 +388,7 @@ export function BookingsPage() {
                         aria-label={cancelLabel(booking)}
                         onClick={() => setCancelling(booking)}
                       >
-                        Cancel
+                        {t("bookings.cancel")}
                       </Button>
                     )}
                   </td>
@@ -394,23 +404,23 @@ export function BookingsPage() {
   const filterFields = (
     <div className="grid gap-3 px-0.5 sm:grid-cols-2 sm:px-1.5 lg:grid-cols-4">
       <Input
-        label="From"
+        label={t("overview.from")}
         type="date"
         value={params.get("from") ?? ""}
         onChange={(event) => update({ from: event.target.value })}
       />
       <Input
-        label="To"
+        label={t("overview.to")}
         type="date"
         value={params.get("to") ?? ""}
         onChange={(event) => update({ to: event.target.value })}
       />
       <Select
-        label="Barber"
+        label={t("bookings.col.barber")}
         value={params.get("barberId") ?? ""}
         onChange={(event) => update({ barberId: event.target.value })}
       >
-        <option value="">All barbers</option>
+        <option value="">{t("bookings.allBarbers")}</option>
         {barbers.data?.map((barber) => (
           <option key={barber.id} value={barber.id}>
             {barber.name}
@@ -418,11 +428,11 @@ export function BookingsPage() {
         ))}
       </Select>
       <Select
-        label="Status"
+        label={t("bookings.col.status")}
         value={params.get("status") ?? ""}
         onChange={(event) => update({ status: event.target.value })}
       >
-        <option value="">Any status</option>
+        <option value="">{t("bookings.anyStatus")}</option>
         {STATUSES.map((status) => (
           <option key={status} value={status}>
             {statusLabel(status)}
@@ -436,14 +446,14 @@ export function BookingsPage() {
     <form onSubmit={search} className="flex items-end gap-2" key={params.get("search") ?? ""}>
       <Input
         className="flex-1 sm:flex-none"
-        label="Customer"
+        label={t("bookings.col.customer")}
         name="search"
         type="search"
-        placeholder="Name, email or phone"
+        placeholder={t("bookings.searchPlaceholder")}
         defaultValue={params.get("search") ?? ""}
       />
       <Button type="submit" variant="secondary">
-        Search
+        {t("bookings.search")}
       </Button>
     </form>
   );
@@ -452,24 +462,24 @@ export function BookingsPage() {
     <Button
       variant="secondary"
       loading={exporting}
-      loadingLabel="Preparing the file…"
+      loadingLabel={t("bookings.exporting")}
       onClick={exportToExcel}
     >
-      Export to Excel
+      {t("bookings.export")}
     </Button>
   );
 
   const sortControls = (
     <div className="flex items-end gap-2">
       <Select
-        label="Sort by"
+        label={t("bookings.sortBy")}
         className="flex-1"
         value={sort}
         onChange={(event) => update({ sort: event.target.value, order })}
       >
         {COLUMNS.map((column) => (
           <option key={column.key} value={column.key}>
-            {column.label}
+            {t(column.label)}
           </option>
         ))}
       </Select>
@@ -477,15 +487,15 @@ export function BookingsPage() {
         variant="secondary"
         onClick={() => update({ sort, order: order === "asc" ? "desc" : "asc" })}
       >
-        {order === "asc" ? "Ascending" : "Descending"}
+        {t(order === "asc" ? "bookings.ascending" : "bookings.descending")}
       </Button>
     </div>
   );
 
   return (
     <>
-      <title>Bookings · Admin · Dalaki</title>
-      <h1 className="sr-only">Bookings</h1>
+      <title>{`${t("admin.bookings")} ${t("admin.titleSuffix")}`}</title>
+      <h1 className="sr-only">{t("admin.bookings")}</h1>
 
       {tableFits ? (
         <>
@@ -505,10 +515,10 @@ export function BookingsPage() {
               onClick={() => setFiltersOpen(!filtersOpen)}
             >
               {filtersOpen
-                ? "Hide filters"
+                ? t("bookings.hideFilters")
                 : activeFilters > 0
-                  ? `Filters (${activeFilters})`
-                  : "Filters"}
+                  ? t("bookings.filtersCount", { count: activeFilters })
+                  : t("bookings.filters")}
             </Button>
             {exportButton}
           </div>

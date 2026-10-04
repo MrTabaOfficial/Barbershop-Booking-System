@@ -7,6 +7,7 @@ import { Input } from "../components/Input.tsx";
 import { Segmented } from "../components/Segmented.tsx";
 import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { statusLabel } from "../components/StatusBadge.tsx";
+import { t } from "../i18n/index.ts";
 import { addDays, formatLongDate, formatShortDate, isShopDate } from "../lib/dates.ts";
 import { formatPercent, formatPrice } from "../lib/format.ts";
 import { groupByWeek } from "./chartMath.ts";
@@ -59,9 +60,7 @@ function Figures({ overview }: { overview: Overview }) {
 
   if (nothingHappened) {
     return (
-      <EmptyState title="No bookings in this period">
-        Try a longer range, or a different one.
-      </EmptyState>
+      <EmptyState title={t("overview.empty")}>{t("overview.emptyHint")}</EmptyState>
     );
   }
 
@@ -72,11 +71,10 @@ function Figures({ overview }: { overview: Overview }) {
         label:
           week.from === week.to
             ? formatLongDate(week.from)
-            : `${shortDate(week.from)} to ${shortDate(week.to)}`,
+            : t("common.range", { from: shortDate(week.from), to: shortDate(week.to) }),
       }))
     : perDay.map((day) => ({ ...day, from: day.date, label: formatLongDate(day.date) }));
-  const unit = byWeek ? "week" : "day";
-  const hint = `Press the left and right arrow keys to read each ${unit}.`;
+  const hint = t(byWeek ? "overview.hintWeek" : "overview.hintDay");
   const columnsOf = (measure: "bookings" | "revenueCents") =>
     periods.map((period) => ({
       key: period.from,
@@ -87,35 +85,35 @@ function Figures({ overview }: { overview: Overview }) {
 
   return (
     <div className="grid gap-2.5 lg:gap-3">
-      <h2 className="sr-only">Key figures</h2>
+      <h2 className="sr-only">{t("overview.keyFigures")}</h2>
       <dl className="rounded-lg bg-surface p-4 sm:p-6 divide-y divide-line md:grid md:grid-cols-[1.5fr_1fr_1fr_1fr] md:divide-y-0">
         <Figure
           lead
-          label="Revenue"
+          label={t("overview.revenue")}
           value={formatPrice(totals.revenueCents)}
-          note="Completed bookings only"
+          note={t("overview.revenueNote")}
         />
         <Figure
-          label="Bookings"
+          label={t("overview.bookings")}
           value={String(totals.bookings)}
-          note="Not counting cancelled or expired"
+          note={t("overview.bookingsNote")}
         />
         <Figure
-          label="No-show rate"
+          label={t("overview.noShowRate")}
           value={noShowRate === null ? "–" : formatPercent(noShowRate)}
-          note="Of appointments that reached their time"
+          note={t("overview.noShowNote")}
         />
         <Figure
-          label="Cancelled"
+          label={t("overview.cancelled")}
           value={String(byStatus.cancelled)}
-          note="By the customer or by the shop"
+          note={t("overview.cancelledNote")}
         />
       </dl>
 
       <div className="grid gap-2.5 md:grid-cols-2 lg:gap-3">
         <div className="rounded-lg bg-surface p-4 sm:p-6">
           <ColumnChart
-            title={`Bookings per ${unit}`}
+            title={t(byWeek ? "overview.bookingsPerWeek" : "overview.bookingsPerDay")}
             hint={hint}
             columns={columnsOf("bookings")}
             formatValue={String}
@@ -123,7 +121,7 @@ function Figures({ overview }: { overview: Overview }) {
         </div>
         <div className="rounded-lg bg-surface p-4 sm:p-6">
           <ColumnChart
-            title={`Revenue per ${unit}`}
+            title={t(byWeek ? "overview.revenuePerWeek" : "overview.revenuePerDay")}
             hint={hint}
             columns={columnsOf("revenueCents")}
             smallestStep={WHOLE_LARI}
@@ -132,7 +130,7 @@ function Figures({ overview }: { overview: Overview }) {
         </div>
         <div className="rounded-lg bg-surface p-4 sm:p-6">
           <BarList
-            title="Bookings by status"
+            title={t("overview.byStatus")}
             rows={STATUS_ORDER.map((status) => ({
               label: statusLabel(status),
               value: byStatus[status],
@@ -142,7 +140,7 @@ function Figures({ overview }: { overview: Overview }) {
         {topServices.length > 0 && (
           <div className="rounded-lg bg-surface p-4 sm:p-6">
             <BarList
-              title="Most booked services"
+              title={t("overview.topServices")}
               rows={topServices.map((service) => ({ label: service.name, value: service.bookings }))}
             />
           </div>
@@ -151,20 +149,20 @@ function Figures({ overview }: { overview: Overview }) {
 
       <details className="rounded-lg bg-surface p-4 sm:p-6">
         <summary className={`${TEXT_LINK} cursor-pointer py-2.5`}>
-          Show the {byWeek ? "weekly" : "daily"} numbers as a table
+          {t(byWeek ? "overview.tableWeekly" : "overview.tableDaily")}
         </summary>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b-2 border-ink text-xs text-muted">
               <tr>
                 <th scope="col" className="py-2 pr-4 font-semibold">
-                  {byWeek ? "Week" : "Day"}
+                  {t(byWeek ? "overview.week" : "overview.day")}
                 </th>
                 <th scope="col" className="py-2 pr-4 text-right font-semibold">
-                  Bookings
+                  {t("overview.bookings")}
                 </th>
                 <th scope="col" className="py-2 text-right font-semibold">
-                  Revenue
+                  {t("overview.revenue")}
                 </th>
               </tr>
             </thead>
@@ -204,22 +202,22 @@ function OverviewFor({ today }: { today: string }) {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 px-0.5 sm:px-1.5 md:flex-row md:items-end">
         <Segmented
-          label="Period"
+          label={t("overview.period")}
           className="md:w-[22rem] lg:w-[26rem]"
-          options={PRESET_DAYS.map((days) => ({ value: days, label: `Last ${days} days` }))}
+          options={PRESET_DAYS.map((days) => ({ value: days, label: t("overview.lastDays", { days }) }))}
           value={preset}
           onChange={(days) => setRange(startOfPreset(days), today)}
         />
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="From"
+            label={t("overview.from")}
             type="date"
             value={from}
             max={to}
             onChange={(event) => event.target.value && setRange(event.target.value, to)}
           />
           <Input
-            label="To"
+            label={t("overview.to")}
             type="date"
             value={to}
             min={from}
@@ -230,7 +228,7 @@ function OverviewFor({ today }: { today: string }) {
 
       {overview.isError ? (
         <ErrorState
-          title="We couldn't load the overview"
+          title={t("overview.loadError")}
           error={overview.error}
           onRetry={() => void overview.refetch()}
         />
@@ -239,7 +237,7 @@ function OverviewFor({ today }: { today: string }) {
           <Figures overview={overview.data} />
         </div>
       ) : (
-        <LoadingBlock label="Loading the overview" rows={4} />
+        <LoadingBlock label={t("overview.loading")} rows={4} />
       )}
     </div>
   );
@@ -250,18 +248,18 @@ export function OverviewPage() {
 
   return (
     <>
-      <title>Overview · Admin · Dalaki</title>
-      <h1 className="sr-only">Overview</h1>
+      <title>{`${t("admin.overview")} ${t("admin.titleSuffix")}`}</title>
+      <h1 className="sr-only">{t("admin.overview")}</h1>
       {shop.isError ? (
         <ErrorState
-          title="We couldn't load the overview"
+          title={t("overview.loadError")}
           error={shop.error}
           onRetry={() => void shop.refetch()}
         />
       ) : shop.data ? (
         <OverviewFor today={shop.data.today} />
       ) : (
-        <LoadingBlock label="Loading the overview" rows={4} />
+        <LoadingBlock label={t("overview.loading")} rows={4} />
       )}
     </>
   );

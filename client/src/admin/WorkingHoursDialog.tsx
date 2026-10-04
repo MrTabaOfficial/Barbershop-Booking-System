@@ -6,16 +6,16 @@ import { Button } from "../components/Button.tsx";
 import { Dialog } from "../components/Dialog.tsx";
 import { Input } from "../components/Input.tsx";
 import { Notice } from "../components/Notice.tsx";
+import { t, type TranslationKey } from "../i18n/index.ts";
+import { weekdayName } from "../lib/dates.ts";
 import { formatClock, parseClock } from "../lib/format.ts";
 
-const WEEK = [
-  { weekday: 1, name: "Monday" },
-  { weekday: 2, name: "Tuesday" },
-  { weekday: 3, name: "Wednesday" },
-  { weekday: 4, name: "Thursday" },
-  { weekday: 5, name: "Friday" },
-  { weekday: 6, name: "Saturday" },
-  { weekday: 0, name: "Sunday" },
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
+const FIELDS: [keyof Omit<Row, "works">, TranslationKey][] = [
+  ["start", "hours.start"],
+  ["end", "hours.end"],
+  ["breakStart", "hours.breakFrom"],
+  ["breakEnd", "hours.breakTo"],
 ];
 
 type Row = { works: boolean; start: string; end: string; breakStart: string; breakEnd: string };
@@ -34,6 +34,7 @@ function toRow(day: WorkingDay | undefined): Row {
 
 export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; onClose: () => void }) {
   const saveWorkingHours = useSaveWorkingHours();
+  const WEEK = WEEKDAYS.map((weekday) => ({ weekday, name: weekdayName(weekday, "long") }));
   const [rows, setRows] = useState<Row[]>(() =>
     WEEK.map(({ weekday }) => toRow(barber.workingHours.find((day) => day.weekday === weekday))),
   );
@@ -76,23 +77,20 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
 
   return (
     <Dialog
-      title={`${barber.name}'s working hours`}
+      title={t("hours.title", { name: barber.name })}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Discard
+            {t("services.discard")}
           </Button>
-          <Button loading={saveWorkingHours.isPending} loadingLabel="Saving…" onClick={save}>
-            Save hours
+          <Button loading={saveWorkingHours.isPending} loadingLabel={t("services.saving")} onClick={save}>
+            {t("hours.save")}
           </Button>
         </>
       }
     >
-      <p className="text-muted">
-        Times are on the shop's clock. Leave the break empty for a day without one. Bookings
-        already made are not moved if the hours change.
-      </p>
+      <p className="text-muted">{t("hours.intro")}</p>
 
       {error && (
         <Notice tone="error">
@@ -125,24 +123,17 @@ export function WorkingHoursDialog({ barber, onClose }: { barber: AdminBarber; o
                   onChange={(event) => change(index, { works: event.target.checked })}
                 />
                 {name}
-                {!row.works && <span className="font-normal text-muted">Not working</span>}
+                {!row.works && <span className="font-normal text-muted">{t("hours.notWorking")}</span>}
               </label>
               {row.works && (
                 <div className="mt-2 grid grid-cols-2 gap-3">
-                  {(
-                    [
-                      ["start", "Start"],
-                      ["end", "End"],
-                      ["breakStart", "Break from"],
-                      ["breakEnd", "Break to"],
-                    ] as const
-                  ).map(([field, label]) => (
+                  {FIELDS.map(([field, label]) => (
                     <Input
                       key={field}
-                      label={label}
+                      label={t(label)}
                       type="time"
                       step={900}
-                      aria-label={`${name}: ${label.toLowerCase()}`}
+                      aria-label={t("hours.field", { day: name, field: t(label).toLowerCase() })}
                       value={row[field]}
                       onChange={(event) => change(index, { [field]: event.target.value })}
                     />

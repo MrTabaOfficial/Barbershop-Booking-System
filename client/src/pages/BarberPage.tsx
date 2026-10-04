@@ -5,6 +5,7 @@ import { countAppointments, DayAgenda, describeHours } from "../barber/DayAgenda
 import { DaysOff } from "../barber/DaysOff.tsx";
 import { Button, TEXT_LINK } from "../components/Button.tsx";
 import { ErrorState, LoadingBlock } from "../components/States.tsx";
+import { t } from "../i18n/index.ts";
 import { Tag } from "../components/Tag.tsx";
 import { addDays, formatLongDate, formatShortDate, startOfWeek } from "../lib/dates.ts";
 
@@ -16,7 +17,7 @@ function Today({ today }: { today: string }) {
     <section aria-labelledby="today-title" className="rounded-lg bg-surface p-4 sm:p-6 lg:row-span-2">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="today-title" className="text-xl">
-          Today
+          {t("barber.today")}
         </h2>
         {day && <p className="text-sm text-muted">{countAppointments(day)}</p>}
       </div>
@@ -25,14 +26,14 @@ function Today({ today }: { today: string }) {
       <div className="mt-4">
         {schedule.isError ? (
           <ErrorState
-            title="We couldn't load today's appointments"
+            title={t("barber.todayError")}
             error={schedule.error}
             onRetry={() => void schedule.refetch()}
           />
         ) : day ? (
           <DayAgenda day={day} markNow />
         ) : (
-          <LoadingBlock label="Loading today's appointments" />
+          <LoadingBlock label={t("barber.todayLoading")} />
         )}
       </div>
     </section>
@@ -48,43 +49,41 @@ function Week({ today }: { today: string }) {
   return (
     <section aria-labelledby="week-title" className="rounded-lg bg-surface p-4 sm:p-6">
       <h2 id="week-title" className="text-xl">
-        {weekStart === thisWeek ? "This week" : "Week"}
+        {t(weekStart === thisWeek ? "barber.thisWeek" : "barber.week")}
       </h2>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p>
-          {formatShortDate(weekStart)} to {formatShortDate(weekEnd)}
-        </p>
+        <p>{t("common.range", { from: formatShortDate(weekStart), to: formatShortDate(weekEnd) })}</p>
         <div className="flex gap-2">
           <Button
             variant="secondary"
             className="px-3.5"
-            aria-label="Previous week"
+            aria-label={t("barber.previousWeek")}
             onClick={() => setWeekStart(addDays(weekStart, -7))}
           >
-            Previous
+            {t("barber.previous")}
           </Button>
           {weekStart !== thisWeek && (
             <Button variant="secondary" className="px-3.5" onClick={() => setWeekStart(thisWeek)}>
-              This week
+              {t("barber.thisWeek")}
             </Button>
           )}
           <Button
             variant="secondary"
             className="px-3.5"
-            aria-label="Next week"
+            aria-label={t("barber.nextWeek")}
             onClick={() => setWeekStart(addDays(weekStart, 7))}
           >
-            Next
+            {t("barber.next")}
           </Button>
         </div>
       </div>
 
       <div className="mt-4">
         {schedule.isPending ? (
-          <LoadingBlock label="Loading the week" rows={7} />
+          <LoadingBlock label={t("barber.weekLoading")} rows={7} />
         ) : schedule.isError ? (
           <ErrorState
-            title="We couldn't load this week"
+            title={t("barber.weekError")}
             error={schedule.error}
             onRetry={() => void schedule.refetch()}
           />
@@ -96,7 +95,7 @@ function Week({ today }: { today: string }) {
                   <span className="block font-semibold">
                     {formatShortDate(day.date)}
                     {day.date === today && (
-                      <Tag className="ml-2">Today</Tag>
+                      <Tag className="ml-2">{t("common.today")}</Tag>
                     )}
                   </span>
                   <span className="block text-sm text-muted">{describeHours(day)}</span>
@@ -119,8 +118,8 @@ function Week({ today }: { today: string }) {
                     <span className="shrink-0 text-right text-sm">
                       <span className="block">{countAppointments(day)}</span>
                       <span className={TEXT_LINK}>
-                        <span className="group-open:hidden">Show</span>
-                        <span className="hidden group-open:inline">Hide</span>
+                        <span className="group-open:hidden">{t("barber.show")}</span>
+                        <span className="hidden group-open:inline">{t("barber.hide")}</span>
                       </span>
                     </span>
                   </summary>
@@ -144,14 +143,14 @@ export function BarberPage() {
     if (shop.isError) {
       return (
         <ErrorState
-          title="We couldn't load your schedule"
+          title={t("barber.scheduleError")}
           error={shop.error}
           onRetry={() => void shop.refetch()}
         />
       );
     }
     if (!shop.data) {
-      return <LoadingBlock label="Loading your schedule" />;
+      return <LoadingBlock label={t("barber.scheduleLoading")} />;
     }
     const { today } = shop.data;
     return (
@@ -165,8 +164,8 @@ export function BarberPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-2.5 pb-16 pt-5 sm:px-3 lg:pt-8">
-      <title>Schedule · Dalaki</title>
-      <h1 className="mb-4 px-2 text-3xl sm:px-3">Schedule</h1>
+      <title>{t("barber.title")}</title>
+      <h1 className="mb-4 px-2 text-3xl sm:px-3">{t("barber.heading")}</h1>
       {renderBody()}
     </div>
   );

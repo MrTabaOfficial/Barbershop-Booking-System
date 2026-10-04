@@ -14,24 +14,26 @@ import { EmptyState, ErrorState, LoadingBlock } from "../components/States.tsx";
 import { Textarea } from "../components/Textarea.tsx";
 import { showApiErrorOnForm } from "../lib/formErrors.ts";
 import { formatDuration, formatPrice, parseLari, toLariInput } from "../lib/format.ts";
+import { t } from "../i18n/index.ts";
 import { countActive } from "./activeEntries.ts";
 
 const amount = (message: string) =>
   z.string().refine((value) => parseLari(value) !== null, message);
 
-const serviceSchema = z.object({
-  name: z.string().trim().min(1, "Give the service a name").max(100),
-  description: z.string().trim().max(500, "Keep it under 500 characters"),
-  durationMinutes: z
-    .string()
-    .refine(
-      (value) => /^\d+$/.test(value) && Number(value) >= 15 && Number(value) % 15 === 0,
-      "Use a multiple of 15 minutes",
-    ),
-  priceCents: amount("Enter a price, like 45 or 45.50"),
-  depositCents: amount("Enter a deposit, like 15"),
-});
-type ServiceValues = z.infer<typeof serviceSchema>;
+const serviceSchema = () =>
+  z.object({
+    name: z.string().trim().min(1, t("services.v.name")).max(100),
+    description: z.string().trim().max(500, t("services.v.description")),
+    durationMinutes: z
+      .string()
+      .refine(
+        (value) => /^\d+$/.test(value) && Number(value) >= 15 && Number(value) % 15 === 0,
+        t("services.v.length"),
+      ),
+    priceCents: amount(t("services.v.price")),
+    depositCents: amount(t("services.v.deposit")),
+  });
+type ServiceValues = z.infer<ReturnType<typeof serviceSchema>>;
 const FIELDS = ["name", "description", "durationMinutes", "priceCents", "depositCents"] as const;
 
 function ServiceDialog({ service, onClose }: { service: AdminService | null; onClose: () => void }) {
@@ -44,7 +46,7 @@ function ServiceDialog({ service, onClose }: { service: AdminService | null; onC
     setError,
     formState: { errors },
   } = useForm<ServiceValues>({
-    resolver: zodResolver(serviceSchema),
+    resolver: zodResolver(serviceSchema()),
     defaultValues: {
       name: service?.name ?? "",
       description: service?.description ?? "",
@@ -73,43 +75,43 @@ function ServiceDialog({ service, onClose }: { service: AdminService | null; onC
 
   return (
     <Dialog
-      title={service ? `Edit ${service.name}` : "Add a service"}
+      title={service ? t("services.edit", { name: service.name }) : t("services.add")}
       onClose={onClose}
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Discard
+            {t("services.discard")}
           </Button>
-          <Button type="submit" form={formId} loading={saveService.isPending} loadingLabel="Saving…">
-            Save service
+          <Button type="submit" form={formId} loading={saveService.isPending} loadingLabel={t("services.saving")}>
+            {t("services.save")}
           </Button>
         </>
       }
     >
       <form id={formId} onSubmit={onSubmit} noValidate className="space-y-4 text-base">
         {formError && <Notice tone="error">{formError}</Notice>}
-        <Input label="Name" error={errors.name?.message} {...register("name")} />
+        <Input label={t("services.name")} error={errors.name?.message} {...register("name")} />
         <Textarea
-          label="Description (optional)"
+          label={t("services.description")}
           error={errors.description?.message}
           {...register("description")}
         />
         <Input
-          label="Length in minutes"
+          label={t("services.length")}
           inputMode="numeric"
-          hint="Existing bookings keep the length they were made with."
+          hint={t("services.lengthHint")}
           error={errors.durationMinutes?.message}
           {...register("durationMinutes")}
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Price in ₾"
+            label={t("services.price")}
             inputMode="decimal"
             error={errors.priceCents?.message}
             {...register("priceCents")}
           />
           <Input
-            label="Deposit in ₾"
+            label={t("services.deposit")}
             inputMode="decimal"
             error={errors.depositCents?.message}
             {...register("depositCents")}
@@ -127,12 +129,12 @@ export function ServicesPage() {
 
   function renderList() {
     if (services.isPending) {
-      return <LoadingBlock label="Loading services" rows={5} />;
+      return <LoadingBlock label={t("services.loading")} rows={5} />;
     }
     if (services.isError) {
       return (
         <ErrorState
-          title="We couldn't load the services"
+          title={t("services.loadError")}
           error={services.error}
           onRetry={() => void services.refetch()}
         />
@@ -140,9 +142,7 @@ export function ServicesPage() {
     }
     if (services.data.length === 0) {
       return (
-        <EmptyState title="No services yet">
-          Add the first one and it will appear on the website straight away.
-        </EmptyState>
+        <EmptyState title={t("services.none")}>{t("services.noneHint")}</EmptyState>
       );
     }
     return (
@@ -157,30 +157,33 @@ export function ServicesPage() {
                 {service.name}
                 {!service.isActive && (
                   <Tag tone="neutral" className="ml-2.5 align-middle">
-                    Inactive
+                    {t("services.inactive")}
                   </Tag>
                 )}
               </p>
               <p className="text-sm text-muted">
-                {formatDuration(service.durationMinutes)}, {formatPrice(service.priceCents)},
-                deposit {formatPrice(service.depositCents)}
+                {t("services.summary", {
+                  duration: formatDuration(service.durationMinutes),
+                  price: formatPrice(service.priceCents),
+                  deposit: formatPrice(service.depositCents),
+                })}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-4">
               <Button
                 variant="secondary"
-                aria-label={`Edit ${service.name}`}
+                aria-label={t("services.edit", { name: service.name })}
                 onClick={() => setEditing(service)}
               >
-                Edit
+                {t("services.editButton")}
               </Button>
               <Button
                 variant="quiet"
                 disabled={saveService.isPending}
-                aria-label={`${service.isActive ? "Deactivate" : "Activate"} ${service.name}`}
+                aria-label={t(service.isActive ? "services.deactivateName" : "services.activateName", { name: service.name })}
                 onClick={() => saveService.mutate({ id: service.id, isActive: !service.isActive })}
               >
-                {service.isActive ? "Deactivate" : "Activate"}
+                {t(service.isActive ? "services.deactivate" : "services.activate")}
               </Button>
             </div>
           </li>
@@ -191,11 +194,11 @@ export function ServicesPage() {
 
   return (
     <>
-      <title>Services · Admin · Dalaki</title>
-      <h1 className="sr-only">Services</h1>
+      <title>{`${t("admin.services")} ${t("admin.titleSuffix")}`}</title>
+      <h1 className="sr-only">{t("admin.services")}</h1>
       <div className="mb-3 flex items-center justify-between gap-4 px-0.5 sm:px-1.5">
         <p className="text-muted">{services.data && countActive(services.data, "service")}</p>
-        <Button onClick={() => setEditing(null)}>Add a service</Button>
+        <Button onClick={() => setEditing(null)}>{t("services.add")}</Button>
       </div>
       {saveService.isError && (
         <Notice tone="error" className="mb-4">
