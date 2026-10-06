@@ -1,3 +1,5 @@
+English · [ქართული](README.ka.md)
+
 # Dalaki, a barbershop booking system
 
 Dalaki (დალაქი, "barber" in Georgian) is a booking system for a
@@ -5,13 +7,15 @@ barbershop with several barbers, built around a fictional shop in
 Tbilisi. A customer picks a service, a barber and a time, pays a deposit,
 and can move or cancel the booking later. Each barber has a schedule made
 for a phone, and the owner has a dashboard for services, staff, working
-hours, bookings and revenue. It is a portfolio project: it runs on your
+hours, bookings and revenue. The site is in English and Georgian. It is
+a portfolio project: it runs on your
 own machine with Docker and Node, is not deployed anywhere, and moves no
 real money and delivers no real email.
 
 ## Screenshots
 
-All taken from the demo data that `npm run db:seed` loads.
+All taken from the demo data that `npm run db:seed` loads. The same
+pages in Georgian are in the [Georgian README](README.ka.md).
 
 | Home | Picking a time |
 | --- | --- |
@@ -40,6 +44,8 @@ Customer
 - My bookings: move or cancel a booking. Cancelling is free until 24
   hours before the start; after that the deposit is kept.
 - Emails: confirmation, moved, cancelled, and a reminder the day before.
+- The interface in English or Georgian; the switch is in the header and
+  the choice is remembered in the browser.
 
 Barber
 
@@ -146,7 +152,9 @@ makes tabs take turns.
 
 - Website (`client/`): React 19, Vite, TypeScript, Tailwind 4, React
   Router, TanStack Query, react-hook-form with zod. The components and
-  the charts are written for this project; there is no UI library.
+  the charts are written for this project; there is no UI library. Two
+  languages through a small dictionary module of its own, no i18n
+  library.
 - API (`server/`): Node 26, Express 5, TypeScript run with tsx, zod.
 - Database: PostgreSQL 17 in Docker, Prisma 7.
 - Auth: JWT access tokens and rotating refresh tokens; roles customer,
@@ -268,9 +276,9 @@ as a visitor and register on the way, pay the deposit, leave the payment
 page and pay later, recover when the time is taken at the last moment,
 move and cancel a booking, stay logged in across a reload, record an
 outcome and manage days off as a barber, and work through the admin's
-overview, a service, the bookings and a barber's hours. They run at 390
-px wide; the admin's table test runs at 1280 px, and one test checks
-that nothing scrolls sideways at 320 px.
+overview, a service, the bookings and a barber's hours, and switch the
+site to Georgian. They run at 390 px wide; the admin's table test runs
+at 1280 px, and one test checks that nothing scrolls sideways at 320 px.
 
 ## Known limitations
 
@@ -298,9 +306,15 @@ that nothing scrolls sideways at 320 px.
 - The emails were checked in Mailpit only, not in real Gmail, Outlook or
   Apple Mail. The Georgian wordmark in them is drawn by the reader's own
   font, since mail programs don't load web fonts.
-- The fonts are about 680 KB: Literata for the text, plus two weights
-  of FiraGO kept for the Georgian wordmark and the lari sign, which
-  Literata lacks. FiraGO's package can't be split by alphabet.
+- The emails are English only, as are the data from the API (service
+  names, bios, error messages); the Georgian language covers the
+  interface.
+- The Georgian copy was written by Claude and has not been reviewed by
+  a native speaker.
+- The fonts are about 680 KB: Literata for the English text, plus two
+  weights of FiraGO that carry the Georgian interface, the wordmark and
+  the lari sign, none of which Literata has. FiraGO's package can't be
+  split by alphabet.
 - The photographs are stock photos of other barbershops, from Pexels
   and Unsplash, not of a shop in Tbilisi.
 
