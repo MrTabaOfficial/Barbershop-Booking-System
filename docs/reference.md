@@ -2,7 +2,8 @@
 
 The detail behind the [README](../README.md): every endpoint, how the
 numbers are calculated, how payments, notifications and login work, how
-to switch on Stripe and Telegram, and where each file is.
+double booking is prevented, how to switch on Stripe and Telegram, and
+what is known not to work yet.
 
 ## API
 
@@ -336,112 +337,67 @@ that conversion everything is measured in real elapsed time.
 - Rescheduling moves the booking with a single `UPDATE`, so it either
   gets the new time or keeps the old one.
 
+## How double booking is prevented
+
+Checking that a time is free before saving can't stop two requests that
+arrive together, so the rule is enforced by the database. The `bookings`
+table has a PostgreSQL exclusion constraint: for one barber, no two
+bookings may cover overlapping time, not counting cancelled and expired
+ones
+([first migration](../server/prisma/migrations/20261004143447_booking_no_overlap/migration.sql),
+[second](../server/prisma/migrations/20261004183146_booking_overlap_ignores_expired/migration.sql)).
+The request that loses a race fails in one of two ways: the constraint
+is violated, or, when both inserts happen at the same instant, PostgreSQL
+detects a deadlock and aborts one of them. `isSlotTakenError`
+([errors.ts](../server/src/bookings/errors.ts)) treats both as the same
+answer, `409 SLOT_UNAVAILABLE`, and the website then reloads the free
+times. A test sends two requests for one slot at the same time and
+expects exactly one `201`, one `409` and one row.
+
+## Known limitations
+
+- It runs locally only. Nothing here has been deployed or load tested.
+- Stripe: the code was checked against Stripe's official API mock and
+  its signature check is tested, but it has never been run against a
+  real Stripe account. The tests and the demo use the fake provider.
+- Telegram: the owner's alerts have never reached Telegram. Without a
+  bot token they are written to the server's log, and that stand-in is
+  what the tests cover.
+- A failed refund has no retry button. The booking shows "Refund failed"
+  in the admin's table and the refund has to be made by hand.
+- Adding a day off checks that the date has no bookings and then saves
+  it. A booking made in the instant between the two can end up on a day
+  off.
+- Changing a barber's hours, or deactivating a barber, doesn't move the
+  bookings already made. They have to be moved or cancelled by hand.
+- Moving a booking keeps the same barber and service.
+- The admin can't reset a barber's password or change their email.
+- Emails and owner alerts are sent during the request. A slow mail
+  server slows the booking down, and a message that fails is logged, not
+  retried. A production version would hand them to a queue.
+- A reminder that fails is tried again on each run, with no escalation
+  if the mail server stays down.
+- The emails were checked in Mailpit only, not in real Gmail, Outlook or
+  Apple Mail. The Georgian wordmark in them is drawn by the reader's own
+  font, since mail programs don't load web fonts.
+- The emails are English only, as are the data from the API (service
+  names, bios, error messages); the Georgian language covers the
+  interface.
+- The Georgian interface text has not been proofread by a second person.
+- The fonts are about 680 KB: Literata for the English text, plus two
+  weights of FiraGO that carry the Georgian interface, the wordmark and
+  the lari sign, none of which Literata has. FiraGO's package can't be
+  split by alphabet.
+- The photographs are stock photos of other barbershops, from Pexels
+  and Unsplash, not of a shop in Tbilisi.
+- There is no password reset and no email verification.
+- The fake payment provider keeps its checkouts in memory, so a payment
+  page opened before the API restarts no longer exists afterwards; the
+  booking then expires after its 30-minute hold.
+- `client/public/photos/barber.webp` is in the repository but no page
+  uses it.
+
 ## Project layout
 
-```
-docker-compose.yml     PostgreSQL and Mailpit containers
-.env.example           Template for .env
-server/
-  prisma.config.ts     Prisma CLI configuration
-  prisma/
-    schema.prisma      Data model
-    migrations/        SQL applied to the database, in order
-    seed.ts            Demo data
-  src/
-    index.ts           Starts the server
-    app.ts             Builds the Express app
-    env.ts             Loads and checks environment variables
-    db.ts              Shared Prisma client
-    errors.ts          Error format and central error handler
-    auth/
-      routes.ts        The /auth endpoints
-      service.ts       Register, login, and refresh token rotation
-      tokens.ts        Access token signing, refresh token generation
-      password.ts      Password hashing
-      schemas.ts       Request validation
-      middleware.ts    requireAuth and requireRole
-    shop/
-      time.ts          Conversions between shop clock time and UTC
-      details.ts       Name, address and phone, for the emails and GET /shop
-      routes.ts        GET /shop
-    availability/
-      slots.ts         The slot calculation (pure function)
-      service.ts       Loads schedule and bookings for the calculation
-      routes.ts        GET /availability
-    services/routes.ts GET /services
-    barbers/routes.ts  GET /barbers
-    bookings/
-      routes.ts        The /bookings endpoints
-      service.ts       Create, list, cancel, reschedule
-      schemas.ts       Request validation
-    barber/
-      routes.ts        The /barber endpoints
-      service.ts       Schedule, outcomes, days off
-      schemas.ts       Request validation
-    payments/
-      provider.ts      The interface both providers implement
-      stripe.ts        Stripe Checkout, refunds, webhook verification
-      fake.ts          An in-memory stand-in, for tests and for no keys
-      index.ts         Which providers exist, and which takes new deposits
-      service.ts       Confirming, expiring and refunding bookings
-      routes.ts        The webhook, and the fake payment page
-    notifications/
-      emails.ts        The emails' wording and HTML
-      mailer.ts        Sending through SMTP, or logging
-      ownerAlerts.ts   Telegram messages to the owner, or logging
-      service.ts       Who is told what, and never failing because of it
-    jobs/
-      index.ts         The schedule
-      reminders.ts     The day-before reminder
-      dailySummary.ts  The owner's closing-time summary
-      cleanup.ts       Deleting dead refresh tokens
-    dependencies.ts    Payments, mailer and alerts, bundled for the app
-    admin/
-      routes.ts        The /admin endpoints
-      catalog.ts       Services, barbers and working hours
-      bookings.ts      Filtering, sorting, paging, cancelling
-      overview.ts      The statistics, in SQL
-      export.ts        The Excel file
-      schemas.ts       Request validation
-  tests/               Vitest tests, run against a separate database
-client/
-  index.html
-  vite.config.ts       Vite, Tailwind, and the /api proxy
-  src/
-    main.tsx           Entry: fonts, providers, router
-    index.css          Tailwind, the design tokens, base styles
-    routes.tsx         Route table
-    brand.ts           Name and wordmark, for the logo
-    api/
-      http.ts          fetch wrapper: token in memory, refresh and retry
-      queries.ts       TanStack Query hooks, one per endpoint
-      barberQueries.ts The same for the barber dashboard
-      adminQueries.ts  The same for the admin dashboard
-      types.ts         Shapes of API responses
-    auth/
-      AuthProvider.tsx Session state: restore on load, login, logout
-      AuthContext.ts   The useAuth hook
-      RequireAuth.tsx  Guard for logged-in pages
-      AuthForms.tsx    Login and register forms
-    components/        Button, Input, Select, Textarea, Card, Dialog,
-                       Notice, Tag, StatusBadge, Segmented, States, Layout
-    booking/           SlotPicker (day and time), Stepper, ChoiceList,
-                       BookingSummary, ConfirmStep, BookingCard,
-                       PastVisits, cancel and reschedule dialogs
-    barber/            Appointment, DayAgenda, DaysOff
-    admin/             AdminLayout (tabs), Overview, Bookings, Services
-                       and Staff pages, WorkingHoursDialog, and charts.tsx
-                       (our own SVG column chart and bar list)
-    pages/             Home, Book, login and register, My bookings,
-                       the barber's Schedule
-    lib/               Dates, formatting, form errors, safe redirects,
-                       useMediaQuery, useFocusAfter
-e2e/
-  playwright.config.ts Starts the API and website for the tests
-  environment.ts       The suite's own database and ports
-  global-setup.ts      Migrates and seeds the e2e database
-  tests/               The end-to-end tests and their helpers
-docs/
-  reference.md         This file
-  screenshots/         The README's screenshots
-```
+The file tree, with a line on each folder, is in the
+[README](../README.md#project-structure).
